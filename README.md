@@ -2,6 +2,9 @@
 
 Using machine learning to predict survival in a right-censored, high dimensional NGS dataset of cancer patients. 
 
+<img src="./cancer-ml-logo-export.svg" alt="Multi-omics risk modelling logo">
+
+
 ## Table of Contents
 
 - [Introduction](#introduction)
