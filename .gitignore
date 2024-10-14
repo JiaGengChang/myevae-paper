@@ -6,4 +6,11 @@ data/actual
 data/utils
 qsub.sh
 modules_mlp
-output
+output/*
+!output/vae_models/
+output/vae_models/*
+!output/vae_models/example/
+output/vae_models/example/*
+!output/vae_models/example/*.json
+!output/vae_models/example/*.pdf
+!output/vae_models/example/*.tsv.anonymised
