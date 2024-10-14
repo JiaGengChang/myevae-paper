@@ -2,5 +2,6 @@
 .env
 .vscode/
 */__pycache__/
-./data/actual/
-./data/utils/
+data/actual
+data/utils
+qsub.sh
