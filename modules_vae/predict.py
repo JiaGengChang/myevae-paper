@@ -2,7 +2,7 @@ import torch
 import numpy as np
 import pandas as pd
 
-def predict_to_csv(model, loader, outputfile):
+def predict_to_tsv(model, loader, outputfile):
     model.eval()
     predictions = []
     public_ids = []
@@ -19,4 +19,4 @@ def predict_to_csv(model, loader, outputfile):
         'PUBLIC_ID': public_ids,
         'prediction': predictions.flatten()
     })
-    df.to_csv(outputfile, index=False)
+    df.to_csv(outputfile, index=False, sep='\t')

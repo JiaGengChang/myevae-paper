@@ -9,7 +9,7 @@ class VAEParams:
         self.shuffle = shuffle
         self.fold = fold
         # modify the rest
-        self.model_name = 'meanMSE_allSigmoid'
+        self.model_name = 'example'
         self.batch_size = 64
         self.lr = 1e-5
         self.epochs = 100

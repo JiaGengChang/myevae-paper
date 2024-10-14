@@ -12,7 +12,7 @@ from parsers import parse_all
 from splitter import kfold_split
 from scaler import scale_and_impute_without_train_test_leak as scale_impute
 from fit import fit
-from predict import predict_to_csv
+from predict import predict_to_tsv
 from plotlosses import plot_results_to_pdf
 
 """
@@ -47,8 +47,8 @@ model = Model(params.input_types,
 # fit and save history to json
 fit(model, trainloader, validloader, params)
 
-# predict on validation data once more and save to csv
-predict_to_csv(model, validloader, f'{params.resultsprefix}.csv')
+# predict on validation data once more and save to tsv
+predict_to_tsv(model, validloader, f'{params.resultsprefix}.tsv')
 
 # plot losses and metrics to pdf
 plot_results_to_pdf(f'{params.resultsprefix}.json',f'{params.resultsprefix}.pdf')
