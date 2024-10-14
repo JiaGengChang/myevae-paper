@@ -10,7 +10,7 @@ def buildNetwork(layers, activation, add_batchNorm=False, dropout=0):
             net.append(torch.nn.Dropout(dropout))
         # add nonlinearity
         # pass a child class of torch.nn
-        net.append(activation())
+        net.append(activation)
     outnetwork=torch.nn.Sequential(*net)
-    return outnetwork
+    return outnetwork.to(torch.float64)
 

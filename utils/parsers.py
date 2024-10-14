@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 from dotenv import load_dotenv
-load_dotenv('/home/users/nus/e1083772/commpass/.env')
+load_dotenv('/home/users/nus/e1083772/cancer-survival-ml/.env')
 
 def parse_surv(endpoint): # pfs or os
     surv=pd.read_csv(os.environ.get("SURVDATAFILE"),sep='\t')\
@@ -54,9 +54,13 @@ def parse_apobec():
         .rename(columns={'APOBEC_top10':'Feature_APOBEC'})
     return apobec
 
+def parse_sbs():
+    sbs = pd.read_csv(os.environ.get("SBSFILE"), sep='\t')
+    return sbs
+
 def parse_all(endpoint):
     dfall=parse_surv(endpoint)
-    for parse in [parse_clin,parse_cna,parse_fish,parse_rna,parse_gistic,parse_sv,parse_chromoth,parse_apobec]:
+    for parse in [parse_clin,parse_sbs,parse_cna,parse_fish,parse_rna,parse_gistic,parse_sv,parse_chromoth,parse_apobec]:
         dfnext = parse()
         dfall=dfall.merge(dfnext,how='outer',left_on='PUBLIC_ID',right_on='PUBLIC_ID').drop_duplicates()
     dfall=dfall.set_index('PUBLIC_ID').dropna(subset=[f'survtime',f'survflag'],how='any')
