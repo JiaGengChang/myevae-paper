@@ -69,8 +69,16 @@ def plot_results_to_pdf(resultsfile='../output/vae_models/dev.json',
         
         plt.figure(figsize=(8.27, 11.69))  # A4 size in inches
         
+        # Plot validation metric first
+        ax1 = plt.subplot(num_rows, num_cols, 1)
+        ax1.plot(epochs, valid_metric, 'g-', label='Valid Metric')
+        ax1.set_xlabel('Epoch')
+        ax1.set_ylabel('Metric')
+        ax1.set_title('Validation Metric')
+        ax1.legend(loc='upper left')
+        # then plot the train and valid loss curves
         for i, (label, train_loss, valid_loss) in enumerate(losses):
-            ax1 = plt.subplot(num_rows, num_cols, i + 1)
+            ax1 = plt.subplot(num_rows, num_cols, i + 2)
             ax1.plot(epochs, train_loss, 'b-', label=f'Train {label}')
             ax1.set_xlabel('Epoch')
             ax1.set_ylabel('Train Loss')
@@ -81,14 +89,6 @@ def plot_results_to_pdf(resultsfile='../output/vae_models/dev.json',
             ax2.plot(epochs, valid_loss, 'r-', label=f'Valid {label}')
             ax2.set_ylabel('Valid Loss')
             ax2.legend(loc='upper right')
-        
-        # Plot validation metric separately
-        ax1 = plt.subplot(num_rows, num_cols, i+2)
-        ax1.plot(epochs, valid_metric, 'g-', label='Valid Metric')
-        ax1.set_xlabel('Epoch')
-        ax1.set_ylabel('Metric')
-        ax1.set_title('Validation Metric')
-        ax1.legend(loc='upper left')
         
         plt.tight_layout()
         pdf.savefig()  # Save the current figure to the PDF
