@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 from dotenv import load_dotenv
-load_dotenv('.env')
+load_dotenv('../.env')
 
 def parse_surv(endpoint): # pfs or os
     surv=pd.read_csv(os.environ.get("SURVDATAFILE"),sep='\t')\
