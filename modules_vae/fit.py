@@ -1,5 +1,4 @@
 import torch
-import numpy as np
 import json
 import sys
 sys.path.append('../utils')
@@ -51,7 +50,7 @@ def fit(model, trainloader, validloader, params):
             inputs_task = [data[f'X_{input_type}'] for input_type in model.input_types_subtask]
             outputs, mu, logvar, riskpred = model.forward((inputs_vae, inputs_task))
             assert len(inputs_vae)==len(outputs)
-            batch_kl_loss = kl_loss_func(mu, logvar)
+            batch_kl_loss = params.kl_weight * kl_loss_func(mu, logvar)
             assert not batch_kl_loss.isnan().any().item()
             batch_reconstruction_losses = [
                 f(output, input_vae) for f, output, input_vae in zip(reconstruction_loss_funcs, outputs, inputs_vae)
@@ -118,11 +117,45 @@ def fit(model, trainloader, validloader, params):
         
         return valid_kl_loss, valid_reconstruction_losses, valid_survival_loss, valid_metric
 
+    # best epoch based on validation survival loss
+    results['best_epoch'] = {
+        'valid_survival_loss':float('inf'),
+        'valid_metric': float('inf'),
+        'epoch': float('inf')
+    }
+    # initialize early stopping variables
+    patience = 20
+    epochs_no_improve = 0
+    best_model_state = None
+    burn_in_epoch = 50 # ignore starting fluctuations in validation loss
+    
     for epoch in range(params.epochs):
         if epoch not in results['history']:
             results['history'][epoch] = {'train': {}, 'valid': {}}
         train_step(epoch)
-        valid_step(epoch)
+        _, _, valid_survival_loss, valid_metric = valid_step(epoch)
+        
+        if epoch < burn_in_epoch:
+            continue
+        
+        # Handle early stopping
+        if valid_survival_loss < results['best_epoch']['valid_survival_loss']:
+            results['best_epoch']['valid_survival_loss'] = valid_survival_loss
+            results['best_epoch']['valid_metric'] = valid_metric
+            results['best_epoch']['epoch'] = epoch
+            epochs_no_improve = 0
+            best_model_state = model.state_dict()
+        else:
+            epochs_no_improve += 1
+        
+        if epochs_no_improve >= patience:
+            print('Early stopping at epoch', epoch)
+            results['params']['epochs'] = epoch + 1 # record the number of epochs trained
+            break
+    
+    # load the best model state
+    if best_model_state is not None:
+        model.load_state_dict(best_model_state)
 
     # save and plot results
     with open(f'{params.resultsprefix}.json', 'w') as f:
