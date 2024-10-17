@@ -1,9 +1,6 @@
 # Cancer Survival ML
 
-Using machine learning to predict survival in a right-censored, high dimensional NGS dataset of cancer patients. 
-
-<img src="./assets/cancer-ml-logo-export.svg" alt="Multi-omics risk modelling logo">
-
+<p align="left"><img src="./assets/cancer-ml-logo-export.svg" alt="Multi-omics risk modelling logo" width="600"></p>
 
 ## Table of Contents
 
@@ -17,7 +14,9 @@ Using machine learning to predict survival in a right-censored, high dimensional
 
 ## Introduction
 
-Provide a brief introduction to the project and its objectives.
+Predicting the survival of newly diagnosed multiple myeloma patients using information from routine clinical parameters and next generation sequencing technologies.
+
+Techniques used: statistical tests, dimensionality reduction, variational autoencoders, survival regression
 
 ## Dataset
 
@@ -30,7 +29,7 @@ We used two different versions of CoMMpass data, Interim Analysis 16 (IA16) and 
 ### Model architecture
 The layers and layer dimensions of VAE risk model is as shown:
 
-<img src="./assets/vae-diagram-export.svg" alt="Using variational autoencoder to integrate omics data">
+<p align="center"><img src="./assets/vae-diagram-export.svg" alt="Using variational autoencoder to integrate omics data" width="800"></p>
 
 1. Data from Whole genome sequencing (WGS), whole exome sequencing (WXS), and RNA-Sequencing (RNA-Seq) are first individually encoded using the peripheral encoder layers.
     1. WGS IA21*: Gene level copy number, GISTIC recurrently amplified/deleted regions, interphase FISH probe locations
@@ -48,7 +47,35 @@ The layers and layer dimensions of VAE risk model is as shown:
 
 ### Training
 
-We use 10-random samples of 5-fold cross validation to tune hyperparameters.
+Our training objective is to model is progression free survival (PFS) in days. A secondary objective is to model Overall Survival (OS) in days.
+
+Our optimization objective is the 2 standard VAE loss terms - KL divergence and reconstruction error (Mean Square Error). We add a third loss term, typically called the sub-task loss in literature.
+
+Training was done for up to 300 epochs, with 50 burn-in epochs and early stopping with a patience of 20 epochs. The stopping criteria is validation survival/sub-task loss.
+
+After training, PDF files of convergence plots will be produced in the output folder. This monitors the KL divergence loss, reconstruction loss for every data modality, survival loss (negative log likelihood; NPLL), and C-index metric on validation dataset.
+
+An example of training convergence is shown here. Red is for the validation dataset, blue for training.
+
+<p align="center"><img src="./assets/example-pfs-shuffle-0-fold-0.png" alt="Loss curves for training and validation datasets" width="800"></p>
+
+The drop in survival loss (and improvement in metric) typically coincides with a spike KL divergence. This indicates that the latent distribution is deviating away from the prior N_z(0,1). 
+
+However, as our main task is to improve survival loss rather than to use the latent embeddings for generative modelling, we accept this increase in KL divergence as a sacrifice to improving on the survial modelling task.
+
+### Model selection
+
+We use 10-repetitions (or shuffles) of 5-fold cross validation to tune hyperparameters. This is effectively a parallelised version of scikit-learn's `sklearn.model_selection.RepeatedKFold`.
+
+For early stopping, we keep track of the best validation survival loss so far (not the metric, otherwise that would defeat the purpose of a metric). The epoch at which the lowest validation survival loss is achieved is called the 'best epoch'. Once patience is exceeded, we stop training, rollback to model to the best epoch, and generate validation set predictions using the model at that 'best' epoch. 
+
+Our metric of choice is the Harrell's Concordance index (C-index), which measures the proportion of concordant pairwise estimates in right-censored survival data. 
+
+<p align="center"><img src="./assets/c-index-equation.svg" alt="Harrell's concordance index equation" width="400"></p>
+
+A random estimator will have a C-index of 0.5, while a perfect estimator has a C-index of 1.0. Typically in survival prediction, a C-index of >0.7 is considered good, and >0.8 is excellent.
+
+Importantly we do not select the epoch with the best validation C-index, because the C-index is a metric and it cannot be directly used. Otherwise, it would cease becoming a metric. We can only rely on the fact that maximizing the log partial likelihood (which is what our survival loss does) will also mean the model is more discriminative at pair-wise tasks and have a higher C-index.
 
 Hyperparameters we tuned include 
 * bottleneck layer dimension: z=2,4,8,16,32
@@ -57,19 +84,7 @@ Hyperparameters we tuned include
 * KL divergence loss weight: 0.1, 0.5, 1, 2, 4
 * input preprocessing: min-max scaling, standardization, tanh, arcsinh
 
-Our desired value to model is progression free survival. The best epoch is the one with lowest validation survival loss (not the metric). Early stopping based on validation survival loss with a patience of 20 is used. A burn-in of 50 epochs is used.
-
-After training, PDF files of convergence plots will be produced in the output folder. This monitors the KL divergence loss, reconstruction loss for every data modality, survival loss (negative log likelihood; NPLL), and C-index metric on validation dataset.
-
-An example of training convergence is shown here. Red is for the validation dataset, blue for training.
-
-<img src="./assets/example-pfs-shuffle-0-fold-0.png" alt="Loss curves for training and validation datasets">
-
-The drop in survival loss (and improvement in metric) typically coincides with a spike KL divergence. This indicates that the latent distribution is deviating away from the prior N_z(0,1). 
-
-However, as our main task is to improve survival loss rather than to use the latent embeddings for generative modelling, we accept this increase in KL divergence as a sacrifice to improving on the survial modelling task.
-
-### Validation
+## Results
 
 In this section, we describe the procedure to evaluate multiple models.
 
@@ -79,9 +94,27 @@ It requires as input the result json files for every model. An example is `outpu
 
 This script creates a results file called `model_scores.json` which can be used for model comparison. It calculates the mean validation metric across the 50 models and its 95% confidence interval.
 
-## Results
+For example, this is what we would see in `model_scores.json` if we trained 50 copies of with default hyperparameters and named it `baseline`:
 
-Summarize the results obtained from the models. Include any relevant metrics and visualizations.
+```json
+"baseline": {
+    "os": {
+        "mean": 0.7282119335818692,
+        "CI lower": 0.7171406711152226,
+        "CI upper": 0.7392831960485158,
+        "N": 50
+    },
+    "pfs": {
+        "mean": 0.692187214591966,
+        "CI lower": 0.6859096918252172,
+        "CI upper": 0.6984647373587147,
+        "N": 50
+    }
+}
+```
+The model predicts Progression Free Survival with C-index 0.692 and Overall survival with C-index 0.728. In Multiple myeloma, overall survival (i.e. death) is easier to predict, and we think this is because it is a more well-defined event. On the other hand, what constitutes a progression is more vague; it is either relapse, resistance to treatment, or increase in CREB scores (a test of renal function).
+
+However, PFS is our primary aim because it is more important in terms of patient wellbeing. Predicting progression is more important than overall survival because progression is more clinically actionable.
 
 ## References
 
@@ -96,3 +129,5 @@ Data is available on https://research.themmrf.org but one must email them for pe
 ## License
 
 This project is licensed under the GNU General Public License v3.0. You may copy, distribute, and modify the software as long as you track changes/dates in source files. Any modifications to or software including (via compiler) GPL-licensed code must also be made available under the GPL along with build & install instructions.
+
+As the manuscript is not yet written, please do not publish any of this results as part of your own work until further notice.
