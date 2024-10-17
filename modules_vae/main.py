@@ -25,6 +25,12 @@ parser.add_argument('--shuffle', type=int, choices=range(10), default=0, help='R
 parser.add_argument('--fold', type=int, choices=range(5), default=0, help='Fold index for k-fold splitting (0-4)')
 args = parser.parse_args()
 
+# comment out these 3 lines if not using PBS
+# PBS array ID to override args.shuffle and args.fold
+_pbs_array_id = int(os.getenv('PBS_ARRAY_INDEX', "-1"))
+args.shuffle=_pbs_array_id%10
+args.fold=_pbs_array_id//5
+
 params = specify_params_here(args.endpoint, args.shuffle, args.fold)
 
 os.makedirs(os.path.dirname(params.resultsprefix), exist_ok=True) # prepare output directory
@@ -48,7 +54,7 @@ model = Model(params.input_types,
 fit(model, trainloader, validloader, params)
 
 # predict on validation data once more and save to tsv
-predict_to_tsv(model, validloader, f'{params.resultsprefix}.tsv')
+# predict_to_tsv(model, validloader, f'{params.resultsprefix}.tsv')
 
 # plot losses and metrics to pdf
-plot_results_to_pdf(f'{params.resultsprefix}.json',f'{params.resultsprefix}.pdf')
+# plot_results_to_pdf(f'{params.resultsprefix}.json',f'{params.resultsprefix}.pdf')
