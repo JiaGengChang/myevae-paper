@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv('../.env')
+
 class VAEParams:
     """
     Class namespace to hold parameters.
@@ -10,9 +13,10 @@ class VAEParams:
         self.fold = fold
         # modify the rest
         self.model_name = 'example'
-        self.batch_size = 64
-        self.lr = 1e-5
-        self.epochs = 100
+        self.kl_weight = 1
+        self.batch_size = 128
+        self.lr = 1e-4
+        self.epochs = 300
         self.input_types = ['exp','cna','gistic','sbs','fish','ig']
         self.input_dims = [ 996,  166, 115,  10,  56,  8]
         self.layer_dims = [[64], [16], [8], [2], [2],[1]]
@@ -22,7 +26,7 @@ class VAEParams:
         self.z_dim = 16
         # do not modify these two
         self.input_types_all = self.input_types + self.input_types_subtask
-        self.resultsprefix = f'../output/vae_models/{self.model_name}/{endpoint}_shuffle{shuffle}_fold{fold}'
+        self.resultsprefix = f'{os.environ.get("OUTPUTDIR")}/{self.model_name}/{endpoint}_shuffle{shuffle}_fold{fold}'
     
     def __tokenize__(self):
         # a unique name for the model trained with these parameters
