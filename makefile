@@ -6,10 +6,10 @@ clean:
 
 train:
 	script=$(WDIR)/modules_vae/main.py; \
-	endpoints=("pfs"); \
+	endpoints=("pfs" "os"); \
 	for endpoint in $${endpoints[@]}; do \
-		qsub -p 0 -j oe -o $$wdir/.pbs/ -q normal -J 0-50 -l select=1:ncpus=2:mem=1024mb -l walltime=02:00:01 -- $(PYTHON) $$script --endpoint $$endpoint; \
+		qsub -p 0 -j oe -o $(WDIR)/.pbs -q normal -J 0-50 -l select=1:ncpus=2:mem=1024mb -l walltime=02:00:01 -- $(PYTHON) $$script --endpoint $$endpoint; \
 	done
 
-valid:
-	$(PYTHON) $(WDIR)/modules_vae/compare.py
+eval:
+	$(PYTHON) $(WDIR)/modules_vae/eval.py
