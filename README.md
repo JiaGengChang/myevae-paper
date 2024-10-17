@@ -128,6 +128,6 @@ Data is available on https://research.themmrf.org but one must email them for pe
 
 ## License
 
-This project is licensed under the GNU General Public License v3.0. You may copy, distribute, and modify the software as long as you track changes/dates in source files. Any modifications to or software including (via compiler) GPL-licensed code must also be made available under the GPL along with build & install instructions.
+The software in the repository is licensed under the MIT license. 
 
-As the manuscript is not yet written, please do not publish any of this results as part of your own work until further notice.
+However, as the manuscript is still in writing, please do not publish any of this results as part of your own work.
