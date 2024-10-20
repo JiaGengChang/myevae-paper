@@ -2,13 +2,14 @@
 from sklearn.model_selection import KFold
 
 # get train and validation data for a given endpoint, shuffle number, and fold number
-def kfold_split(full_dataset, random_state, k):
+def kfold_split(full_dataset, random_state, k, validation_ids=None):
     # randomstate is 0-9 because we are doing 10 repeats
     # k is the fold number, 0-4
     assert k < 5 and k >= 0, "k must be between 0 and 4"
     # all patients, some with missing information e.g. missing RNA-Seq data
     # patients with complete information are suitable as validation examples
-    validation_ids = full_dataset.dropna().index
+    if validation_ids is None:
+        validation_ids = full_dataset.dropna().index
 
     # pick the k-th fold
     # corresponds to 121 or 122 patients for validation each time

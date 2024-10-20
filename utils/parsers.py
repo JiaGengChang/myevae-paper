@@ -67,9 +67,10 @@ def parse_all(endpoint):
     return dfall
 
 # subset to patients with non-NaN information in all categories
-def parse_validation(endpoint):
+def parse_validation_ids(endpoint):
     dfvalidation = parse_all(endpoint).dropna()
-    return dfvalidation
+    validation_ids = dfvalidation.index
+    return validation_ids
 
 # parse signarures datasets
 def parse_emc92():
