@@ -18,8 +18,14 @@ class Dataset(torch.utils.data.Dataset):
                 'exp': 'Feature_exp',
                 'fish': 'Feature_fish',
                 'gistic': 'Feature_CNA_(Amp|Del)',
-                'ig': 'Feature_SeqWGS',
-                'sbs': 'Feature_SBS'}.get(input_type, None)
+                'ig': 'Feature_(RNASeq|SeqWGS)_',
+                'sbs': 'Feature_SBS', 
+                'emc92': 'Feature_EMC92', # gene expression signature
+                'uams70': 'Feature_UAMS70', # gene expression signature
+                'ifm15': 'Feature_IFM15', # gene expression signature
+                'mrcix6': 'Feature_MRC_IX_6', # gene expression signature
+                'exp_pca': 'Feature_exp_PC' # PCs of RNA-Seq genes
+            }.get(input_type, None)
             if column_prefix:
                 X_input = torch.tensor(pd_dataframe.filter(regex=column_prefix).values.astype(float), device=device).to(torch.float64)
                 setattr(self, f'X_{input_type}', X_input)

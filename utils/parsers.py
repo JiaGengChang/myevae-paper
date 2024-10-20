@@ -70,3 +70,24 @@ def parse_all(endpoint):
 def parse_validation(endpoint):
     dfvalidation = parse_all(endpoint).dropna()
     return dfvalidation
+
+# parse signarures datasets
+def parse_emc92():
+    df = pd.read_csv(os.environ.get("EMC92FILE"),sep='\t')
+    return df
+
+def parse_uams70():
+    df = pd.read_csv(os.environ.get("UAMS70FILE"),sep='\t')
+    return df
+
+def parse_ifm15():
+    df = pd.read_csv(os.environ.get("IFM15FILE"),sep='\t')
+    return df
+
+def parse_mrcix6():
+    df = pd.read_csv(os.environ.get("MRCIX6FILE"),sep='\t')
+    return df
+
+def parse_rna_pc():
+    df =  pd.read_csv(os.environ.get("PCGENEEXPRESSIONFILE"),sep='\t')
+    return df
