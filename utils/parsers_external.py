@@ -12,7 +12,7 @@ parse_uams(str:endpoint) # GSE24080 (2008) University of Medicine Arkansas datas
 parse_hovon(str:endpoint) # GSE19784 (2010) GMMG4-HOVON65 German myeloma study
 parse_emtab(str:endpoint) # Masaryk EMTAB-4032 study (2016)
 
-Returns tuple of (clinical + RNA-Seq data, survival_data)
+Returns tuple of (clinical, RNA-Seq data, survival_data)
 Clinical data: 
     age is min-max scaled using min and max values from CoMMpass datasets. 
     min-max scaled age of 0.5 indicates missing data (all patients in HOVON65 don't have age information)
@@ -23,14 +23,14 @@ survival data is in the form of a structered array
 
 Example usage:
 
-uams_x, uams_y = parse_uams('pfs')
-uams_x, uams_y = parse_uams('os')
+uams_clin, uams_exp, uams_y = parse_uams('pfs')
+uams_clin, uams_exp, uams_y = parse_uams('os')
 
-hovon_x, hovon_y = parse_hovon('pfs')
-hovon_x, hovon_y = parse_hovon('os')
+hovon_clin, hovon_exp, hovon_y = parse_hovon('pfs')
+hovon_clin, hovon_exp, hovon_y = parse_hovon('os')
 
-emtab_x, emtab_y = parse_emtab('pfs')
-emtab_x, emtab_y = parse_emtab('os')
+emtab_clin, emtab_exp, emtab_y = parse_emtab('pfs')
+emtab_clin, emtab_exp, emtab_y = parse_emtab('os')
 """
 
 _df = pd.read_csv(os.environ.get("CLINDATAFILE"),sep='\t')
@@ -108,16 +108,7 @@ def _parse_exp_helper_raw(dotenvfilename):
         .rename(columns={'Accession':'PUBLIC_ID'})\
         .set_index('PUBLIC_ID')
 
-def parse_exp_helper(dotenvfilename):
-    try: # GSE24080UAMS or HOVON65
-        df_exp_full = pd.read_csv(os.environ.get(dotenvfilename),sep=',').sort_values('Accession')
-    except: # EMTAB-4032
-        df_exp_full = pd.read_csv(os.environ.get(dotenvfilename),sep='\t').sort_values('Accession')
-        
-    df_exp_full = df_exp_full\
-        .rename(columns={'Accession':'PUBLIC_ID'})\
-        .set_index('PUBLIC_ID')
-    
+def scale_exp(df_exp_full):
     gene_id_hits = [g for g in df_exp_full.columns if g in gene_ids] # 904 genes
     gene_id_miss = [g for g in gene_ids if g not in gene_id_hits] # 92 genes
     df_exp_hits = df_exp_full[gene_id_hits]
@@ -131,21 +122,20 @@ def parse_exp_helper(dotenvfilename):
 def parse_uams(endpoint):
     target = parse_surv_helper("GSE24080UAMS",endpoint)
     clin = parse_clin_helper("GSE24080UAMS")
-    exp = parse_exp_helper("UAMSDATAFILE")
-    predictors = pd.concat([clin,exp],axis=1)
-    return predictors, target
+    exp = _parse_exp_helper_raw("UAMSDATAFILE")
+    return clin, exp, target
 
 def parse_hovon(endpoint):
     target = parse_surv_helper("HOVON65",endpoint)
     clin = parse_clin_helper("HOVON65")
     exp = parse_exp_helper("HOVONDATAFILE")
     predictors = pd.concat([clin,exp],axis=1)
-    return predictors, target
+    return clin, exp, target
 
 def parse_emtab(endpoint):
     target = parse_surv_helper("EMTAB4032",endpoint)
     clin = parse_clin_helper("EMTAB4032")
     exp = parse_exp_helper("EMTABDATAFILE")
     predictors = pd.concat([clin,exp],axis=1)
-    return predictors, target
+    return clin, exp, target
 
