@@ -97,5 +97,5 @@ def parse_exp_uams(endpoint):
 def parse_exp_hovon(endpoint):
     return parse_exp_helper("HOVONDATAFILE")
 
-def parse_emtab(endpoint):
+def parse_exp_emtab(endpoint):
     return parse_exp_helper("EMTABDATAFILE")
