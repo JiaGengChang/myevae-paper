@@ -5,34 +5,6 @@ from dotenv import load_dotenv
 load_dotenv('.env')
 from sksurv.util import Surv
 
-"""
-Family of functions to load 3 external validation datasets:
- 
-parse_uams(str:endpoint) # GSE24080 (2008) University of Medicine Arkansas dataset
-parse_hovon(str:endpoint) # GSE19784 (2010) GMMG4-HOVON65 German myeloma study
-parse_emtab(str:endpoint) # Masaryk EMTAB-4032 study (2016)
-
-Returns tuple of (clinical, RNA-Seq data, survival_data)
-Clinical data: 
-    age is min-max scaled using min and max values from CoMMpass datasets. 
-    min-max scaled age of 0.5 indicates missing data (all patients in HOVON65 don't have age information)
-    Gender is 1=Male and -1=Female, 0=no information
-    
-RNA-Seq data is min-max scaled using min and max values from the dataset itself
-survival data is in the form of a structered array
-
-Example usage:
-
-uams_clin, uams_exp, uams_y = parse_uams('pfs')
-uams_clin, uams_exp, uams_y = parse_uams('os')
-
-hovon_clin, hovon_exp, hovon_y = parse_hovon('pfs')
-hovon_clin, hovon_exp, hovon_y = parse_hovon('os')
-
-emtab_clin, emtab_exp, emtab_y = parse_emtab('pfs')
-emtab_clin, emtab_exp, emtab_y = parse_emtab('os')
-"""
-
 _df = pd.read_csv(os.environ.get("CLINDATAFILE"),sep='\t')
 commpass_min_age = _df['D_PT_age'].min()
 commpass_max_age = _df['D_PT_age'].max()
@@ -98,7 +70,7 @@ def parse_surv_helper(studyname,endpoint):
     studydf=global_clinsurv_df.query(f"Study==\"{studyname}\"")[[f'D_{ENDPOINT}_FLAG',f'D_{ENDPOINT}']]
     return Surv.from_dataframe(f'D_{ENDPOINT}_FLAG',f'D_{ENDPOINT}',studydf)
 
-def _parse_exp_helper_raw(dotenvfilename):
+def parse_exp_helper(dotenvfilename):
     # used for calculating indices
     try: # GSE24080UAMS or HOVON65
         df = pd.read_csv(os.environ.get(dotenvfilename),sep=',').sort_values('Accession')
@@ -118,24 +90,12 @@ def scale_exp(df_exp_full):
     df_exp_scaled_fillna = df_exp_scaled.fillna(0.5) # median = missing
     return df_exp_scaled_fillna
 
-# functions to export
-def parse_uams(endpoint):
-    target = parse_surv_helper("GSE24080UAMS",endpoint)
-    clin = parse_clin_helper("GSE24080UAMS")
-    exp = _parse_exp_helper_raw("UAMSDATAFILE")
-    return clin, exp, target
+# exports
+def parse_exp_uams(endpoint):
+    return parse_exp_helper("UAMSDATAFILE")
 
-def parse_hovon(endpoint):
-    target = parse_surv_helper("HOVON65",endpoint)
-    clin = parse_clin_helper("HOVON65")
-    exp = parse_exp_helper("HOVONDATAFILE")
-    predictors = pd.concat([clin,exp],axis=1)
-    return clin, exp, target
+def parse_exp_hovon(endpoint):
+    return parse_exp_helper("HOVONDATAFILE")
 
 def parse_emtab(endpoint):
-    target = parse_surv_helper("EMTAB4032",endpoint)
-    clin = parse_clin_helper("EMTAB4032")
-    exp = parse_exp_helper("EMTABDATAFILE")
-    predictors = pd.concat([clin,exp],axis=1)
-    return clin, exp, target
-
+    return parse_exp_helper("EMTABDATAFILE")
