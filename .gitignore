@@ -5,6 +5,10 @@
 data/actual
 data/utils
 qsub.sh
+vae_models
+model_scores.json
+roc_pr_curves.pdf
+FHR.tsv
 modules_mlp
 !output/vae_models/
 output/vae_models/*
