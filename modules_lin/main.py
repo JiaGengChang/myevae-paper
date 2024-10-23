@@ -10,6 +10,7 @@ import scipy.stats as st
 import sys
 sys.path.append('../utils')
 from parsers import *
+from parsers_external import *
 from splitter import kfold_split
 from scaler import scale_and_impute_without_train_test_leak as scale_impute
 
@@ -29,8 +30,25 @@ full_dataframe = surv\
     .assign(survtime=lambda df: [max(t, 0) for t in df['survtime']])
 
 validation_ids = parse_validation_ids(args.endpoint)
-# only needed for official UAMS
-# validation_ids = np.array([id for id in validation_ids if id not in ['MMRF_2788', 'MMRF_2903', 'MMRF_2905', 'MMRF_2908', 'MMRF_2914', 'MMRF_2921', 'MMRF_2924', 'MMRF_2926', 'MMRF_2938', 'MMRF_2939', 'MMRF_2940', 'MMRF_2941', 'MMRF_2946', 'MMRF_2947']])
+
+# process external datasets
+
+clin_uams=parse_clin_helper("GSE24080UAMS")
+features_uams=parse_exp_pc_uams().iloc[:, :10]
+uams_x=pd.concat([clin_uams, features_uams],axis=1)
+uams_y=parse_surv_helper("GSE24080UAMS",args.endpoint)
+
+clin_hovon=parse_clin_helper("HOVON65")
+features_hovon=parse_exp_pc_hovon().iloc[:, :10]
+hovon_x=pd.concat([clin_hovon, features_hovon],axis=1)
+hovon_y=parse_surv_helper("HOVON65",args.endpoint)
+
+clin_emtab=parse_clin_helper("EMTAB4032")
+features_emtab=parse_exp_pc_emtab().iloc[:, :10]
+emtab_x=pd.concat([clin_emtab, features_emtab],axis=1)
+emtab_y=parse_surv_helper("EMTAB4032",args.endpoint)
+
+##########################
 
 def evaluate_once(shuffle, fold):
     train_dataframe, valid_dataframe = kfold_split(full_dataframe, shuffle, fold, validation_ids)
@@ -44,19 +62,28 @@ def evaluate_once(shuffle, fold):
     model=Model()
     model.fit(train_x,train_y)
     valid_metric = model.score(valid_x, valid_y)
-
-    return valid_metric
+    
+    # also score external datasets
+    uams_metric = model.score(uams_x, uams_y)
+    hovon_metric = model.score(hovon_x, hovon_y)
+    emtab_metric = model.score(emtab_x, emtab_y)
+    return {
+            'shuffle': shuffle,
+            'fold': fold,
+            'valid_metric': valid_metric,
+            'uams_metric': uams_metric,
+            'hovon_metric': hovon_metric,
+            'emtab_metric': emtab_metric
+        }
 
 results = []
 
 for shuffle in range(10):
     for fold in range(5):
-        metric = evaluate_once(shuffle, fold)
-        results.append({'shuffle': shuffle, 'fold': fold, 'metric': metric})
+        results.append(evaluate_once(shuffle, fold))
 
 results_df = pd.DataFrame(results)
-
-mean_metric = results_df['metric'].mean()
-ci_lower, ci_upper = st.t.interval(0.95, len(results_df['metric'])-1, loc=mean_metric, scale=st.sem(results_df['metric']))
-
-print(f"{args.endpoint} mean (95% CI): {mean_metric:.3f} [{ci_lower:.3f}, {ci_upper:.3f}]")
+for metric in ['valid_metric', 'uams_metric', 'hovon_metric', 'emtab_metric']:
+    mean_metric = results_df[metric].mean()
+    ci_lower, ci_upper = st.t.interval(0.95, len(results_df[metric])-1, loc=mean_metric, scale=st.sem(results_df[metric]))
+    print(f"{metric} mean (95% CI): {mean_metric:.3f} [{ci_lower:.3f}, {ci_upper:.3f}]")
