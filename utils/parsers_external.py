@@ -8,7 +8,7 @@ from sksurv.util import Surv
 _df = pd.read_csv(os.environ.get("CLINDATAFILE"),sep='\t')
 commpass_min_age = _df['D_PT_age'].min()
 commpass_max_age = _df['D_PT_age'].max()
-    
+
 def scale_age_to_commpass(input_age):
     # 1: age >= max age in CoMMpass
     # 0: age <= min age in CoMMpass
@@ -48,6 +48,7 @@ def parse_global_clindf():
 
     df.columns = df.columns\
         .str.replace('D_','Feature_clin_D_PT_')\
+        .str.replace('Age','age')\
         .str.replace('ISS','iss') # consistency with CoMMpass clinical column names
     '''
     PUBLIC_ID [index]
@@ -76,26 +77,45 @@ def parse_exp_helper(dotenvfilename):
         df = pd.read_csv(os.environ.get(dotenvfilename),sep=',').sort_values('Accession')
     except: # EMTAB-4032
         df = pd.read_csv(os.environ.get(dotenvfilename),sep='\t').sort_values('Accession')
-    return df\
+    df = df\
         .rename(columns={'Accession':'PUBLIC_ID'})\
         .set_index('PUBLIC_ID')
-
-def scale_exp(df_exp_full):
-    gene_id_hits = [g for g in df_exp_full.columns if g in gene_ids] # 904 genes
+    gene_id_hits = [g for g in df.columns if g in gene_ids] # 904 genes
     gene_id_miss = [g for g in gene_ids if g not in gene_id_hits] # 92 genes
-    df_exp_hits = df_exp_full[gene_id_hits]
-    df_exp_miss = pd.DataFrame(pd.NA,index=df_exp_full.index,columns=gene_id_miss)
-    df_exp = pd.concat([df_exp_hits,df_exp_miss],axis=1)[gene_ids]
-    df_exp_scaled = (df_exp - df_exp.min()) / (df_exp.max() - df_exp.min()) # min max scaling
-    df_exp_scaled_fillna = df_exp_scaled.fillna(0.5) # median = missing
-    return df_exp_scaled_fillna
+    df_hits = df[gene_id_hits]
+    df_miss = pd.DataFrame(pd.NA,index=df.index,columns=gene_id_miss)
+    df = pd.concat([df_hits,df_miss],axis=1)[gene_ids]
+    df = df.rename(columns=lambda x: f'Feature_exp_{x}')
+    return df
 
-# exports
-def parse_exp_uams(endpoint):
+# for VAE RNA-Seq model
+def parse_clin_uams():
+    return parse_clin_helper("GSE24080UAMS")
+def parse_clin_hovon():
+    return parse_clin_helper("HOVON65")
+def parse_clin_emtab():
+    return parse_clin_helper("EMTAB4032")
+
+def parse_exp_uams():
     return parse_exp_helper("UAMSDATAFILE")
-
-def parse_exp_hovon(endpoint):
+def parse_exp_hovon():
     return parse_exp_helper("HOVONDATAFILE")
-
-def parse_exp_emtab(endpoint):
+def parse_exp_emtab():
     return parse_exp_helper("EMTABDATAFILE")
+
+def parse_surv_uams(endpoint):
+    return list(zip(*parse_surv_helper("GSE24080UAMS",endpoint)))
+def parse_surv_hovon(endpoint):
+    return list(zip(*parse_surv_helper("HOVON65",endpoint)))
+def parse_surv_emtab(endpoint):
+    return list(zip(*parse_surv_helper("EMTAB4032",endpoint)))
+
+# for PCA RNA-Seq model
+def parse_exp_pc_uams():
+    return pd.read_csv(os.environ.get("UAMSPCGENEEXPRESSIONFILE"),sep='\t',index_col=0)
+    
+def parse_exp_pc_hovon():
+    return pd.read_csv(os.environ.get("HOVONPCGENEEXPRESSIONFILE"),sep='\t',index_col=0)
+    
+def parse_exp_pc_emtab():
+    return pd.read_csv(os.environ.get("EMTABPCGENEEXPRESSIONFILE"),sep='\t',index_col=0)
