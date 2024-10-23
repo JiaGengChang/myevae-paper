@@ -9,45 +9,53 @@ from dotenv import load_dotenv
 import argparse
 load_dotenv('.env')
 
-def score_one_model(model_name):
+def summary_statistics_single_model(model_name):
     model = {}
     for endpoint in ['os', 'pfs']:
+        model[endpoint] = {}
         jsonfiles=glob(f"{os.environ.get('OUTPUTDIR')}/{model_name}/{endpoint}_shuffle*_fold*.json")    
-        metrics = []
-        try:
-            for jsonfile in jsonfiles:
-                with open(jsonfile, 'r') as f:
-                    result = json.load(f)
-                    metrics.append(result['best_epoch']['valid_metric'])
-        except(KeyError):
-            continue
+        valid_metric = []
+        uams_metric = []
+        hovon_metric = []
+        emtab_metric = []
+        for jsonfile in jsonfiles:
+            with open(jsonfile, 'r') as f:
+                result = json.load(f)
+            try:
+                valid_metric.append(result['best_epoch']['valid_metric'])
+                uams_metric.append(result['best_epoch']['uams_metric'])
+                hovon_metric.append(result['best_epoch']['hovon_metric'])
+                emtab_metric.append(result['best_epoch']['emtab_metric'])
+            except(KeyError):
+                continue
         
-        if len(metrics)>0:
-            average_metric = np.mean(metrics)
-            std_metric = np.std(metrics)
-            count = len(metrics)
-            
+        for metric_name in ['valid_metric', 'uams_metric', 'hovon_metric', 'emtab_metric']:
+            metric = eval(metric_name)
+            count = len(metric)
+            if count == 0:
+                continue
+            average_metric = np.mean(metric)
+            std_metric = np.std(metric)
             ci_lower = average_metric - 1.96 * (std_metric / np.sqrt(count))
             ci_upper = average_metric + 1.96 * (std_metric / np.sqrt(count))
-            
-            model[endpoint] = {
-                    'mean': average_metric, 
-                    'CI lower': ci_lower, 
-                    'CI upper': ci_upper, 
-                    'N': count
+            model[endpoint][metric_name] = {
+                'mean': average_metric, 
+                'CI lower': ci_lower, 
+                'CI upper': ci_upper, 
+                'N': count
             }
     
     return model
 
-def score_all_models(model_names):
-    scores = {model_name: score_one_model(model_name) for model_name in model_names}
+def summary_statistics_many_models(model_names):
+    scores = {model_name: summary_statistics_single_model(model_name) for model_name in model_names}
     return scores
 
 if __name__ == "__main__":
     model_paths = glob(f"{os.environ.get('OUTPUTDIR')}/*")
     model_names = [os.path.basename(path) for path in model_paths]
 
-    scores = score_all_models(model_names)
+    scores = summary_statistics_many_models(model_names)
     filtered_scores = {k: v for k, v in sorted(scores.items()) if v is not None}
 
     with open('model_scores.json', 'w') as f:

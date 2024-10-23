@@ -5,6 +5,7 @@ sys.path.append('../utils')
 from cindexmetric import ConcordanceIndex # metric
 from coxphloss import CoxPHLoss # optimization objective is negative partial log likelihood
 from kldivergence import KLDivergence # regularization
+from validation import score_external_datasets
 
 def fit(model, trainloader, validloader, params):
     """
@@ -115,6 +116,12 @@ def fit(model, trainloader, validloader, params):
         results['history'][epoch]['valid']['survival_loss'] = valid_survival_loss
         results['history'][epoch]['valid']['metric'] = valid_metric
         
+        # external datasets
+        # cindex_uams, cindex_hovon, cindex_emtab = score_external_datasets(model,params.endpoint)
+        # results['history'][epoch]['valid']['uams_metric'] = cindex_uams
+        # results['history'][epoch]['valid']['hovon_metric'] = cindex_hovon
+        # results['history'][epoch]['valid']['emtab_metric'] = cindex_emtab
+                
         return valid_kl_loss, valid_reconstruction_losses, valid_survival_loss, valid_metric
 
     # best epoch based on validation survival loss
@@ -157,7 +164,12 @@ def fit(model, trainloader, validloader, params):
     if best_model_state is not None:
         model.load_state_dict(best_model_state)
 
-    # save and plot results
+    # score external datasets
+    cindex_uams, cindex_hovon, cindex_emtab = score_external_datasets(model,params.endpoint)
+    results['best_epoch']['uams_metric'] = cindex_uams
+    results['best_epoch']['hovon_metric'] = cindex_hovon
+    results['best_epoch']['emtab_metric'] = cindex_emtab
+
+    # save results
     with open(f'{params.resultsprefix}.json', 'w') as f:
         json.dump(results, f)
-    return

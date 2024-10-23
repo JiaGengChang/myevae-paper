@@ -1,0 +1,75 @@
+import torch
+import os
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+import argparse
+from params import VAEParams as no_argument_params
+from torch.utils.data import DataLoader
+from sksurv.metrics import concordance_index_censored
+import json
+import sys
+sys.path.append('../utils')
+from model import MultiModalVAE as Model
+from parsers_external import *
+from scaler_external import scale_and_impute_external_dataset as scale_impute
+
+params = no_argument_params()
+
+uams_clin_tensor = torch.tensor(scale_impute(parse_clin_uams(), params.scaler).values)
+uams_exp_tensor = torch.tensor(parse_exp_uams(params.scaler).values)
+
+hovon_clin_tensor = torch.tensor(scale_impute(parse_clin_hovon(), params.scaler).values)
+hovon_exp_tensor = torch.tensor(parse_exp_hovon(params.scaler).values)
+
+emtab_clin_tensor = torch.tensor(scale_impute(parse_clin_emtab, params.scaler).values)
+emtab_exp_tensor = torch.tensor(parse_exp_emtab(params.scaler).values)
+
+def score_external_datasets(model,endpoint):
+    uams_events, uams_times = parse_surv_uams(endpoint)
+    hovon_events, hovon_times = parse_surv_hovon(endpoint)
+    emtab_events, emtab_times = parse_surv_emtab(endpoint)
+    
+    model.eval()           
+    with torch.no_grad():
+        _, _, _, estimates_uams = model([[uams_exp_tensor], [uams_clin_tensor]])
+        _, _, _, estimates_hovon = model([[hovon_exp_tensor], [hovon_clin_tensor]])
+        _, _, _, estimates_emtab = model([[emtab_exp_tensor], [emtab_clin_tensor]])
+
+    cindex_uams = concordance_index_censored(uams_events, uams_times, estimates_uams.flatten())[0]
+    cindex_hovon = concordance_index_censored(hovon_events, hovon_times, estimates_hovon.flatten())[0]
+    cindex_emtab = concordance_index_censored(emtab_events, emtab_times, estimates_emtab.flatten())[0]
+        
+    return cindex_uams, cindex_hovon, cindex_emtab    
+
+if __name__=="__main__":
+    """
+    Parse the 3 arguments which we will parallelize across. 
+    the actual hyperparameters to modify are in params.py
+    """
+    parser = argparse.ArgumentParser(description='Score an VAE model on external datasets then appends scores to json results.')
+    parser.add_argument('endpoint', type=str, choices=['pfs', 'os'], default='pfs', help='Survival endpoint (pfs or os)')
+    parser.add_argument('shuffle', type=int, choices=range(10), default=0, help='Random state for k-fold splitting (0-9)')
+    parser.add_argument('fold', type=int, choices=range(5), default=0, help='Fold index for k-fold splitting (0-4)')
+
+    args = parser.parse_args(['pfs',0,0])
+    params = specify_params_here(args.endpoint)
+
+    model = Model(params.input_types,
+                params.input_dims,
+                params.layer_dims,
+                params.input_types_subtask,
+                params.input_dims_subtask,
+                params.layer_dims_subtask,
+                params.z_dim)
+
+    with open(f"{params.resultsprefix}.json",'r') as f:
+        results = json.load(f)
+    
+    model.load_state_dict(torch.load(f"{params.resultsprefix}.pth",weights_only=True))
+    
+    cindex_uams, cindex_hovon, cindex_emtab = score_external_datasets(model,args.endpoint)
+    results['best_epoch']['uams_metric'] = cindex_uams
+    results['best_epoch']['hovon_metric'] = cindex_hovon
+    results['best_epoch']['emtab_metric'] = cindex_emtab
+
+    with open(f"{params.resultsprefix}.json", 'w') as f:
+        json.dump(results, f)
