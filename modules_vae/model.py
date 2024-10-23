@@ -91,3 +91,5 @@ class MultiModalVAE(torch.nn.Module):
         recon_xs_list = self.decode(z)
         return recon_xs_list, mu, logvar, riskpred
     
+    def save(self, outfile):
+        torch.save(self.state_dict(), outfile)
