@@ -37,7 +37,7 @@ os.makedirs(os.path.dirname(params.resultsprefix), exist_ok=True) # prepare outp
 
 full_dataframe = parse_all(params.endpoint)
 train_dataframe, valid_dataframe = kfold_split(full_dataframe, params.shuffle, params.fold)
-train_dataframe_scaled, valid_dataframe_scaled = scale_impute(train_dataframe, valid_dataframe)
+train_dataframe_scaled, valid_dataframe_scaled = scale_impute(train_dataframe, valid_dataframe, method=params.scaler)
 
 trainloader = DataLoader(Dataset(train_dataframe_scaled, params.input_types_all), batch_size=params.batch_size, shuffle=True)
 validloader = DataLoader(Dataset(valid_dataframe_scaled, params.input_types_all), batch_size=128, shuffle=False)
@@ -54,7 +54,10 @@ model = Model(params.input_types,
 fit(model, trainloader, validloader, params)
 
 # predict on validation data once more and save to tsv
-predict_to_tsv(model, validloader, f'{params.resultsprefix}.tsv')
+# predict_to_tsv(model, validloader, f'{params.resultsprefix}.tsv')
 
 # plot losses and metrics to pdf
-plot_results_to_pdf(f'{params.resultsprefix}.json',f'{params.resultsprefix}.pdf')
+# plot_results_to_pdf(f'{params.resultsprefix}.json',f'{params.resultsprefix}.pdf')
+
+# save model state dict
+# model.save(f'{params.resultsprefix}.pth')
