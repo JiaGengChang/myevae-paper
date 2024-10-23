@@ -14,6 +14,7 @@ class VAEParams:
         self.fold = fold
         # modify the rest
         self.model_name = 'example'
+        self.scaler = "minmax" # std or minmax
         self.kl_weight = 1
         self.batch_size = 128
         self.lr = 1e-4
