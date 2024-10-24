@@ -10,18 +10,18 @@ import sys
 sys.path.append('../utils')
 from model import MultiModalVAE as Model
 from parsers_external import *
-from scaler_external import scale_and_impute_external_dataset as scale_impute
+from scaler_external import scale_and_impute_external_dataset as scaler
 
 params = no_argument_params()
 
-uams_clin_tensor = torch.tensor(scale_impute(parse_clin_uams(), params.scaler).values)
-uams_exp_tensor = torch.tensor(parse_exp_uams(params.scaler).values)
+uams_clin_tensor = torch.tensor(scaler(parse_clin_uams(), params.scaler).values)
+uams_exp_tensor = torch.tensor(scaler(parse_exp_uams(), params.scaler).values)
 
-hovon_clin_tensor = torch.tensor(scale_impute(parse_clin_hovon(), params.scaler).values)
-hovon_exp_tensor = torch.tensor(parse_exp_hovon(params.scaler).values)
+hovon_clin_tensor = torch.tensor(scaler(parse_clin_hovon(), params.scaler).values)
+hovon_exp_tensor = torch.tensor(scaler(parse_exp_hovon(), params.scaler).values)
 
-emtab_clin_tensor = torch.tensor(scale_impute(parse_clin_emtab, params.scaler).values)
-emtab_exp_tensor = torch.tensor(parse_exp_emtab(params.scaler).values)
+emtab_clin_tensor = torch.tensor(scaler(parse_clin_emtab(), params.scaler).values)
+emtab_exp_tensor = torch.tensor(scaler(parse_exp_emtab(), params.scaler).values)
 
 def score_external_datasets(model,endpoint):
     uams_events, uams_times = parse_surv_uams(endpoint)
@@ -38,7 +38,7 @@ def score_external_datasets(model,endpoint):
     cindex_hovon = concordance_index_censored(hovon_events, hovon_times, estimates_hovon.flatten())[0]
     cindex_emtab = concordance_index_censored(emtab_events, emtab_times, estimates_emtab.flatten())[0]
         
-    return cindex_uams, cindex_hovon, cindex_emtab    
+    return max(cindex_uams,1-cindex_uams), max(cindex_hovon,1-cindex_hovon), max(cindex_emtab,1-cindex_emtab)    
 
 if __name__=="__main__":
     """
@@ -50,7 +50,7 @@ if __name__=="__main__":
     parser.add_argument('shuffle', type=int, choices=range(10), default=0, help='Random state for k-fold splitting (0-9)')
     parser.add_argument('fold', type=int, choices=range(5), default=0, help='Fold index for k-fold splitting (0-4)')
 
-    args = parser.parse_args(['pfs',0,0])
+    args = parser.parse_args()
     params = specify_params_here(args.endpoint)
 
     model = Model(params.input_types,
