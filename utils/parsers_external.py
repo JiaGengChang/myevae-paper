@@ -5,21 +5,6 @@ from dotenv import load_dotenv
 load_dotenv('.env')
 from sksurv.util import Surv
 
-_df = pd.read_csv(os.environ.get("CLINDATAFILE"),sep='\t')
-commpass_min_age = _df['D_PT_age'].min()
-commpass_max_age = _df['D_PT_age'].max()
-
-def scale_age_to_commpass(input_age):
-    # 1: age >= max age in CoMMpass
-    # 0: age <= min age in CoMMpass
-    # 0.5: age unknown
-    if pd.isna(input_age):
-        return 0.5
-    else:
-        scaled_age = (input_age - commpass_min_age) / (commpass_max_age - commpass_min_age)
-        scaled_age = np.clip(scaled_age, 0, 1)
-        return scaled_age
-
 def helper_get_training_genes():
     # get a list of 996 genes used for training RNA-Seq models
     df = pd.read_csv(os.environ.get("GENEEXPRESSIONFILE"),sep='\t')
@@ -40,7 +25,7 @@ def parse_global_clindf():
     df = global_clinsurv_df\
         [['Study','D_Age','D_Gender','D_ISS']]\
         .convert_dtypes('D_ISS',int)\
-        .assign(D_Age=lambda df: df['D_Age'].apply(scale_age_to_commpass))
+        .assign(D_Age=lambda df: df['D_Age'])
     
     df = pd.get_dummies(df,columns=['D_ISS'],dtype=int)\
         .assign(D_male=lambda df: df['D_Gender'].map({'Male': 1, 'Female': -1}).fillna(0).astype(int))\
