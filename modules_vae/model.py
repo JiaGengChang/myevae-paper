@@ -16,7 +16,7 @@ class MultiModalVAE(torch.nn.Module):
         super(self.__class__, self).__init__()
         
         assert all([f in ['exp','cna','gistic','sbs','fish','ig','apobec','cth'] for f in input_types]) # these predictors go into the VAE 
-        assert all([f in ['apobec','cth','clin'] for f in input_types_subtask]) # these predictors may skip the VAE
+        assert all([f in ['gistic','sbs','fish','ig','apobec','cth','clin'] for f in input_types_subtask]) # these predictors may skip the VAE
         
         self.input_dims = input_dims
         self.input_dims_subtask = input_dims_subtask
