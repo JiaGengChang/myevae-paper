@@ -164,11 +164,12 @@ def fit(model, trainloader, validloader, params):
     if best_model_state is not None:
         model.load_state_dict(best_model_state)
 
-    # score external datasets
-    cindex_uams, cindex_hovon, cindex_emtab = score_external_datasets(model,params.endpoint)
-    results['best_epoch']['uams_metric'] = cindex_uams
-    results['best_epoch']['hovon_metric'] = cindex_hovon
-    results['best_epoch']['emtab_metric'] = cindex_emtab
+    # score external datasets if using only RNASeq as input
+    if params.input_types==['exp']:
+        cindex_uams, cindex_hovon, cindex_emtab = score_external_datasets(model,params.endpoint)
+        results['best_epoch']['uams_metric'] = cindex_uams
+        results['best_epoch']['hovon_metric'] = cindex_hovon
+        results['best_epoch']['emtab_metric'] = cindex_emtab
 
     # save results
     with open(f'{params.resultsprefix}.json', 'w') as f:
