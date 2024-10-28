@@ -12,15 +12,20 @@ sys.path.append('../utils')
 from parsers import *
 from parsers_external import *
 from splitter import kfold_split
-from scaler import scale_and_impute_without_train_test_leak as scale_impute
+from scaler_external import scale_and_impute_external_dataset as scaler
 
 parser = argparse.ArgumentParser(description='Train linear survival model. For adjusting hyperparameters, modify this file itself')
 parser.add_argument('endpoint', type=str, choices=['pfs', 'os'], default='pfs', help='Survival endpoint (pfs or os)')
 args = parser.parse_args()
 
-clin=parse_clin()
+method='rank'
+# TODO find out how come 315 gene PCA does not perform as well on external validation datasets. So far best method is rank-based scaling, but still not hitting 0.6.
+# maybe need to redo the 996 gene PCA.
+# can try manipulating mapping the percentiles of the 315 gene PCA to the original values in 996 gene PCA, then transform with PCA. Because currently all GEP raw values are between 4-8. and this is on a different scale to RNA-Seq.
+
+clin=scaler(parse_clin().set_index('PUBLIC_ID'),method)
 surv=parse_surv(args.endpoint)
-features = parse_rna_pc().iloc[:, :11] # use first 10 PCs
+features=parse_rna_pc().iloc[:, :11] # use first 10 PCs
 
 full_dataframe = surv\
     .merge(clin,left_on='PUBLIC_ID',right_on='PUBLIC_ID')\
@@ -32,18 +37,17 @@ full_dataframe = surv\
 validation_ids = parse_validation_ids(args.endpoint)
 
 # process external datasets
-
-clin_uams=parse_clin_helper("GSE24080UAMS")
+clin_uams=scaler(parse_clin_uams(), method)
 features_uams=parse_exp_pc_uams().iloc[:, :10]
 uams_x=pd.concat([clin_uams, features_uams],axis=1)
 uams_y=parse_surv_helper("GSE24080UAMS",args.endpoint)
 
-clin_hovon=parse_clin_helper("HOVON65")
+clin_hovon=scaler(parse_clin_hovon(), method)
 features_hovon=parse_exp_pc_hovon().iloc[:, :10]
 hovon_x=pd.concat([clin_hovon, features_hovon],axis=1)
 hovon_y=parse_surv_helper("HOVON65",args.endpoint)
 
-clin_emtab=parse_clin_helper("EMTAB4032")
+clin_emtab=scaler(parse_clin_emtab(), method)
 features_emtab=parse_exp_pc_emtab().iloc[:, :10]
 emtab_x=pd.concat([clin_emtab, features_emtab],axis=1)
 emtab_y=parse_surv_helper("EMTAB4032",args.endpoint)
