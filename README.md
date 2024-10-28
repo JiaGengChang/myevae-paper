@@ -24,12 +24,17 @@ We used the CoMMpass (Relating Clinical Outcomes in MM to Personal Assessment of
 
 We used two different versions of CoMMpass data, Interim Analysis 16 (IA16) and Interim Analysis 21 (IA21) versions. This is because IA16 is the latest release which has information on IGH translocation partners. 
 
+The number of patients with carrying information in each data modality can be visualized. Most importantly, for observations to be useful, <strong>overall survival</strong> and <strong>clinical data</strong> must not be missing.
+<p align="left"><img src="./assets/upsetplot.png" width=80% alt="Upset plot showing number of patients available per data modality e.g. RNA-Seq, WGS Copy number, etc."></p>
+
+We see that ~600 samples have information in all data modalities. These are high quality samples which can be used as validation when training multi-modal risk predictors. The code to generate this upset plot alongside visualization of other basic patient characteristics is available as `modules_baseline/plot-upset.py`.
+
 ## Models
 
 ### Model architecture
 The layers and layer dimensions of VAE risk model is as shown:
 
-<p align="center"><img src="./assets/vae-diagram-export.svg" alt="Using variational autoencoder to integrate omics data" width="800"></p>
+<p align="center"><img src="./assets/vae-diagram-export.svg" width=80% alt="Using variational autoencoder to integrate omics data" width="800"></p>
 
 1. Data from Whole genome sequencing (WGS), whole exome sequencing (WXS), and RNA-Sequencing (RNA-Seq) are first individually encoded using the peripheral encoder layers.
     1. WGS IA21*: Gene level copy number, GISTIC recurrently amplified/deleted regions, interphase FISH probe locations
