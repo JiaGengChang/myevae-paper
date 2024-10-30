@@ -64,7 +64,11 @@ The layers and layer dimensions of VAE risk model is as shown:
 
 Our training objective is to model is progression free survival (PFS) in days. A secondary objective is to model Overall Survival (OS) in days.
 
-Our optimization objective is the 2 standard VAE loss terms - KL divergence and reconstruction error (Mean Square Error). We add a third loss term, typically called the sub-task loss in literature.
+Our optimization objective is the 2 standard VAE loss terms - **KL divergence** and **reconstruction error** (Mean Square Error). We add a third loss term for our survival modelling task, **NPLL** (Negative partial log likelihood). This is a generalised, non-linear version of the Cox's partial log likelihood objective. 
+
+<p align="center"><img src="./assets/cox-partial-log-likelihood.png" width=60%></p>
+
+We try to maximize the log-likelihood (second equation) because the likelihood is very small.
 
 Training was done for up to 300 epochs, with 50 burn-in epochs and early stopping with a patience of 20 epochs. The stopping criteria is validation survival/sub-task loss.
 
