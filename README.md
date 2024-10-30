@@ -24,10 +24,20 @@ We used the CoMMpass (Relating Clinical Outcomes in MM to Personal Assessment of
 
 We used two different versions of CoMMpass data, Interim Analysis 16 (IA16) and Interim Analysis 21 (IA21) versions. This is because IA16 is the latest release which has information on IGH translocation partners. 
 
+### Data availability
+
 The number of patients with carrying information in each data modality can be visualized. Most importantly, for observations to be useful, <strong>overall survival</strong> and <strong>clinical data</strong> must not be missing.
 <p align="left"><img src="./assets/upsetplot.png" width=80% alt="Upset plot showing number of patients available per data modality e.g. RNA-Seq, WGS Copy number, etc."></p>
 
 We see that ~600 samples have information in all data modalities. These are high quality samples which can be used as validation when training multi-modal risk predictors. The code to generate this upset plot alongside visualization of other basic patient characteristics is available as `modules_baseline/plot-upset.py`.
+
+### Multivariate visualization
+
+IgH translocations is the main classification method for subtyping myeloma cases. In around 50% of myeloma patients, there is a translocation between the IgH immunoglobulin enhancer on chromosome 11 and a parter oncogene on a different chromosome. This results in upregulation of that oncogene. There are 9 canonical translocation partners recognised in literature. We can visualize the intersection between clinical variables and IgH translocation partners with an *OncoPrint*.
+
+<p align="left"><img src="./assets/heatmap_igh_sides.png" width=100%></p>
+
+In the remaining 50% of myeloma patients where no IgH translocation occurs, a process known as <strong>hyperdiploidy</strong> occurs. Hyperdiploidy is the trisomy of odd-numbered chromosomes, and it is slightly protective.
 
 ## Models
 
