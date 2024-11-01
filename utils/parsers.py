@@ -90,6 +90,19 @@ def parse_mrcix6():
     df = pd.read_csv(os.environ.get("MRCIX6FILE"),sep='\t')
     return df
 
+# parse PCA reduced datasets
 def parse_rna_pc():
     df =  pd.read_csv(os.environ.get("PCGENEEXPRESSIONFILE"),sep='\t')
+    return df
+
+def parse_cna_pc():
+    df =  pd.read_csv(os.environ.get("PCCNAFILE"),sep='\t')
+    return df
+
+def parse_gistic_pc():
+    df =  pd.read_csv(os.environ.get("PCGISTICFILE"),sep='\t')
+    return df   
+
+def parse_fish_pc():
+    df =  pd.read_csv(os.environ.get("PCFISHFILE"),sep='\t')
     return df
