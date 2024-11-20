@@ -54,7 +54,7 @@ model = Model(params.input_types,
 fit(model, trainloader, validloader, params)
 
 # predict on validation data once more and save to tsv
-# predict_to_tsv(model, validloader, f'{params.resultsprefix}.tsv')
+predict_to_tsv(model, validloader, f'{params.resultsprefix}.tsv', save_embeddings=True)
 
 # plot losses and metrics to pdf
 # plot_results_to_pdf(f'{params.resultsprefix}.json',f'{params.resultsprefix}.pdf')
