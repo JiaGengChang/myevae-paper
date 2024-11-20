@@ -28,8 +28,10 @@ data = from_contents({
     "RNA-Seq Gene Expr": rna,
 })
 plt.tight_layout()
-plot(data,show_counts=True,min_subset_size=10)
-plt.savefig('assets/upsetplot.png')
+plt.gcf().set_size_inches(5, 5)
 
-plot(data,show_counts=True,min_subset_size=1)
-plt.savefig('assets/upsetplot_full.png')
+plot(data,show_counts=True,min_subset_size=10)
+plt.savefig('assets/upsetplot.png',dpi=300)
+
+# plot(data,show_counts=True,min_subset_size=1)
+# plt.savefig('assets/upsetplot_full.png',dpi=300)
