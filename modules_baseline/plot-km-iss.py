@@ -34,15 +34,15 @@ plt.clf()
 ax = plt.subplot(111)
 
 # change to os or pfs accordingly
-ax = model_iss1.fit(kmdata.loc[iss1,'oscdy'],kmdata.loc[iss1,'censos'],label='ISS 1').plot_survival_function(ax=ax)
+ax = model_iss1.fit(kmdata.loc[iss1,'pfscdy'],kmdata.loc[iss1,'censpfs'],label='ISS 1').plot_survival_function(ax=ax)
 
-ax = model_iss2.fit(kmdata.loc[iss2,'oscdy'],kmdata.loc[iss2,'censos'],label='ISS 2').plot_survival_function(ax=ax)
+ax = model_iss2.fit(kmdata.loc[iss2,'pfscdy'],kmdata.loc[iss2,'censpfs'],label='ISS 2').plot_survival_function(ax=ax)
 
-ax = model_iss3.fit(kmdata.loc[iss3,'oscdy'],kmdata.loc[iss3,'censos'],label='ISS 3').plot_survival_function(ax=ax)
+ax = model_iss3.fit(kmdata.loc[iss3,'pfscdy'],kmdata.loc[iss3,'censpfs'],label='ISS 3').plot_survival_function(ax=ax)
 
 
-add_at_risk_counts(model_iss1, model_iss2, model_iss3, ax=ax)
-plt.title('Overall survival by ISS stage')
+add_at_risk_counts(model_iss1, model_iss2, model_iss3, ax=ax, ypos=-0.2)
+plt.title('Progression-free survival by ISS stage')
 plt.tight_layout()
-plt.gcf().set_size_inches(6.5, 5.75)
-plt.savefig('assets/km_curve_os_iss.png',dpi=300)
+plt.gcf().set_size_inches(5, 5)
+plt.savefig('assets/km_curve_pfs_iss.png',dpi=300)
