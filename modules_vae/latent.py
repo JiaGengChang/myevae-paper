@@ -3,13 +3,22 @@ import numpy as np
 import matplotlib.pyplot as plt
 from glob import glob
 import umap
+import argparse
 
 wdir='/home/users/nus/e1083772/cancer-survival-ml/vae_models'
-exptname='RNA'
-shuffle='0'
-fold='0'
+parser = argparse.ArgumentParser(description='UMAP of latent embeddings of a single model.')
+parser.add_argument('shuffle', type=int, help='Shuffle number')
+parser.add_argument('fold', type=int, help='Fold number')
+parser.add_argument('--exptname', type=str, default='RNA', help='Experiment name')
 
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
+args = parser.parse_args()
+
+exptname = args.exptname
+shuffle = args.shuffle
+fold = args.fold
+
+plt.tight_layout()
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
 
 for ax,endpoint in zip([ax1,ax2],['pfs', 'os']):
     mu = pd.read_csv(f'{wdir}/{exptname}/{endpoint}_shuffle{shuffle}_fold{fold}.tsv',sep='\t')
@@ -21,11 +30,12 @@ for ax,endpoint in zip([ax1,ax2],['pfs', 'os']):
     reducer = umap.UMAP(n_components=2, random_state=42)
     embedding = reducer.fit_transform(mu_features)
 
-    ax.scatter(embedding[:, 0], embedding[:, 1], c=mu['prediction'], cmap='viridis')
+    ax_scatter = ax.scatter(embedding[:, 0], embedding[:, 1], c=mu['prediction'], cmap='viridis')
     
-    ax.xlabel('UMAP 1')
-    ax.ylabel('UMAP 2')
-    ax.colorbar(label='Risk score')
-    ax.title(f'{exptname} Shuffle {shuffle} Fold {fold} {endpoint.upper()}')
+    ax.set_xlabel('UMAP 1')
+    ax.set_ylabel('UMAP 2')
+    cbar = plt.colorbar(ax_scatter, ax=ax)
+    cbar.set_label('Risk score')
+    ax.set_title(f'{exptname} Shuffle {shuffle} Fold {fold} {endpoint.upper()}')
 
 plt.savefig(f'{wdir}/{exptname}/UMAP-{shuffle}-{fold}.png')
