@@ -6,9 +6,9 @@ import umap
 
 wdir='/home/users/nus/e1083772/cancer-survival-ml/vae_models'
 exptname='RNA'
-endpoint='os'
+endpoint='pfs'
 shuffle='0'
-fold='4'
+fold='0'
 
 files = glob(f'{wdir}/{exptname}/{endpoint}_shuffle{shuffle}_fold{fold}.tsv')
 plt.clf()
