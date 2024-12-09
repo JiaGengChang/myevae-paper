@@ -1,6 +1,6 @@
 # Cancer Survival ML
 
-<p align="left"><img src="./assets/cancer-ml-logo-export.svg" alt="Multi-omics risk modelling logo" width="600"></p>
+<p align="center"><img src="./assets/cancer-ml-logo-export.svg" alt="Multi-omics risk modelling logo" width="600"></p>
 
 ## Table of Contents
 
