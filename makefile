@@ -1,23 +1,25 @@
-PYTHON=/home/users/nus/e1083772/.localpython/bin/python3.9
+PYTHON=/home/users/nus/e1083772/.localpython/bin/python3
 WDIR=/home/users/nus/e1083772/cancer-survival-ml
-TRAINSCRIPT=$(WDIR)/modules_vae/main.py
-EVALSCRIPT=$(WDIR)/modules_vae/eval.py
-PBSOPTS=-p 0 -j oe -o $(WDIR)/.pbs -q normal -l select=1:ncpus=2:mem=1024mb -l walltime=02:00:01
+OPTS=-p 0 -j oe -o $(WDIR)/.pbs -q normal -l select=1:ncpus=4:mem=64G -l walltime=02:00:01
+J ?= 0-1:2
+EP ?= os # os pfs
 
-all: pfs os clean
+SPLITDATA=${WDIR}/pipeline/1_split.py
+PREPROCESS=$(WDIR)/pipeline/2_preprocess.py
+FIT=$(WDIR)/pipeline/3_fit_vae.py
+EVAL=$(WDIR)/pipeline/4_eval_vae.py
 
-one:
-	qsub $(PBSOPTS) -J 0-1:2 -- $(PYTHON) $(TRAINSCRIPT) --endpoint "pfs"	
+0:
+	find $(WDIR)/.pbs -type f -delete
 
-pfs:
-	qsub $(PBSOPTS) -J 0-49 -- $(PYTHON) $(TRAINSCRIPT) --endpoint "pfs"
+1:
+	qsub ${OPTS} -J ${J} -- ${PYTHON} ${SPLITDATA}
 
-os:
-	qsub $(PBSOPTS) -J 0-49 -- $(PYTHON) $(TRAINSCRIPT) --endpoint "os"
+2:
+	qsub ${OPTS} -J ${J} -- ${PYTHON} ${PREPROCESS} --endpoint ${EP}
 
-clean:
-	find .pbs -type f -mmin +1 -delete
+3:
+	qsub $(OPTS) -J ${J} -- $(PYTHON) $(FIT) --endpoint ${EP}
 
-eval:
-	qsub $(PBSOPTS) -- $(PYTHON) $(EVALSCRIPT)
-	
+4:
+	qsub $(OPTS) -- $(PYTHON) $(EVAL) --endpoint ${EP}
