@@ -18,7 +18,7 @@ data = data.copy().set_index('PUBLIC_ID')
 data.columns = data.columns.str.split('_').str[2]
 
 # categorical data for top/bottom axes
-clin_cols = ['ISS','OLD','SEX']
+extra_covariates = ['ISS','OLD','SEX']
 side = pd.read_csv(os.environ.get("CLINDATAFILE"), sep='\t')\
     .set_index('PUBLIC_ID')\
     .merge(data, left_index=True, right_index=True, how='right')\
@@ -26,9 +26,10 @@ side = pd.read_csv(os.environ.get("CLINDATAFILE"), sep='\t')\
             SEX = lambda df: df['D_PT_gender'].fillna(3).astype('int') - 1,
             OLD = lambda df: (df['D_PT_age'] >= 63).fillna(2).astype('int'))\
     .loc[lambda df: df.index.isin(data.index), :]\
-    [clin_cols]
+    [extra_covariates]
     
 full_data = pd.concat([data,side],axis=1)
+# full_data = data
 
 # Order the samples using the oncoplot algorithm
 def oncoplot_ordering(data):
@@ -39,49 +40,28 @@ def oncoplot_ordering(data):
         
         # Order columns by column-wise sum
         primary_col = ordered_columns[depth]
-        
-        # handle ISS which is 1-4
-        if primary_col == 'ISS':
-            group_1 = data[data[primary_col] == 1]
-            group_2 = data[data[primary_col] == 2]
-            group_3 = data[data[primary_col] == 3]
-            group_4 = data[data[primary_col] == 4] # NA
-            ordered_indices_1 = recursive_ordering(group_1, depth + 1)
-            ordered_indices_2 = recursive_ordering(group_2, depth + 1)
-            ordered_indices_3 = recursive_ordering(group_3, depth + 1)
-            ordered_indices_4 = recursive_ordering(group_4, depth + 1) # NA
-            return ordered_indices_3 + ordered_indices_2 + ordered_indices_1 + ordered_indices_4
-
-        # handle OLD or SEX which is 0-2
-        if primary_col in ['OLD','SEX']:
-            group_0 = data[data[primary_col] == 0]
-            group_1 = data[data[primary_col] == 1]
-            group_2 = data[data[primary_col] == 2] # NA
-            ordered_indices_0 = recursive_ordering(group_0, depth + 1)
-            ordered_indices_1 = recursive_ordering(group_1, depth + 1)
-            ordered_indices_2 = recursive_ordering(group_2, depth + 1) # NA
-            return ordered_indices_1 + ordered_indices_0 + ordered_indices_2
-        
+                
         # The remaining are IGH partner columns
         # Divide observations into groups based on the primary column
-        group_1 = data[data[primary_col] == 1]
-        group_0 = data[data[primary_col] == 0]
         
-        # Recursively order within each group
-        ordered_indices_1 = recursive_ordering(group_1, depth + 1)
-        ordered_indices_0 = recursive_ordering(group_0, depth + 1)
+        ordered_indices = []
         
-        # Combine the ordered indices
-        return ordered_indices_1 + ordered_indices_0
+        for value in sorted(data[primary_col].unique())[::-1]:
+            # subset to observations with the same value
+            group_v = data[data[primary_col] == value]
+            # Recursively order within each group
+            ordered_indices_v = recursive_ordering(group_v, depth + 1)
+            # Combine the ordered indices
+            ordered_indices.extend(ordered_indices_v)
+        
+        return ordered_indices
     
     # Start the recursive ordering
     ordered_columns = data.sum(axis=0).sort_values(ascending=False).index
-    # Ensure clin columns appear last
-    # for col in clin_cols:
-    #     if col in ordered_columns:
-    #         ordered_columns = ordered_columns.drop(col)
-    ordered_columns = ordered_columns.drop(clin_cols)
-    ordered_columns = ordered_columns.append(pd.Index(clin_cols))
+    
+    # Order additional columns appear last
+    ordered_columns = ordered_columns.drop(extra_covariates)
+    ordered_columns = ordered_columns.append(pd.Index(extra_covariates))
     ordered_indices = recursive_ordering(data.loc[:, ordered_columns])
     return data.loc[ordered_indices, ordered_columns]
 
@@ -93,6 +73,12 @@ ordered_colnames = ordered_data_full.columns[:-3]
 clin_colnames = ordered_data_full.columns[-3:]
 ordered_data = ordered_data_full[ordered_colnames]
 ordered_clin = ordered_data_full[clin_colnames]
+
+# ordered_data = ordered_data_full
+# ordered_colnames = ordered_data_full.columns 
+# ordered_clin = side 
+# clin_colnames = side.columns
+
 
 plt.clf(); 
 ax = plt.gca()
@@ -178,7 +164,8 @@ ax_sex.legend(handles=sex_legend_elements, title='Sex', bbox_to_anchor=(1, -9), 
 
 
 plt.title('RNA-Seq based IgH translocation partner')
-plt.show()
 
 plt.gcf().set_size_inches(8, 3)
-plt.savefig('assets/heatmap_igh_sides.png', dpi=150, bbox_inches='tight')
+plt.savefig('assets/heatmap_igh_sides_medium.png', dpi=150, bbox_inches='tight')
+
+# plt.show()
