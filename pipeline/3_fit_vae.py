@@ -2,9 +2,11 @@ import os
 import argparse
 import pandas as pd
 import numpy as np
+from dotenv import load_dotenv
+load_dotenv('../.env')
 
 import sys
-sys.path.append('/home/users/nus/e1083772/cancer-survival-ml/')
+sys.path.append(os.environ.get("PROJECTDIR"))
 from modules_vae.params import VAEParams as specify_params_here
 from modules_vae.fit import fit
 from modules_vae.model import MultiModalVAE as Model
@@ -24,8 +26,6 @@ def main():
     """
     parser = argparse.ArgumentParser(description='Train VAE model. For adjusting hyperparameters, modify params.py')
     parser.add_argument('--endpoint', type=str, choices=['pfs', 'os'], default='pfs', help='Survival endpoint (pfs or os)')
-    # parser.add_argument('--shuffle', type=int, choices=range(10), default=0, help='Random state for k-fold splitting (0-9)')
-    # parser.add_argument('--fold', type=int, choices=range(5), default=0, help='Fold index for k-fold splitting (0-4)')
     args = parser.parse_args()
 
     # comment out these 3 lines if not using PBS
@@ -35,59 +35,46 @@ def main():
     pbs_fold=_pbs_array_id//10
     params = specify_params_here(args.endpoint, pbs_shuffle, pbs_fold)
 
-    # begin writing split data
-    scratchdir="/scratch/users/nus/e1083772/cancer-survival-ml/data/splits"
-    train_features_file=f'{scratchdir}/{params.shuffle}/{params.fold}/train_features.parquet'
-    valid_features_file=f'{scratchdir}/{params.shuffle}/{params.fold}/valid_features.parquet'
-
+    scratchdir=os.environ.get("SPLITDATADIR")
+    train_features_file=f'{scratchdir}/{params.shuffle}/{params.fold}/train_features_processed.parquet'
+    valid_features_file=f'{scratchdir}/{params.shuffle}/{params.fold}/valid_features_processed.parquet'
+    
     train_labels_file=f'{scratchdir}/{params.shuffle}/{params.fold}/train_labels.parquet'
     valid_labels_file=f'{scratchdir}/{params.shuffle}/{params.fold}/valid_labels.parquet'
-
-    REDO=True # whether to overwrite existing parquet files
-    if not os.path.isfile(train_features_file) \
-        or not os.path.isfile(valid_features_file) \
-            or not os.path.isfile(train_labels_file) \
-                or not os.path.isfile(valid_labels_file) \
-                    or REDO:
-        full_dataframe = parse_all(params.endpoint)
-        train_dataframe, valid_dataframe = kfold_split(full_dataframe, params.shuffle, params.fold)
-
-        survcols=['oscdy','censos','pfscdy','censpfs']
-        train_surv = train_dataframe.loc[:,survcols]
-        valid_surv = valid_dataframe.loc[:,survcols]
-        train_dataframe.drop(columns=survcols,inplace=True)
-        valid_dataframe.drop(columns=survcols,inplace=True)
-        
-        if not os.path.exists(os.path.dirname(train_features_file)):
-            os.makedirs(os.path.dirname(train_features_file), exist_ok=True)
-        train_dataframe.to_parquet(train_features_file,compression=None)
-        train_surv.to_parquet(train_labels_file, compression=None)
-        
-        if not os.path.exists(os.path.dirname(valid_features_file)):
-            os.makedirs(os.path.dirname(valid_features_file), exist_ok=True)
-        valid_dataframe.to_parquet(valid_features_file,compression=None)
-        valid_surv.to_parquet(valid_labels_file, compression=None)
-    else:
-        train_dataframe = pd.read_parquet(train_features_file)
-        valid_dataframe = pd.read_parquet(valid_features_file)
-        survcols = [f'{params.endpoint}cdy',f'cens{params.endpoint}']
-        train_surv = pd.read_parquet(train_labels_file,columns=survcols)
-        valid_surv = pd.read_parquet(valid_labels_file,columns=survcols)
-        train_surv.rename(columns={f'{params.endpoint}cdy':'survtime',f'cens{params.endpoint}':'survflag'},inplace=True)
-        valid_surv.rename(columns={f'{params.endpoint}cdy':'survtime',f'cens{params.endpoint}':'survflag'},inplace=True)
-        
-    return
-    # end of writing split data
-
-    os.makedirs(os.path.dirname(params.resultsprefix), exist_ok=True) # prepare output directory
-
-    full_dataframe = parse_all(params.endpoint)
-    train_dataframe, valid_dataframe = kfold_split(full_dataframe, params.shuffle, params.fold)
-    train_dataframe_scaled, valid_dataframe_scaled = scale_impute(train_dataframe, valid_dataframe, method=params.scaler)
-
-    trainloader = DataLoader(Dataset(train_dataframe_scaled, params.input_types_all), batch_size=params.batch_size, shuffle=True)
-    validloader = DataLoader(Dataset(valid_dataframe_scaled, params.input_types_all), batch_size=128, shuffle=False)
-
+    
+    train_features=pd.read_parquet(train_features_file)
+    valid_features=pd.read_parquet(valid_features_file)
+    
+    eventcol = f"cens{params.endpoint}"
+    durationcol = f"{params.endpoint}cdy"
+    
+    train_labels=pd.read_parquet(train_labels_file)[[eventcol,durationcol]]
+    valid_labels=pd.read_parquet(valid_labels_file)[[eventcol,durationcol]]
+    
+    train_dataframe=pd.concat([train_labels,train_features],axis=1)
+    valid_dataframe=pd.concat([valid_labels,valid_features],axis=1)
+    trainloader = DataLoader(Dataset(train_dataframe, params.input_types_all, event_indicator_col=eventcol,event_time_col=durationcol), batch_size=params.batch_size, shuffle=True)
+    validloader = DataLoader(Dataset(valid_dataframe, params.input_types_all, event_indicator_col=eventcol,event_time_col=durationcol), batch_size=128, shuffle=False)
+    
+    # find column by regex based on input abbrv
+    find_column = {'cth' : 'Feature_chromothripsis',
+                   'apobec': 'Feature_APOBEC',
+                   'clin': 'Feature_clin',
+                   'exp': 'Feature_exp',
+                   'sbs': 'Feature_SBS',
+                   'ig': 'Feature_(RNASeq|SeqWGS)',
+                   'gistic': 'Feature_CNA_(Amp|Del)',
+                   'fish': 'Feature_fish',
+                   'cna': 'Feature_CNA_ENSG'}
+    
+    # lazy determination of input dimensions
+    params.input_dims = [
+        params.input_dims[i] 
+        if params.input_dims[i] 
+        else train_dataframe.filter(regex=find_column[params.input_types[i]]).columns.__len__() 
+        for i in range(len(params.input_types))
+    ]
+    
     model = Model(params.input_types,
                 params.input_dims,
                 params.layer_dims,
@@ -95,7 +82,10 @@ def main():
                 params.input_dims_subtask,
                 params.layer_dims_subtask,
                 params.z_dim)
-
+    
+    # create output directory
+    os.makedirs(os.path.dirname(params.resultsprefix),exist_ok=True)
+    
     # fit and save history to json
     fit(model, trainloader, validloader, params)
 

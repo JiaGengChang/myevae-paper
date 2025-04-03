@@ -1,16 +1,29 @@
 import torch
 import sys
-sys.path.append('../utils')
-from buildnetwork import buildNetwork 
+sys.path.append('/home/users/nus/e1083772/cancer-survival-ml/')
+from utils.buildnetwork import buildNetwork 
 
 class MultiModalVAE(torch.nn.Module):
     def __init__(self,
-                 input_types = ['exp','cna','gistic','sbs','fish','ig'], # data modalities for VAE
-                 input_dims = [ 996,  166, 42,  10,  24,  8], # number of input features for each data modality, for VAE
-                 layer_dims = [[64], [16], [4], [2], [2],[1]], # hidden layer dimensions for VAE
-                 input_types_subtask = ['apobec','cth','clin'], # data modalities for sub-task
-                 input_dims_subtask = [1, 1, 4], # number of input features for each data modality, for subtask network
-                 layer_dims_subtask = [12,1], # hidden layer dimensions for subtask network
+                 # data modalities for VAE
+                 input_types = ['exp','cna','gistic','sbs','fish','ig'],
+                 # number of input features for each data modality, for VAE
+                 # e.g. [ 996,  166, 42,  10,  24,  8]
+                 input_dims = [None, None, None, None, None, None],
+                 # hidden layer dimensions for VAE
+                 # e.g. [[64], [16], [4], [2], [2],[1]]
+                 layer_dims = [[64], [16], [4], [2], [2],[1]],
+                 # data modalities for sub-task
+                 # e.g. ['apobec','cth','clin']
+                 input_types_subtask = ['clin'],
+                 # number of input features for each data modality, for subtask network
+                 # e.g. [1, 1, 5]
+                 input_dims_subtask = [5],
+                 # hidden layer dimensions for subtask network
+                 # e.g. [12, 1]
+                 layer_dims_subtask = [12,1],
+                 # bottleneck layer dimensions
+                 # e.g. 16
                  z_dim = 16, 
                 ):
         super(self.__class__, self).__init__()

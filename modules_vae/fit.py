@@ -1,11 +1,14 @@
 import torch
 import json
 import sys
-sys.path.append('../utils')
-from cindexmetric import ConcordanceIndex # metric
-from coxphloss import CoxPHLoss # optimization objective is negative partial log likelihood
-from kldivergence import KLDivergence # regularization
-from validation import score_external_datasets
+import os
+from dotenv import load_dotenv
+load_dotenv('../.env')
+sys.path.append(os.environ.get("PROJECTDIR"))
+from modules_vae.validation import score_external_datasets
+from utils.cindexmetric import ConcordanceIndex # metric
+from utils.coxphloss import CoxPHLoss # optimization objective is negative partial log likelihood
+from utils.kldivergence import KLDivergence # regularization
 
 def fit(model, trainloader, validloader, params):
     """
@@ -166,7 +169,7 @@ def fit(model, trainloader, validloader, params):
 
     # score external datasets if using only RNASeq as input
     if params.input_types==['exp']:
-        cindex_uams, cindex_hovon, cindex_emtab = score_external_datasets(model,params.endpoint)
+        cindex_uams, cindex_hovon, cindex_emtab = score_external_datasets(model,params.endpoint,params.shuffle,params.fold)
         results['best_epoch']['uams_metric'] = cindex_uams
         results['best_epoch']['hovon_metric'] = cindex_hovon
         results['best_epoch']['emtab_metric'] = cindex_emtab
