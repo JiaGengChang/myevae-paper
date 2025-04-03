@@ -5,13 +5,14 @@ from sksurv.linear_model import CoxPHSurvivalAnalysis, CoxnetSurvivalAnalysis
 from sksurv.util import Surv
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.feature_selection import SelectorMixin, VarianceThreshold
-from sklearn.preprocessing import StandardScaler, FunctionTransformer, Normalizer, RobustScaler
+from sklearn.preprocessing import StandardScaler, FunctionTransformer, Normalizer, RobustScaler, OrdinalEncoder
 from sklearn.decomposition import PCA
 from sklearn.compose import make_column_transformer, make_column_selector, ColumnTransformer
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier, BaggingRegressor, BaggingClassifier
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+from xgboost import XGBRFClassifier, XGBRFRegressor # version < 1.3.2 to allow non-encoded y
 
 class VarianceSelector(TransformerMixin, BaseEstimator):        
     def __init__(self, **kwargs):
@@ -160,3 +161,24 @@ class PCATransform(TransformerMixin, BaseEstimator):
     
     def get_feature_names_out(self):
         return self.features_out
+
+# class OrdEncoder(TransformerMixin, BaseEstimator):
+#     def __init__(self, values=[-2, -1, 0, 1, 2]):
+#         self.values = values
+#         self.encoder = None 
+#         self.feature_names_out = None 
+    
+#     # encodes -2:0, -1:1, 0:2, 1:3, 2:4
+#     # to comply with 0-based class label requirement XGBoost random forest classifier
+#     def fit(self, X, y=None):
+#         categories = [self.values for _ in range(X.shape[1])]
+#         self.encoder = OrdinalEncoder(categories=categories,handle_unknown='use_encoded_value',unknown_value=np.nan).set_output(transform="pandas")
+#         self.feature_names_out = X.columns
+#         return self 
+    
+#     def transform(self, X):
+#         Xout = self.encoder.fit_transform(X)
+#         return Xout
+        
+#     def get_feature_names_out(self):
+#         return self.feature_names_out

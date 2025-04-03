@@ -4,9 +4,11 @@ import pandas as pd
 import numpy as np
 from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer
+from dotenv import load_dotenv
+load_dotenv('../.env')
 
 import sys
-sys.path.append('/home/users/nus/e1083772/cancer-survival-ml/')
+sys.path.append(os.environ.get("PROJECTDIR"))
 from utils.preprocessing import *
 
 def main():
@@ -19,7 +21,7 @@ def main():
     fold=_pbs_array_id//10
     endpoint = args.endpoint
 
-    scratchdir="/scratch/users/nus/e1083772/cancer-survival-ml/data/splits"
+    scratchdir=os.environ.get("SPLITDATADIR")
     features_file=f'{scratchdir}/{shuffle}/{fold}/train_features.parquet'
     features = pd.read_parquet(features_file)
 
@@ -41,6 +43,13 @@ def main():
         ('Cox ElasticNet', CoxnetSelector(l1_ratio=0.5, coef_threshold=0.05)),
     ])
 
+    transformer_sbs = Pipeline([
+        ('Non-zero variance', VarianceSelector(threshold=1)),
+        ('Log1p', Log1pTransform()),
+        ('Standard scaling', StandardTransform()),
+        ('Cox LASSO', CoxnetSelector(l1_ratio=1, coef_threshold=0.1)),
+    ])
+
     transformer_gene_cn = Pipeline([
         ('Non-zero variance', VarianceSelector(threshold=0)),
         ('Coxnet', CoxnetSelector(l1_ratio=0.5, coef_threshold=0.05)),
@@ -49,27 +58,20 @@ def main():
 
     transformer_gistic = Pipeline([
         ('Non-zero variance', VarianceSelector(threshold=0)),
-        ('Coxnet', CoxnetSelector(l1_ratio=0.5, coef_threshold = 0.1)),
-    ])
-
-    transformer_sbs = Pipeline([
-        ('Non-zero variance', VarianceSelector(threshold=1)),
-        ('Log1p', Log1pTransform()),
-        ('Standard scaling', StandardTransform()),
-        ('Cox LASSO', CoxnetSelector(l1_ratio=1, coef_threshold=0.1)),
+        ('Coxnet', CoxnetSelector(l1_ratio=0.5, coef_threshold = 0.2)),
     ])
 
     transformer_fish = Pipeline([
         ('Non-zero variance', VarianceSelector(threshold=0)),
-        ('Coxnet', CoxnetSelector(l1_ratio=0.5, coef_threshold = 0.1)),
-    ])
-
-    transformer_ig = Pipeline([
-        ('Frequency', FrequencySelector(minfreq=0.01))
+        ('Coxnet', CoxnetSelector(l1_ratio=0.5, coef_threshold = 0.2)),
     ])
 
     transformer_clin = Pipeline([
         ('Scale age', StandardTransform(cols=['Feature_clin_D_PT_age']))
+    ])
+
+    transformer_ig = Pipeline([
+        ('Frequency', FrequencySelector(minfreq=0.01))
     ])
 
     transformer = ColumnTransformer([
@@ -81,45 +83,37 @@ def main():
         ('Clinical', transformer_clin, make_column_selector(pattern='Feature_clin')),
     ], remainder='passthrough').set_output(transform="pandas")
 
-    algo_args = {
-        'n_estimators': 10,
-        'max_samples': 0.75,
-        'max_features': 0.75,
-        'n_jobs':4,
-        'verbose':1,
+    tree_args = {
+        'n_estimators': 100,
+        'subsample': 0.8,
+        'colsample_bynode': 0.8,
+        'n_jobs': 4,
     }
     imputer_args = {
-        'max_iter': 10,
-        'tol':1e-2,
-        'skip_complete':True
+        'n_nearest_features':300,
+        'max_iter':50,
+        'tol': 0.01,
+        'skip_complete':True,
     }
 
-    # for continuous variables
-    RegressionImputer = IterativeImputer(estimator=RandomForestRegressor(**algo_args), 
-                                         initial_strategy='mean', 
-                                         **imputer_args)
-    # for categorical variables
-    ClassificationImputer = IterativeImputer(estimator=RandomForestClassifier(**algo_args),
-                                             initial_strategy='most_frequent', 
-                                             **imputer_args)
+    ContinuousImputer = IterativeImputer(estimator=XGBRFRegressor(**tree_args), initial_strategy='mean', **imputer_args)
+    CategoricalImputer = IterativeImputer(estimator=XGBRFClassifier(**tree_args), initial_strategy='most_frequent', **imputer_args)
 
     imputer = ColumnTransformer([
-        ('Continuous variables', RegressionImputer, make_column_selector(pattern='Feature_(exp|clin_D_PT_age|SBS)')),
-        ('Categorical variables', ClassificationImputer, make_column_selector(pattern='Feature_(?!exp|clin_D_PT_age|SBS)'))
+        ('Continuous variables', ContinuousImputer, make_column_selector(pattern='Feature_(exp|clin_D_PT_age|SBS)')),
+        ('Categorical variables', CategoricalImputer, make_column_selector(pattern='Feature_(?!exp|clin_D_PT_age|SBS)'))
     ], remainder='drop').set_output(transform="pandas")
 
-    # not used for now
-    pca = ColumnTransformer([
-        ('Gene expression', PCATransform(prefix='Feature_exp',n_components=10), make_column_selector(pattern='Feature_exp')),
-        ('Gene copy number', PCATransform(prefix='Feature_CN_gene',n_components=10), make_column_selector(pattern='Feature_CNA_ENSG')),
-        ('Gistic copy number', PCATransform(prefix='Feature_CN_gistic',n_components=10), make_column_selector(pattern='Feature_CNA_(RNASeq|SeqWGS)')),
-        ('FISH copy number', PCATransform(prefix='Feature_CN_fish',n_components=10), make_column_selector(pattern='Feature_fish')),
-    ], remainder='passthrough').set_output(transform="pandas")
+    # pca = ColumnTransformer([
+    #     ('Gene expression', PCATransform(prefix='Feature_exp',n_components=10), make_column_selector(pattern='Feature_exp')),
+    #     ('Gene copy number', PCATransform(prefix='Feature_CN_gene',n_components=10), make_column_selector(pattern='Feature_CNA_ENSG')),
+    #     ('Gistic copy number', PCATransform(prefix='Feature_CN_gistic',n_components=10), make_column_selector(pattern='Feature_CNA_(RNASeq|SeqWGS)')),
+    #     ('FISH copy number', PCATransform(prefix='Feature_CN_fish',n_components=10), make_column_selector(pattern='Feature_fish')),
+    # ], remainder='passthrough').set_output(transform="pandas")
 
     pipeline = Pipeline([
         ('Feature selection', transformer),
         ('Joint imputation', imputer),
-        # ('PCA', pca) # optional, can be done later
     ])
     
     # need to shift start date because some OS is negative
