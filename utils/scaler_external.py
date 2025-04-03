@@ -13,16 +13,16 @@ def scale_and_impute_external_dataset(df:pd.DataFrame, method:str='minmax'):
         df_scaled[columns] = (df[columns] - df[columns].median()) / (df[columns].quantile(0.95) - df[columns].quantile(0.05))
     elif method=='rank':
         df_scaled[columns] = df[columns].rank(method='max', pct=True)
-    elif method is not None:
+    elif method != "none":
         try:
             # scale with custom method
             df_scaled[columns] = df[columns].apply(method)
         except:
-            raise ValueError('Scaling/fillNA method \"{method}\" unknown')
+            raise ValueError(f'Scaling/fillNA method {method} unknown')
     else:
         # no scaling
-        warnings.warn('No scaling method specified. No scaling, only imputing NA with 0.')
-        return df.fillna(0)
+        # warnings.warn('No scaling method specified. No scaling, only imputing NA with 0.')
+        return df.fillna(0).astype(float)
     
     df_scaled[columns] += 1e-5 # to distinguish actual 0 values from NA values
     

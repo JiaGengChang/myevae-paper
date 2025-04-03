@@ -2,28 +2,32 @@ import torch
 import os
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 import argparse
-from params import VAEParams as no_argument_params
 from torch.utils.data import DataLoader
 from sksurv.metrics import concordance_index_censored
 import json
 import sys
-sys.path.append('../utils')
-from model import MultiModalVAE as Model
-from parsers_external import *
-from scaler_external import scale_and_impute_external_dataset as scaler
+from dotenv import load_dotenv
+load_dotenv("../.env")
+sys.path.append(os.environ.get("PROJECTDIR"))
+from modules_vae.params import VAEParams as no_argument_params
+from modules_vae.model import MultiModalVAE as Model
+from utils.parsers_external import *
+from utils.scaler_external import scale_and_impute_external_dataset as scale_impute
 
-params = no_argument_params()
+def score_external_datasets(model,endpoint,shuffle,fold,level="affy"):
+    params = no_argument_params()
+    
+    genes = helper_get_training_genes(endpoint,shuffle,fold)
 
-uams_clin_tensor = torch.tensor(scaler(parse_clin_uams(), params.scaler).values)
-uams_exp_tensor = torch.tensor(scaler(parse_exp_uams(), params.scaler).values)
+    uams_clin_tensor = torch.tensor(scale_impute(parse_clin_uams(), params.scale_method).values)
+    uams_exp_tensor = torch.tensor(scale_impute(parse_exp_uams(genes,level), params.scale_method).values)
 
-hovon_clin_tensor = torch.tensor(scaler(parse_clin_hovon(), params.scaler).values)
-hovon_exp_tensor = torch.tensor(scaler(parse_exp_hovon(), params.scaler).values)
+    hovon_clin_tensor = torch.tensor(scale_impute(parse_clin_hovon(), params.scale_method).values)
+    hovon_exp_tensor = torch.tensor(scale_impute(parse_exp_hovon(genes,level), params.scale_method).values)
 
-emtab_clin_tensor = torch.tensor(scaler(parse_clin_emtab(), params.scaler).values)
-emtab_exp_tensor = torch.tensor(scaler(parse_exp_emtab(), params.scaler).values)
-
-def score_external_datasets(model,endpoint):
+    emtab_clin_tensor = torch.tensor(scale_impute(parse_clin_emtab(), params.scale_method).values)
+    emtab_exp_tensor = torch.tensor(scale_impute(parse_exp_emtab(genes,level), params.scale_method).values)
+    
     uams_events, uams_times = parse_surv_uams(endpoint)
     hovon_events, hovon_times = parse_surv_hovon(endpoint)
     emtab_events, emtab_times = parse_surv_emtab(endpoint)

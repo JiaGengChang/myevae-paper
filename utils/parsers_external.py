@@ -3,15 +3,23 @@ import pandas as pd
 import numpy as np
 from dotenv import load_dotenv
 load_dotenv('.env')
+load_dotenv('../.env')
 from sksurv.util import Surv
 
-def helper_get_training_genes():
-    # get a list of 996 genes used for training RNA-Seq models
-    df = pd.read_csv(os.environ.get("GENEEXPRESSIONFILE"),sep='\t')
-    gene_ids = [s.split('Feature_exp_')[1] for s in df.filter(regex='Feature_exp').columns]
-    return gene_ids
+def helper_get_training_genes(endpoint,shuffle,fold):
+    # read the significant genes
+    features_file=f'{os.environ.get("SPLITDATADIR")}/{shuffle}/{fold}/valid_features_processed.parquet'
+    features=pd.read_parquet(features_file)
+    columns = features.filter(regex='Feature_exp').columns
+    genes = columns.str.extract('.*Feature_exp_(ENSG.*)$').iloc[:,0].values.tolist()
+    return genes
 
-gene_ids = helper_get_training_genes()
+def geo_mean(iterable):
+    a = np.array(iterable)
+    return a.prod()**(1.0/len(a))
+
+# conversion between ensgid, entrez gene id, and affy probe id
+ref = pd.read_csv(os.environ.get("BIOMART_FILE"),index_col=0).convert_dtypes()
 
 def parse_global_clinsurv_df():
     return pd.read_csv(os.environ.get("EXTERNALCLINDATAFILE"), sep=',')\
@@ -56,22 +64,51 @@ def parse_surv_helper(studyname,endpoint):
     studydf=global_clinsurv_df.query(f"Study==\"{studyname}\"")[[f'D_{ENDPOINT}_FLAG',f'D_{ENDPOINT}']]
     return Surv.from_dataframe(f'D_{ENDPOINT}_FLAG',f'D_{ENDPOINT}',studydf)
 
-def parse_exp_helper(dotenvfilename):
-    # used for calculating indices
-    try: # GSE24080UAMS or HOVON65
-        df = pd.read_csv(os.environ.get(dotenvfilename),sep=',').sort_values('Accession')
-    except: # EMTAB-4032
-        df = pd.read_csv(os.environ.get(dotenvfilename),sep='\t').sort_values('Accession')
-    df = df\
-        .rename(columns={'Accession':'PUBLIC_ID'})\
-        .set_index('PUBLIC_ID')
-    gene_id_hits = [g for g in df.columns if g in gene_ids] # 904 genes
-    gene_id_miss = [g for g in gene_ids if g not in gene_id_hits] # 92 genes
-    df_hits = df[gene_id_hits]
-    df_miss = pd.DataFrame(pd.NA,index=df.index,columns=gene_id_miss)
-    df = pd.concat([df_hits,df_miss],axis=1)[gene_ids]
-    df = df.rename(columns=lambda x: f'Feature_exp_{x}')
-    return df
+def parse_exp_helper(dotenvfilename,genes,level):
+    ref = globals()['ref']
+    geo_mean = globals()['geo_mean']
+    assert ref is not None
+    assert geo_mean is not None
+    if level=="ensembl":
+        try: # GSE24080UAMS or HOVON65
+            df = pd.read_csv(os.environ.get(dotenvfilename),sep=',').sort_values('Accession')
+        except: # EMTAB-4032
+            df = pd.read_csv(os.environ.get(dotenvfilename),sep='\t').sort_values('Accession')
+        # ensembl gene IDs
+        # used for calculating indices
+        df = df.rename(columns={'Accession':'PUBLIC_ID'}).set_index('PUBLIC_ID')
+        gene_id_hits = [g for g in df.columns if g in genes] # 904 genes
+        gene_id_miss = [g for g in genes if g not in gene_id_hits] # 92 genes
+        df_hits = df[gene_id_hits]
+        df_miss = pd.DataFrame(pd.NA,index=df.index,columns=gene_id_miss)
+        df = pd.concat([df_hits,df_miss],axis=1)[genes]
+        if not df.columns[0].startswith('Feature_exp'):
+            df = df.rename(columns=lambda x: f'Feature_exp_{x}')
+        return df
+    elif level=="entrez":
+        train_ref = ref[ref.ensembl_gene_id.isin(genes)][['ensembl_gene_id','entrezgene_id']].drop_duplicates()
+        df = pd.read_csv(os.environ.get(dotenvfilename),index_col=0)
+        df.index.name = 'entrezgene_id'
+        df.reset_index(inplace=True)
+        df_ensg = df.merge(train_ref,on='entrezgene_id').drop_duplicates().drop(columns=['entrezgene_id']).set_index('ensembl_gene_id').transpose()
+        df_ensg_missing = pd.DataFrame(pd.NA, index=df_ensg.index, columns=[g for g in genes if g not in df_ensg.columns])
+        df_ensg_full = pd.concat([df_ensg, df_ensg_missing],axis=1)[genes]
+        return df_ensg_full
+    elif level=="affy":
+        df = pd.read_csv(os.environ.get(dotenvfilename),index_col=0)
+        affychip = "affy_hugene_1_0_st_v1" if "EMTAB" in dotenvfilename else "affy_hg_u133_plus_2"
+        df.index.name=affychip
+        train_ref = ref[ref.ensembl_gene_id.isin(genes)][['ensembl_gene_id',affychip]].drop_duplicates()
+        df_ensg = df.merge(train_ref,on=affychip).drop_duplicates().drop(columns=[affychip])
+        public_ids = df_ensg.filter(regex='^(?!ensembl_gene_id)').columns
+        df_ensg = df_ensg.groupby('ensembl_gene_id')[public_ids].agg(geo_mean)
+        df_ensg = df_ensg.transpose()
+        df_ensg.index.name='PUBLIC_ID'
+        df_ensg_missing = pd.DataFrame(pd.NA, index=df_ensg.index, columns=[g for g in genes if g not in df_ensg.columns])
+        df_ensg_full = pd.concat([df_ensg, df_ensg_missing],axis=1)
+        return df_ensg_full
+    else:
+        raise Exception(f"{level} is not a supported ID system")
 
 # for VAE RNA-Seq model
 def parse_clin_uams():
@@ -81,12 +118,14 @@ def parse_clin_hovon():
 def parse_clin_emtab():
     return parse_clin_helper("EMTAB4032")
 
-def parse_exp_uams():
-    return parse_exp_helper("UAMSDATAFILE")
-def parse_exp_hovon():
-    return parse_exp_helper("HOVONDATAFILE")
-def parse_exp_emtab():
-    return parse_exp_helper("EMTABDATAFILE")
+def parse_exp_uams(genes,level):
+    return parse_exp_helper("UAMSDATAFILE",genes,level)
+
+def parse_exp_hovon(genes,level):
+    return parse_exp_helper("HOVONDATAFILE",genes,level)
+
+def parse_exp_emtab(genes,level):
+    return parse_exp_helper("EMTABDATAFILE",genes,level)
 
 def parse_surv_uams(endpoint):
     return list(zip(*parse_surv_helper("GSE24080UAMS",endpoint)))
