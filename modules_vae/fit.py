@@ -40,7 +40,7 @@ def fit(model, trainloader, validloader, params):
     reconstruction_loss_funcs = [torch.nn.MSELoss(reduction='mean') for datatype in model.input_types_vae]
 
     results={}
-    results['params'] = {k: v for k, v in vars(params).items() if not k.startswith('_')}
+    results['params'] = {k: v for k, v in vars(params).items() if not k.startswith('_') and k != 'exp_genes'}
     results['history'] = {}
 
     def train_step(epoch):
@@ -169,7 +169,11 @@ def fit(model, trainloader, validloader, params):
 
     # score external datasets if using only RNASeq as input
     if params.input_types==['exp']:
-        cindex_uams, cindex_hovon, cindex_emtab = score_external_datasets(model,params.endpoint,params.shuffle,params.fold)
+        try:
+            params.exp_genes # genes seen by the model. Not necessarily all input genes.
+        except AttributeError:
+            params.exp_genes=None
+        cindex_uams, cindex_hovon, cindex_emtab = score_external_datasets(model,params.endpoint,params.shuffle,params.fold,genes=params.exp_genes)
         results['best_epoch']['uams_metric'] = cindex_uams
         results['best_epoch']['hovon_metric'] = cindex_hovon
         results['best_epoch']['emtab_metric'] = cindex_emtab

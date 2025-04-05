@@ -1,10 +1,8 @@
 import os
 import argparse
 import pandas as pd
-import numpy as np
 from dotenv import load_dotenv
-load_dotenv('../.env')
-
+assert load_dotenv('../.env') or load_dotenv('.env')
 import sys
 sys.path.append(os.environ.get("PROJECTDIR"))
 from modules_vae.params import VAEParams as specify_params_here
@@ -13,11 +11,12 @@ from modules_vae.model import MultiModalVAE as Model
 from modules_vae.predict import predict_to_tsv
 
 from utils.dataset import Dataset
-from utils.parsers import parse_all
-from utils.splitter import kfold_split
-from utils.scaler import scale_and_impute_without_train_test_leak as scale_impute
 from utils.plotlosses import plot_results_to_pdf
+from utils.subset_affy_features import subset_to_microarray_genes
+from utils.lazy_input_dims import lazy_input_dims
+from utils.annotate_exp_genes import annotate_exp_genes
 
+from torch.utils.data import DataLoader
 
 def main():
     """
@@ -45,6 +44,9 @@ def main():
     train_features=pd.read_parquet(train_features_file)
     valid_features=pd.read_parquet(valid_features_file)
     
+    # subset RNA genes to those with affymetric probes
+    train_features,valid_features = subset_to_microarray_genes(train_features,valid_features)
+
     eventcol = f"cens{params.endpoint}"
     durationcol = f"{params.endpoint}cdy"
     
@@ -56,24 +58,8 @@ def main():
     trainloader = DataLoader(Dataset(train_dataframe, params.input_types_all, event_indicator_col=eventcol,event_time_col=durationcol), batch_size=params.batch_size, shuffle=True)
     validloader = DataLoader(Dataset(valid_dataframe, params.input_types_all, event_indicator_col=eventcol,event_time_col=durationcol), batch_size=128, shuffle=False)
     
-    # find column by regex based on input abbrv
-    find_column = {'cth' : 'Feature_chromothripsis',
-                   'apobec': 'Feature_APOBEC',
-                   'clin': 'Feature_clin',
-                   'exp': 'Feature_exp',
-                   'sbs': 'Feature_SBS',
-                   'ig': 'Feature_(RNASeq|SeqWGS)',
-                   'gistic': 'Feature_CNA_(Amp|Del)',
-                   'fish': 'Feature_fish',
-                   'cna': 'Feature_CNA_ENSG'}
-    
-    # lazy determination of input dimensions
-    params.input_dims = [
-        params.input_dims[i] 
-        if params.input_dims[i] 
-        else train_dataframe.filter(regex=find_column[params.input_types[i]]).columns.__len__() 
-        for i in range(len(params.input_types))
-    ]
+    params = lazy_input_dims(train_dataframe, params) # determine input dimensions
+    params = annotate_exp_genes(train_dataframe, params) # determine RNA genes used for training
     
     model = Model(params.input_types,
                 params.input_dims,
@@ -96,7 +82,7 @@ def main():
     # plot_results_to_pdf(f'{params.resultsprefix}.json',f'{params.resultsprefix}.pdf')
 
     # save model state dict
-    model.save(f'{params.resultsprefix}.pth')
+    # model.save(f'{params.resultsprefix}.pth')
 
 
 if __name__ == "__main__":
