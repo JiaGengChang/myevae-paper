@@ -2,12 +2,8 @@ import json
 from glob import glob
 import os
 import numpy as np
-# Set the working directory to ../ relative to the base directory of this file
-base_dir = os.path.dirname(os.path.abspath(__file__))
-os.chdir(os.path.join(base_dir, '..'))
 from dotenv import load_dotenv
-import argparse
-load_dotenv('.env')
+assert load_dotenv('.env') or load_dotenv('../.env')
 
 def summary_statistics_single_model(model_name):
     model = {}
@@ -58,5 +54,5 @@ if __name__ == "__main__":
     scores = summary_statistics_many_models(model_names)
     filtered_scores = {k: v for k, v in sorted(scores.items()) if v is not None}
 
-    with open('model_scores.json', 'w') as f:
+    with open(f'{os.environ.get("OUTPUTDIR")}/model_scores.json', 'w') as f:
         json.dump(filtered_scores, f, indent=4)
