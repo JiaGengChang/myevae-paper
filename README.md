@@ -1,6 +1,6 @@
 # Cancer Survival ML
 
-<p align="left"><img src="./assets/cancer-ml-logo-export.svg" alt="Multi-omics risk modelling logo" width="600"></p>
+<p align="center"><img src="./assets/cancer-ml-logo-export.svg" alt="Multi-omics risk modelling logo" width="600"></p>
 
 ## Table of Contents
 
@@ -64,7 +64,11 @@ The layers and layer dimensions of VAE risk model is as shown:
 
 Our training objective is to model is progression free survival (PFS) in days. A secondary objective is to model Overall Survival (OS) in days.
 
-Our optimization objective is the 2 standard VAE loss terms - **KL divergence** and **reconstruction error** (Mean Square Error). We add a third loss term for our survival modelling task, **NPLL** (Negative partial log likelihood). This is a generalised, non-linear version of the Cox's partial log likelihood objective. 
+Our optimization objective is the 2 standard VAE loss terms - **KL divergence** and **reconstruction error** (Mean Square Error). The generic KL divergence and the simplified version for the VAE are shown:
+
+<p align="center"><img src="./assets/KLD-equation.png" width=60%></p>
+
+We add a third loss term for our survival modelling task, **NPLL** (Negative partial log likelihood). This is a generalised, non-linear version of the Cox's partial log likelihood objective. 
 
 <p align="center"><img src="./assets/cox-partial-log-likelihood.png" width=60%></p>
 
@@ -134,6 +138,16 @@ For example, this is what we would see in `model_scores.json` if we trained 50 c
 The model predicts Progression Free Survival with C-index 0.692 and Overall survival with C-index 0.728. In Multiple myeloma, overall survival (i.e. death) is easier to predict, and we think this is because it is a more well-defined event. On the other hand, what constitutes a progression is more vague; it is either relapse, resistance to treatment, or increase in CREB scores (a test of renal function).
 
 However, PFS is our primary aim because it is more important in terms of patient wellbeing. Predicting progression is more important than overall survival because progression is more clinically actionable.
+
+## SHAP analysis
+Feature importance is a key question in explaining deep neural networks. Especially in our case of high dimensional modelling. We ran SHAP on a model trained on all input types. Using the Python's SHAP analysis package, SHAP summary plots of two examples of input types, SBS mutational signatures and FISH probes copy number status are shown. Input data for FISH is discrete, while data for SBS is continuous.
+
+<p align="center"><img src="./assets/shap-example-SBS.png" alt="SHAP summary plot for SBS input" width="60%"></p>
+
+<p align="center"><img src="./assets/shap-example-FISH.png" alt="SHAP summary plot for FISH input" width="60%"></p>
+
+We also examined the latent embeddings and ensured that they correlated with the final prediction. Here, we are looking at one of the 50 PFS models. We can see that there is a good correlation between predicted risk and the two UMAP axes generated from the 128-dimensional embedding.
+<p align="center"><img src="./assets/latent-features-umap.png" alt="UMAP of latent embeddings colored by predicted risk" width="60%"></p>
 
 ## References
 
