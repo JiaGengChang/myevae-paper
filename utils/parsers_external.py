@@ -6,6 +6,7 @@ load_dotenv('.env')
 load_dotenv('../.env')
 from sksurv.util import Surv
 
+# if train features is already loaded, better to use 
 def helper_get_training_genes(endpoint,shuffle,fold):
     # read the significant genes
     features_file=f'{os.environ.get("SPLITDATADIR")}/{shuffle}/{fold}/valid_features_processed.parquet'
@@ -19,7 +20,7 @@ def geo_mean(iterable):
     return a.prod()**(1.0/len(a))
 
 # conversion between ensgid, entrez gene id, and affy probe id
-ref = pd.read_csv(os.environ.get("BIOMART_FILE"),index_col=0).convert_dtypes()
+ref = pd.read_csv(os.environ.get("BIOMARTFILE"),index_col=0).convert_dtypes()
 
 def parse_global_clinsurv_df():
     return pd.read_csv(os.environ.get("EXTERNALCLINDATAFILE"), sep=',')\
