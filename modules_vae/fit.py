@@ -1,16 +1,20 @@
-import torch
-import json
+from torch.optim import Adam
+from torch.nn import Module, MSELoss
+from torch import no_grad
+from torch import cat as torch_cat
+from torch.utils.data import DataLoader 
+from json import dump as json_dump
 import sys
 import os
 from dotenv import load_dotenv
 load_dotenv('../.env')
 sys.path.append(os.environ.get("PROJECTDIR"))
-from modules_vae.validation import score_external_datasets
+from utils.validation import score_external_datasets
 from utils.cindexmetric import ConcordanceIndex # metric
 from utils.coxphloss import CoxPHLoss # optimization objective is negative partial log likelihood
 from utils.kldivergence import KLDivergence # regularization
 
-def fit(model, trainloader, validloader, params):
+def fit(model:Module, trainloader:DataLoader, validloader:DataLoader, params:dict):
     """
     Trains and validates a given model using the provided data loaders and parameters.
     Args:
@@ -34,16 +38,16 @@ def fit(model, trainloader, validloader, params):
     4. Iterates over the specified number of epochs, calling the training and validation steps for each epoch.
     5. Returns the results dictionary containing the training and validation history.
     """
-    optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=params.lr)
+    optimizer = Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=params.lr)
     survival_loss_func = CoxPHLoss()
     kl_loss_func = KLDivergence()
-    reconstruction_loss_funcs = [torch.nn.MSELoss(reduction='mean') for datatype in model.input_types_vae]
+    reconstruction_loss_funcs = [MSELoss(reduction='mean') for datatype in model.input_types_vae]
 
     results={}
     results['params'] = {k: v for k, v in vars(params).items() if not k.startswith('_') and k != 'exp_genes'}
     results['history'] = {}
 
-    def train_step(epoch):
+    def train_step(epoch:int):
         model.train()
         optimizer.zero_grad()
         train_reconstruction_losses = [0 for _ in range(len(model.input_types_vae))]
@@ -78,7 +82,7 @@ def fit(model, trainloader, validloader, params):
         results['history'][epoch]['train']['survival_loss'] = train_survival_loss
         return train_kl_loss, train_reconstruction_losses, train_survival_loss
     
-    def valid_step(epoch):
+    def valid_step(epoch:int):
         model.eval()
         event_indicator,event_time,estimate = [],[],[] # for calculating the concordance index metric
         valid_reconstruction_losses = [0 for _ in range(len(model.input_types_vae))]
@@ -87,7 +91,7 @@ def fit(model, trainloader, validloader, params):
         for batch_idx, data in enumerate(validloader):
             event_indicator.append(data['event_indicator'])
             event_time.append(data['event_time'])
-            with torch.no_grad():
+            with no_grad():
                 inputs_vae = [data[f'X_{input_type}'] for input_type in model.input_types_vae]
                 inputs_task = [data[f'X_{input_type}'] for input_type in model.input_types_subtask]
                 outputs, mu, logvar, riskpred = model.forward((inputs_vae, inputs_task))
@@ -106,9 +110,9 @@ def fit(model, trainloader, validloader, params):
             valid_reconstruction_losses = [i + j.data.item() for i,j in zip(valid_reconstruction_losses,batch_reconstruction_losses)]
             valid_survival_loss += batch_survival_loss.data.item()
 
-        event_indicator = torch.cat(event_indicator)
-        event_time = torch.cat(event_time)
-        estimate = torch.cat(estimate)
+        event_indicator = torch_cat(event_indicator)
+        event_time = torch_cat(event_time)
+        estimate = torch_cat(estimate)
         valid_metric = ConcordanceIndex(event_indicator, event_time, estimate)
 
         # at the end of the epoch, log losses and metrics to results dictionary
@@ -180,4 +184,4 @@ def fit(model, trainloader, validloader, params):
 
     # save results
     with open(f'{params.resultsprefix}.json', 'w') as f:
-        json.dump(results, f)
+        json_dump(results, f, indent=4)
