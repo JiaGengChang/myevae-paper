@@ -1,15 +1,18 @@
 import os
 import pandas as pd
-import numpy as np
 from dotenv import load_dotenv
-load_dotenv('../.env')
-load_dotenv('.env') # ../.env
+assert load_dotenv('../.env') or load_dotenv('.env')
 
-def parse_surv(endpoint): # pfs or os
+def parse_surv(): # parse cens and cdy columsn for both PFS and OS endpoints
+    # surv cannot have any NA values since it is the label
     surv=pd.read_csv(os.environ.get("SURVDATAFILE"),sep='\t')\
-        [['PUBLIC_ID',f'{endpoint}cdy',f'cens{endpoint}']]\
-        .rename(columns={f'{endpoint}cdy':'survtime',f'cens{endpoint}':'survflag'})\
-        .dropna()
+        [['PUBLIC_ID','oscdy','censos','pfscdy','censpfs']]
+    # where pfscdy / censpfs is missing, replace it with oscdy/pfscdy
+    # so we get 1143 patients for both OS and PFS
+    surv.loc[surv['pfscdy'].isna(),'pfscdy'] = surv.loc[surv['pfscdy'].isna(),'oscdy'] 
+    surv.loc[surv['censpfs'].isna(),'censpfs'] = surv.loc[surv['censos'].isna(),'censos'] 
+    surv = surv.dropna(subset=['oscdy','censos','pfscdy','censpfs'])
+    surv = surv.convert_dtypes() # convert pfscdy from float64 to int64
     return surv
 
 def parse_clin():
@@ -28,6 +31,12 @@ def parse_gistic():
     
 def parse_cna():
     cna=pd.read_csv(os.environ.get("CNAFILE"),sep='\t')
+    if cna.columns[0] != 'PUBLIC_ID':
+        cna.reset_index(names='PUBLIC_ID',inplace=True)
+    if len(cna.PUBLIC_ID[0]) > 9:
+        cna.PUBLIC_ID = cna.PUBLIC_ID.str.replace('_[0-9]_BM_CD138pos','',regex=True)
+    if not cna.columns[1].startswith('Feature_CNA_ENSG'):
+        cna.columns = cna.columns.str.replace('ENSG', 'Feature_CNA_ENSG')
     return cna
 
 def parse_fish():
@@ -37,10 +46,22 @@ def parse_fish():
 
 def parse_sv():
     sv = pd.read_csv(os.environ.get("CANONICALSVFILE"),sep='\t')
+    if sv.columns[0] != 'PUBLIC_ID':
+        sv.reset_index(names='PUBLIC_ID', inplace=True)
     return sv
 
 def parse_rna():
     rna = pd.read_csv(os.environ.get("GENEEXPRESSIONFILE"),sep='\t')
+    if rna.shape[0] > rna.shape[1]:
+        rna = rna.set_index('Gene').T
+        rna.columns.set_names(None,inplace=True)
+        rna.index.set_names('PUBLIC_ID',inplace=True)
+    if not rna.columns[1].startswith('Feature_exp_'):
+        rna.columns = ['Feature_exp_' + c for c in rna.columns]
+    if rna.columns[0] != 'PUBLIC_ID':
+        rna.reset_index(names='PUBLIC_ID', inplace=True)
+    if len(rna.PUBLIC_ID[0]) > 9:
+        rna.PUBLIC_ID = rna.PUBLIC_ID.str.replace('_[0-9]_BM_CD138pos','',regex=True)
     return rna
 
 def parse_chromoth():    
@@ -57,14 +78,22 @@ def parse_apobec():
 
 def parse_sbs():
     sbs = pd.read_csv(os.environ.get("SBSFILE"), sep='\t')
+    # in the full SBS86 file, there is no PUBLIC ID column
+    if sbs.columns[0]=='SAMPLE_ID':
+        sbs = sbs.sort_values('SAMPLE_ID')
+        sbs.SAMPLE_ID = sbs.SAMPLE_ID.str.replace('_[0-9]_BM_CD138pos','',regex=True)
+        sbs = sbs.rename(columns={'SAMPLE_ID':'PUBLIC_ID'})
+        sbs = sbs.groupby('PUBLIC_ID').head(n=1)
     return sbs
 
-def parse_all(endpoint):
-    dfall=parse_surv(endpoint)
+def parse_all():
+    dfall=parse_surv()
     for parse in [parse_clin,parse_sbs,parse_cna,parse_fish,parse_rna,parse_gistic,parse_sv,parse_chromoth,parse_apobec]:
         dfnext = parse()
+        if 'PUBLIC_ID' not in dfnext.columns:
+            dfnext.reset_index(names='PUBLIC_ID',inplace=True)
         dfall=dfall.merge(dfnext,how='outer',left_on='PUBLIC_ID',right_on='PUBLIC_ID').drop_duplicates()
-    dfall=dfall.set_index('PUBLIC_ID').dropna(subset=[f'survtime',f'survflag'],how='any')
+    dfall=dfall.set_index('PUBLIC_ID').dropna(subset=['oscdy','censos','pfscdy','censpfs'])
     return dfall
 
 # subset to patients with non-NaN information in all categories
