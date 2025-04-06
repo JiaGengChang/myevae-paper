@@ -1,18 +1,11 @@
 import pandas as pd
 import numpy as np
 
-from sksurv.linear_model import CoxPHSurvivalAnalysis, CoxnetSurvivalAnalysis
-from sksurv.util import Surv
-from sklearn.pipeline import Pipeline, make_pipeline
-from sklearn.feature_selection import SelectorMixin, VarianceThreshold
-from sklearn.preprocessing import StandardScaler, FunctionTransformer, Normalizer, RobustScaler, OrdinalEncoder
+from sksurv.linear_model import CoxnetSurvivalAnalysis
+from sklearn.feature_selection import VarianceThreshold
+from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
-from sklearn.compose import make_column_transformer, make_column_selector, ColumnTransformer
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.experimental import enable_iterative_imputer
-from sklearn.impute import IterativeImputer
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-from xgboost import XGBRFClassifier, XGBRFRegressor # version < 1.3.2 to allow non-encoded y
 
 class VarianceSelector(TransformerMixin, BaseEstimator):        
     def __init__(self, **kwargs):
@@ -100,7 +93,7 @@ class CorrelationSelector(TransformerMixin, BaseEstimator):
         return self.features_out
 
 class FrequencySelector(TransformerMixin, BaseEstimator):
-    def __init__(self, minfreq=0.05, mincount=np.Inf):
+    def __init__(self, minfreq=0.05, mincount=np.inf):
         # default is to use frequency cutoff
         self.minfreq = minfreq
         self.mincount = mincount
