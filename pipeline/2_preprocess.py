@@ -1,41 +1,48 @@
 import os
-import argparse
-import pandas as pd
+from argparse import ArgumentParser
+import pandas as pd # requires pyararow, fastparquet
 import numpy as np
 from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer
-from dotenv import load_dotenv
-load_dotenv('../.env')
+from sksurv.util import Surv
+from sklearn.pipeline import Pipeline
+from sklearn.compose import make_column_selector, ColumnTransformer
+from xgboost import XGBRFClassifier, XGBRFRegressor # version < 1.3.2 to allow non-encoded y
 
+from dotenv import load_dotenv
+assert load_dotenv('../.env') or load_dotenv('.env')
 import sys
 sys.path.append(os.environ.get("PROJECTDIR"))
 from utils.preprocessing import *
 
-def main():
-    parser = argparse.ArgumentParser(description='Select significant features and preprocess them')
-    parser.add_argument('--endpoint', type=str, choices=['pfs', 'os'], default='pfs', help='Survival endpoint (pfs or os)')
-    args = parser.parse_args()
+def main(endpoint:str,shuffle:int,fold:int,fulldata:bool) -> None:
 
-    _pbs_array_id = int(os.getenv('PBS_ARRAY_INDEX', "-1"))
-    shuffle=_pbs_array_id%10
-    fold=_pbs_array_id//10
-    endpoint = args.endpoint
-
-    scratchdir=os.environ.get("SPLITDATADIR")
-    features_file=f'{scratchdir}/{shuffle}/{fold}/train_features.parquet'
-    features = pd.read_parquet(features_file)
-
-    valid_features_file=f'{scratchdir}/{shuffle}/{fold}/valid_features.parquet'
-    valid_features = pd.read_parquet(valid_features_file)
-
+    splitsdir=os.environ.get("SPLITDATADIR")
     survcols = [f'{endpoint}cdy',f'cens{endpoint}']
-    train_surv_file=f'{scratchdir}/{shuffle}/{fold}/train_labels.parquet'
+
+    # endpoint specific features
+    # previously PFS was using processed features from OS, which is not optimal
+    if fulldata:
+        # shuffle and fold are ignored
+        # no valid features because full dataset is used as train
+        features_file=f'{splitsdir}/full_features.parquet'
+        train_surv_file=f'{splitsdir}/full_labels.parquet'
+        train_out_features_file=f'{splitsdir}/full_features_{endpoint}_processed.parquet'
+    else:
+        features_file=f'{splitsdir}/{shuffle}/{fold}/train_features.parquet'
+
+        valid_features_file=f'{splitsdir}/{shuffle}/{fold}/valid_features.parquet'
+        valid_features = pd.read_parquet(valid_features_file)
+
+        train_surv_file=f'{splitsdir}/{shuffle}/{fold}/train_labels.parquet'
+
+        train_out_features_file=f'{splitsdir}/{shuffle}/{fold}/train_features_{endpoint}_processed.parquet'
+        valid_out_features_file=f'{splitsdir}/{shuffle}/{fold}/valid_features_{endpoint}_processed.parquet'
+    
+    features = pd.read_parquet(features_file)
     train_surv = pd.read_parquet(train_surv_file,columns=survcols)
     train_surv.rename(columns={f'{endpoint}cdy':'survtime',f'cens{endpoint}':'survflag'},inplace=True)
 
-    train_out_features_file=f'{scratchdir}/{shuffle}/{fold}/train_features_processed.parquet'
-    valid_out_features_file=f'{scratchdir}/{shuffle}/{fold}/valid_features_processed.parquet'
-    
     transformer_gene_exp = Pipeline([
         ('Non-zero variance', VarianceSelector(threshold=0)),
         ('Log1p', Log1pTransform()),
@@ -87,7 +94,7 @@ def main():
         'n_estimators': 100,
         'subsample': 0.8,
         'colsample_bynode': 0.8,
-        'n_jobs': 4,
+        'n_jobs': 8,
     }
     imputer_args = {
         'n_nearest_features':300,
@@ -124,11 +131,12 @@ def main():
     train_y = Surv.from_arrays(event,time)
     
     out = pipeline.fit_transform(features, train_y)
-    outv = pipeline.transform(valid_features)
-    
     out.to_parquet(train_out_features_file)
-    outv.to_parquet(valid_out_features_file)
-    
+
+    if not fulldata:
+        outv = pipeline.transform(valid_features)
+        outv.to_parquet(valid_out_features_file)
+        
     print(f'# significant features remaining:')
     print(f'RNA exp:\t{out.filter(regex="Feature_exp_ENSG").shape[1]} \t out of \t {features.filter(regex="Feature_exp_ENSG").shape[1]}')
     print(f'CN Gene:\t{out.filter(regex="Feature_CNA_ENSG").shape[1]} \t out of \t {features.filter(regex="Feature_CNA_ENSG").shape[1]}')
@@ -141,4 +149,13 @@ def main():
     return
 
 if __name__ == "__main__":
-    main()
+    parser = ArgumentParser(description='Select significant features and preprocess them')
+    parser.add_argument('-e','--endpoint', type=str, choices=['pfs', 'os'], default='pfs', help='Survival endpoint (pfs or os)')
+    parser.add_argument('-f','--fulldata', action='store_true', help='Flag indicating whether to use all data')
+    args = parser.parse_args()
+
+    _pbs_array_id = int(os.getenv('PBS_ARRAY_INDEX', "-1"))
+    pbs_shuffle=_pbs_array_id%10
+    pbs_fold=_pbs_array_id//10
+    
+    main(args.endpoint, pbs_shuffle, pbs_fold, args.fulldata)
