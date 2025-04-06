@@ -1,5 +1,5 @@
 import os
-import argparse
+from argparse import ArgumentParser
 import pandas as pd
 from dotenv import load_dotenv
 assert load_dotenv('../.env') or load_dotenv('.env')
@@ -23,7 +23,7 @@ def main():
     Parse the 3 arguments which we will parallelize across. 
     the actual hyperparameters to modify are in params.py
     """
-    parser = argparse.ArgumentParser(description='Train VAE model. For adjusting hyperparameters, modify params.py')
+    parser = ArgumentParser(description='Train VAE model. For adjusting hyperparameters, modify params.py')
     parser.add_argument('--endpoint', type=str, choices=['pfs', 'os'], default='pfs', help='Survival endpoint (pfs or os)')
     args = parser.parse_args()
 
