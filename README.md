@@ -1,6 +1,8 @@
-# Cancer Survival ML
+# MyeVAE
+A multi-omics risk model for prognosis of newly diagnosed myeloma patients
+## Model architecture
 
-<p align="center"><img src="./assets/cancer-ml-logo-export.svg" alt="Multi-omics risk modelling logo" width="600"></p>
+<p align="left"><img src="./assets/myeVAE.svg" alt="Multi-omics risk modelling logo" width="600"></p>
 
 ## Table of Contents
 
