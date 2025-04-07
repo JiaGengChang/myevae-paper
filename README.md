@@ -2,7 +2,7 @@
 A multi-omics risk model for prognosis of newly diagnosed myeloma patients
 ## Model architecture
 
-<p align="left"><img src="./assets/myeVAE.svg" alt="Multi-omics risk modelling logo" width="600"></p>
+<p align="left"><img src="./assets/myeVAE.svg" alt="Multi-omics risk modelling logo" width="800"></p>
 
 ## Table of Contents
 
@@ -46,7 +46,7 @@ In the remaining 50% of myeloma patients where no IgH translocation occurs, a pr
 ### Model architecture
 The layers and layer dimensions of VAE risk model is as shown:
 
-<p align="center"><img src="./assets/vae-diagram-export.svg" width=80% alt="Using variational autoencoder to integrate omics data" width="800"></p>
+<p align="left"><img src="./assets/myeVAE.svg" alt="Multi-omics risk modelling logo" width="80%" alt="Using variational autoencoder to integrate omics data" width="800"></p>
 
 1. Data from Whole genome sequencing (WGS), whole exome sequencing (WXS), and RNA-Sequencing (RNA-Seq) are first individually encoded using the peripheral encoder layers.
     1. WGS IA21*: Gene level copy number, GISTIC recurrently amplified/deleted regions, interphase FISH probe locations
