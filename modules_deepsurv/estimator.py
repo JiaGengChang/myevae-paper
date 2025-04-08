@@ -13,13 +13,14 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 from torch import tensor as torch_tensor
 
-import os 
+import os
 from dotenv import load_dotenv
 assert load_dotenv("../.env") or load_dotenv(".env")
 import sys
 sys.path.append(os.environ.get("PROJECTDIR"))
 from utils.dataset import Dataset
 from utils.buildnetwork import buildNetwork
+from utils.subset_affy_features import subset_to_microarray_genes
 
 # scikit learn compliant estimator class
 # for meta-estimators like Pipeline and GridSearchCV
@@ -27,20 +28,24 @@ from utils.buildnetwork import buildNetwork
 # these functions accept dataframe as input
 # `score` returns a single np.float
 class DeepSurv(BaseEstimator):
-    def __init__(self, 
-                 layer_dims:list[int]=None, 
+    def __init__(self,
                  input_types_all:list[str]=None,
-                 activation:activation=None, 
-                 dropout:float=None, 
+                 subset_microarray:bool=None,
+                 layer_dims:list[int]=None, 
+                 activation:activation=None,
+                 dropout:float=None,
                  lr:float=None, 
                  epochs:int=None,
                  burn_in:int=None,
                  patience:int=None,
                  batch_size:int=None, 
                  eventcol:str=None,
-                 durationcol:str=None):
-        self.layer_dims = layer_dims 
+                 durationcol:str=None,
+                 scale_method=None):
         self.input_types_all = input_types_all
+        self.subset_microarray = subset_microarray
+        self.scale_method = scale_method
+        self.layer_dims = layer_dims 
         self.activation=activation
         self.dropout=dropout
         self.lr=lr
@@ -59,21 +64,28 @@ class DeepSurv(BaseEstimator):
         """
         assert isinstance(X,pd.DataFrame)
         assert self.layer_dims[-1] == 1 # scalar hazard output
+        # input validation
         X = pd.DataFrame(validate_data(self, X, y), index=X.index, columns=X.columns)
+        # remove non-microarray genes if necessary
+        if self.subset_microarray:
+            X, genes_keep = subset_to_microarray_genes(X)
+        self.genes = genes_keep
         self.X_ = X
         self.y_ = y
-
+        
         dataset = Dataset(X,self.input_types_all,event_indicator_col=self.eventcol,event_time_col=self.durationcol)
         dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
         
         # lazy determination of input dim
         # which is the first element of layer dims
-        self.layer_dims[0] = sum([getattr(dataset, f'X_{input_type}').shape[1] for input_type in self.input_types_all])
+        input_dim = sum([getattr(dataset, f'X_{input_type}').shape[1] for input_type in self.input_types_all])
+        self.network_dims = [input_dim] + self.layer_dims
 
-        self._model = buildNetwork(self.layer_dims,self.activation,add_batchNorm=True,dropout=self.dropout)
-        adam_optimizer = Adam(filter(lambda p: p.requires_grad, self._model.parameters()), lr=self.lr)
-        self.model = CoxPH(self._model, adam_optimizer)
-        self._model.train()
+        # _net is a throw-array variable because it will be replaced with self.model.net
+        _net = buildNetwork(self.network_dims,self.activation,add_batchNorm=True,dropout=self.dropout)
+        adam_optimizer = Adam(filter(lambda p: p.requires_grad, _net.parameters()), lr=self.lr)
+        self.model = CoxPH(_net, adam_optimizer)
+        self.model.net.train()
         self.model.optimizer.zero_grad()
         best_loss = np.inf
         epochs_since_best = 0
@@ -81,7 +93,7 @@ class DeepSurv(BaseEstimator):
             current_loss = 0 # CoxPH loss summed across batches
             for batch_idx, data in enumerate(dataloader):
                 inputs = torch_cat([data[f'X_{input_type}'] for input_type in self.input_types_all],axis=-1)
-                riskpred = self._model.forward((inputs))
+                riskpred = self.model.net.forward((inputs))
                 assert len(inputs)==len(riskpred)
                 batch_loss = self.model.loss(riskpred.flatten(), data['event_time'], data['event_indicator'])
                 assert not batch_loss.isnan().item()
@@ -105,7 +117,7 @@ class DeepSurv(BaseEstimator):
         warnings.warn(f'Early stopping not triggered. patience: {self.patience}, best_loss: {best_loss}, epochs_since_best: {epochs_since_best}')
         return self
     
-    def predict(self, X:pd.DataFrame)->torch_tensor[float]:
+    def predict(self, X:pd.DataFrame)->torch_tensor:
         """
         The order of input_types_all is absolutely critical. 
         When training and evaluating models, the input types need to be in the same order.
@@ -116,13 +128,18 @@ class DeepSurv(BaseEstimator):
         check_is_fitted(self)
         # input validation
         X = pd.DataFrame(validate_data(self, X, reset=False), index=X.index, columns=X.columns)
-        self._model.eval()
+        
+        # remove non-microarray genes if necessary
+        if self.subset_microarray:
+            X, _ = subset_to_microarray_genes(X)
+
+        self.model.net.eval()
         dataloader = DataLoader(Dataset(X, self.input_types_all, event_indicator_col=self.eventcol,event_time_col=self.durationcol), batch_size=1024, shuffle=False)
         estimates = []
         for _, data in enumerate(dataloader):
             inputs = torch_cat([data[f'X_{input_type}'] for input_type in self.input_types_all],axis=-1)
             with no_grad():
-                riskpred = self._model.forward((inputs))
+                riskpred = self.model.net.forward((inputs))
                 estimates.append(riskpred.flatten())
         estimates = torch_cat(estimates) # concatenate across batches 
         return estimates

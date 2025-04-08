@@ -9,7 +9,7 @@ assert load_dotenv('../.env') or load_dotenv('.env')
 import sys
 sys.path.append(os.environ.get("PROJECTDIR"))
 from modules_vae.estimator import VAE
-from modules_deepsurv.estimator import Deepsurv
+from modules_deepsurv.estimator import DeepSurv
 from modules_vae.params import VAEParams
 from modules_deepsurv.params import DeepsurvParams
 from modules_vae.param_grid import param_grid
@@ -29,9 +29,9 @@ from dask.distributed import Client, LocalCluster
 def main(endpoint:str='os', shuffle:int=5, fold:int=10, architecture:str='VAE', fulldata:bool=False) -> None:
     
     if architecture=='Deepsurv':
-        params = DeepsurvParams(endpoint, shuffle, fold, fulldata)
+        params = DeepsurvParams(endpoint=endpoint, shuffle=shuffle, fold=fold, fulldata=fulldata)
     elif architecture=='VAE':
-        params = VAEParams(endpoint, shuffle, fold, fulldata)
+        params = VAEParams(endpoint=endpoint, shuffle=shuffle, fold=fold, fulldata=fulldata)
     else:
         raise NotImplementedError(architecture)
     
@@ -42,11 +42,12 @@ def main(endpoint:str='os', shuffle:int=5, fold:int=10, architecture:str='VAE', 
         # the only use case is for external validation on GEO datasets
         # the validation C-index metric will be set to 0
         train_features_file=f'{splitsdir}/full_features_{endpoint}_processed.parquet'
-        train_labels_file==f'{splitsdir}/full_labels.parquet'
+        train_labels_file=f'{splitsdir}/full_labels.parquet'
+        assert os.path.exists(train_features_file) and os.path.exists(train_labels_file)
         train_features=pd.read_parquet(train_features_file)
         train_labels=pd.read_parquet(train_labels_file)[[params.eventcol,params.durationcol]]
-        # sets params.exp_genes to all RNA genes in train_dataframe
-        params = annotate_exp_genes(train_dataframe, params)
+        # sets params.exp_genes to all RNA genes in train_features
+        params = annotate_exp_genes(train_features, params)
         # should genes be subset to microarray genes ?
         if params.subset_microarray:
             train_features,_ = subset_to_microarray_genes(train_features)
@@ -57,14 +58,16 @@ def main(endpoint:str='os', shuffle:int=5, fold:int=10, architecture:str='VAE', 
         # the 20% validation data is used as calculate hold out C-index metrics
         train_features_file=f'{splitsdir}/{params.shuffle}/{params.fold}/train_features_{endpoint}_processed.parquet'
         train_labels_file=f'{splitsdir}/{params.shuffle}/{params.fold}/train_labels.parquet'
+        assert os.path.exists(train_features_file) and os.path.exists(train_labels_file)
         valid_features_file=f'{splitsdir}/{params.shuffle}/{params.fold}/valid_features_{endpoint}_processed.parquet'
         valid_labels_file=f'{splitsdir}/{params.shuffle}/{params.fold}/valid_labels.parquet'
+        assert os.path.exists(valid_features_file) and os.path.exists(valid_labels_file)
         train_features=pd.read_parquet(train_features_file)
         train_labels=pd.read_parquet(train_labels_file)[[params.eventcol,params.durationcol]]
         valid_features=pd.read_parquet(valid_features_file)
         valid_labels=pd.read_parquet(valid_labels_file)[[params.eventcol,params.durationcol]]
-        # sets params.exp_genes to all RNA genes in train_dataframe
-        params = annotate_exp_genes(train_dataframe, params)
+        # sets params.exp_genes to all RNA genes in train_features
+        params = annotate_exp_genes(train_features, params)
         # should genes be subset to microarray genes ?
         if params.subset_microarray:
             train_features,valid_features = subset_to_microarray_genes(train_features,valid_features)
@@ -76,7 +79,7 @@ def main(endpoint:str='os', shuffle:int=5, fold:int=10, architecture:str='VAE', 
     if architecture=='VAE':
         base_estimator = VAE(eventcol=params.eventcol,durationcol=params.durationcol)
     elif architecture=='Deepsurv':
-        base_estimator = Deepsurv(eventcol=params.eventcol,durationcol=params.durationcol)
+        base_estimator = DeepSurv(eventcol=params.eventcol,durationcol=params.durationcol)
     else:
         raise NotImplementedError(architecture)
     

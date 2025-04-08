@@ -20,6 +20,7 @@ from modules_vae.model import MultiModalVAE as Model
 from utils.dataset import Dataset
 from utils.coxphloss import CoxPHLoss
 from utils.kldivergence import KLDivergence
+from utils.subset_affy_features import subset_to_microarray_genes
 
 # scikit learn compliant estimator class
 # for meta-estimators like Pipeline and GridSearchCV
@@ -28,8 +29,9 @@ from utils.kldivergence import KLDivergence
 # `score` returns a single np.float
 class VAE(BaseEstimator):
     def __init__(self, 
+                 input_dims:list[int], 
                  input_types:list[str]=[None], 
-                 input_dims:list[int]=[[None]], 
+                 subset_microarray:bool=None,
                  layer_dims:list[list[int]]=[[None]], 
                  input_types_subtask:list[str]=None,
                  input_dims_subtask:list[int]=None, 
@@ -42,8 +44,11 @@ class VAE(BaseEstimator):
                  patience:int=None, 
                  eventcol:str=None, 
                  durationcol:str=None, 
-                 kl_weight:float=None):
+                 kl_weight:float=None,
+                 scale_method:str=None):
         self.input_types = input_types
+        self.subset_microarray = subset_microarray
+        self.scale_method - scale_method
         self.input_dims = input_dims 
         self.layer_dims = layer_dims 
         self.input_types_subtask = input_types_subtask 
@@ -67,6 +72,9 @@ class VAE(BaseEstimator):
         """
         # Check that X and y have correct shape, set n_features_in_, etc.
         X = pd.DataFrame(validate_data(self, X, y), index=X.index, columns=X.columns)
+        if self.subset_microarray:
+            X, genes_keep = subset_to_microarray_genes(X)
+        self.genes = genes_keep
         self.X_ = X
         self.y_ = y
         assert isinstance(X,pd.DataFrame)
@@ -125,9 +133,11 @@ class VAE(BaseEstimator):
         warnings.warn(f'Early stopping not triggered. patience: {self.patience}, best_loss: {best_loss}, epochs_since_best: {epochs_since_best}')
         return self
         
-    def predict(self, X:pd.DataFrame)->torch_tensor[float]:
+    def predict(self, X:pd.DataFrame)->torch_tensor:
         # check if fit has been called
         check_is_fitted(self)
+        if self.subset_microarray:
+            X = subset_to_microarray_genes(X)
         # input validation
         X = pd.DataFrame(validate_data(self, X, reset=False), index=X.index, columns=X.columns)
         self.model.eval()
