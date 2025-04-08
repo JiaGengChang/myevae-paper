@@ -11,7 +11,7 @@ EVAL=$(WDIR)/pipeline/4_eval_vae.py
 
 J ?= 0-1:2
 EP ?= os # os pfs
-FLAGS ?= 
+FLAGS ?= # empty by default
 
 0:
 	find $(WDIR)/.pbs -type f -delete
