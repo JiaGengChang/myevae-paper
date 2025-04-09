@@ -6,8 +6,8 @@ from pycox.models import CoxPH
 from sklearn.base import BaseEstimator
 from sklearn.utils.validation import validate_data, check_is_fitted
 from sksurv.metrics import concordance_index_censored
-from torch import cat as torch_cat, no_grad
-from torch.nn import Module
+from torch import cat as torch_cat, no_grad, save as torch_save
+from torch.nn import Module # for type checking purposes
 from torch.nn.modules import activation
 from torch.optim import Adam
 from torch.utils.data import DataLoader
@@ -44,7 +44,7 @@ class DeepSurv(BaseEstimator):
                  scale_method=None):
         self.input_types_all = input_types_all
         self.subset_microarray = subset_microarray
-        self.scale_method = scale_method
+        self.scale_method = scale_method # scale_method is accessed but not used directly
         self.layer_dims = layer_dims 
         self.activation=activation
         self.dropout=dropout
@@ -164,3 +164,7 @@ class DeepSurv(BaseEstimator):
             metric = concordance_index_censored(event,duration,estimate)[0].item()
 
         return metric
+
+    def save(self, pth_path):
+        torch_save(self.model.net.state_dict(), pth_path)
+        return
