@@ -11,7 +11,7 @@ EVAL=$(WDIR)/pipeline/4_eval_vae.py
 
 J ?= 0-1:2
 EP ?= os # os pfs
-FLAGS ?= # empty by default
+ARGS ?= # empty by default
 
 0:
 	find $(WDIR)/.pbs -type f -delete
@@ -20,10 +20,10 @@ FLAGS ?= # empty by default
 	qsub ${OPTS} -J ${J} -N Split_Data -v args="${SPLITDATA}" ${WDIR}/run.sh
 
 2:
-	qsub ${OPTS} -J ${J} -N Process -v args="${PREPROCESS} --endpoint ${EP} ${FLAGS}" ${WDIR}/run.sh # IMPT: modify run.sh
+	qsub ${OPTS} -J ${J} -N Process -v args="${PREPROCESS} --endpoint ${EP}" ${WDIR}/run.sh # IMPT: modify run.sh
 
 3:
-	qsub ${OPTS} -J ${J} -N Fit_VAE -v args="${FIT}" ${WDIR}/run.sh
+	qsub ${OPTS} -J ${J} -N Fit_VAE -v args="${FIT} ${ARGS}" ${WDIR}/run.sh
 
 4:
 	qsub $(OPTS) -N Eval_VAE -v args="$(EVAL)" ${WDIR}/run.sh
