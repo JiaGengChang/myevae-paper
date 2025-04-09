@@ -8,8 +8,9 @@ class Params():
     Instantiated when specific model info is not needed, such as when loading data
     @scale_method: for transforming the microarray GEO datasets. One of 'std', 'robust', 'rank', or 'none'.
     """
-    def __init__(self,model_name='default',endpoint='pfs',shuffle=0,fold=0,fulldata=False):
-        self.model_name = model_name # determines output directory. usually name of the omics used.
+    def __init__(self,model_name:str,endpoint:str,shuffle:int,fold:int,fulldata:bool):
+        # experiment name for the model. it will have its own output directory. usually name of the omics used.
+        self.model_name = model_name
         self.endpoint = endpoint
         self.shuffle = shuffle
         self.fold = fold
