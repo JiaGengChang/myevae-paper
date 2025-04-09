@@ -4,7 +4,7 @@ import numpy as np
 import warnings
 warnings.formatwarning = lambda msg, *args, **kwargs: f'{msg}\n'
 from torch.utils.data import DataLoader
-from torch import no_grad, cat as torch_cat, tensor as torch_tensor
+from torch import no_grad, cat as torch_cat, tensor as torch_tensor, save as torch_save
 from torch.nn import MSELoss
 from torch.optim import Adam
 from sklearn.base import BaseEstimator
@@ -48,7 +48,7 @@ class VAE(BaseEstimator):
                  scale_method:str=None):
         self.input_types = input_types
         self.subset_microarray = subset_microarray
-        self.scale_method - scale_method
+        self.scale_method = scale_method # scale_method is accessed but not used directly
         self.input_dims = input_dims 
         self.layer_dims = layer_dims 
         self.input_types_subtask = input_types_subtask 
@@ -160,3 +160,6 @@ class VAE(BaseEstimator):
         duration = X[self.durationcol].values
         metric = concordance_index_censored(event, duration, estimates)[0].item()
         return metric
+    
+    def save(self, pth_path):
+        return torch_save(self.model.state_dict(), pth_path)
