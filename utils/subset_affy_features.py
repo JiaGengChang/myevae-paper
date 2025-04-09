@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 from dotenv import load_dotenv
-assert load_dotenv('../.env') or load_dotenv('..env')
+assert load_dotenv('../.env') or load_dotenv('.env')
 
 # subsets the training and validation dataframes 
 # removes columns that are not in any of affymetrix probe sets
