@@ -69,7 +69,9 @@ class DeepSurv(BaseEstimator):
         # remove non-microarray genes if necessary
         if self.subset_microarray:
             X, genes_keep = subset_to_microarray_genes(X)
-        self.genes = genes_keep
+            self.genes = genes_keep
+        else:
+            self.genes = None
         self.X_ = X
         self.y_ = y
         
