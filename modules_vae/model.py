@@ -25,6 +25,11 @@ class MultiModalVAE(torch.nn.Module):
                  # bottleneck layer dimensions
                  # e.g. 16
                  z_dim = 16, 
+                 # an instance of activation in torch.nn
+                 activation = torch.nn.LeakyReLU(),
+                 # an instance of activation in torch.nn
+                 # activation function for the risk network
+                 subtask_activation = torch.nn.Tanh()
                 ):
         super(self.__class__, self).__init__()
         
@@ -35,23 +40,26 @@ class MultiModalVAE(torch.nn.Module):
         self.input_dims_subtask = input_dims_subtask
         self.input_types_vae = input_types
         self.input_types_subtask = input_types_subtask
-        self.bottleneck_layer_input_dims = [] 
+        self.bottleneck_layer_input_dims = []
+        self.activation = activation
+        self.subtask_activation = subtask_activation
 
         for input_type, input_dim, layer_dim in zip(input_types, input_dims, layer_dims):
-            setattr(self, f'encoder_{input_type}', buildNetwork([input_dim] + layer_dim, activation=torch.nn.LeakyReLU()))
-            setattr(self, f'decoder_{input_type}', buildNetwork(layer_dim[::-1] + [input_dim], activation=torch.nn.LeakyReLU()))
+            setattr(self, f'encoder_{input_type}', buildNetwork([input_dim] + layer_dim, activation=self.activation))
+            setattr(self, f'decoder_{input_type}', buildNetwork(layer_dim[::-1] + [input_dim], activation=self.activation))
             self.bottleneck_layer_input_dims.append(layer_dim[-1])
         
         self.encoders = [getattr(self,f'encoder_{input_type}') for input_type in self.input_types_vae]
         self.decoders = [getattr(self,f'decoder_{input_type}') for input_type in self.input_types_vae]
         
         self.joint_encoders_dim = sum(self.bottleneck_layer_input_dims)
-        self.joint_encoder_mu = buildNetwork([self.joint_encoders_dim,z_dim*2,z_dim],activation=torch.nn.LeakyReLU())
-        self.joint_encoder_log_sigma = buildNetwork([self.joint_encoders_dim,z_dim*2,z_dim],activation=torch.nn.LeakyReLU())
-        self.joint_decoder = buildNetwork([z_dim, self.joint_encoders_dim], activation=torch.nn.LeakyReLU())
+        self.joint_encoder_mu = buildNetwork([self.joint_encoders_dim,z_dim*2,z_dim],activation=self.activation)
+        self.joint_encoder_log_sigma = buildNetwork([self.joint_encoders_dim,z_dim*2,z_dim],activation=self.activation)
+        self.joint_decoder = buildNetwork([z_dim, self.joint_encoders_dim], activation=self.activation)
         
-         # sub-task e.g. survival modelling
-        self.risk_predictor = buildNetwork([z_dim + sum(input_dims_subtask)] + layer_dims_subtask, activation=torch.nn.Tanh())
+        # sub-task e.g. survival modelling
+        # the last layer activation is always Tanh so that risk output is between -1 and 1
+        self.risk_predictor = buildNetwork([z_dim + sum(input_dims_subtask)] + layer_dims_subtask, activation=self.subtask_activation)
         
     # subroutine
     def _reparameterize(self, mu, logvar):
