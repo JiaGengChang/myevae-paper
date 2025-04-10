@@ -1,33 +1,23 @@
-import torch
+from torch.utils.data import Dataset as torch_Dataset
+from torch import tensor as torch_tensor, device as torch_device, float64 as torch_float64
+import os
+from dotenv import load_dotenv
+load_dotenv(os.environ.get("PROJECTDIR"))
+from utils.type_prefixes import type_prefixes_dict
 
 # dataset is a dataframe with columns as features (prefix Feature_) and rows as observations
 # it must be a pd.Dataframe because we need its .filter method
 # besides Feature_ columns, it has to have 'survflag' and 'survtime' columns which are the event indicator and event time
 # survflag and survtime are targets for survival modelling
 # input types is a combination of ['exp','cna','gistic','sbs','fish','ig','cth','clin']
-class Dataset(torch.utils.data.Dataset):
-    def __init__(self,pd_dataframe,input_types,device=torch.device("cpu"),event_indicator_col='survflag',event_time_col='survtime'):
+class Dataset(torch_Dataset):
+    def __init__(self,pd_dataframe,input_types,event_indicator_col='survflag',event_time_col='survtime',device=torch_device("cpu")):
         self.PUBLIC_ID = pd_dataframe.index
         self.input_types=input_types
         for input_type in input_types:
-            column_prefix = {
-                'apobec': 'Feature_APOBEC',
-                'clin': 'Feature_clin',
-                'cna': 'Feature_CNA_ENSG',
-                'cth': 'Feature_chromothripsis',
-                'exp': 'Feature_exp',
-                'fish': 'Feature_fish',
-                'gistic': 'Feature_CNA_(Amp|Del)',
-                'ig': 'Feature_(RNASeq|SeqWGS)_',
-                'sbs': 'Feature_SBS', 
-                'emc92': 'Feature_EMC92', # gene expression signature
-                'uams70': 'Feature_UAMS70', # gene expression signature
-                'ifm15': 'Feature_IFM15', # gene expression signature
-                'mrcix6': 'Feature_MRC_IX_6', # gene expression signature
-                'exp_pca': 'Feature_exp_PC' # PCs of RNA-Seq genes
-            }.get(input_type, None)
+            column_prefix = type_prefixes_dict.get(input_type, None)
             if column_prefix:
-                X_input = torch.tensor(pd_dataframe.filter(regex=column_prefix).values.astype(float), device=device).to(torch.float64)
+                X_input = torch_tensor(pd_dataframe.filter(regex=column_prefix).values.astype(float), device=device).to(torch_float64)
                 setattr(self, f'X_{input_type}', X_input)
         
         self.event_indicator = pd_dataframe[event_indicator_col] # 0 or 1
