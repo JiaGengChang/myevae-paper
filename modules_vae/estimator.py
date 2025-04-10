@@ -29,7 +29,6 @@ from utils.subset_affy_features import subset_to_microarray_genes
 # `score` returns a single np.float
 class VAE(BaseEstimator):
     def __init__(self, 
-                 input_dims:list[int], 
                  input_types:list[str]=[None], 
                  subset_microarray:bool=None,
                  layer_dims:list[list[int]]=[[None]], 
@@ -45,11 +44,11 @@ class VAE(BaseEstimator):
                  eventcol:str=None, 
                  durationcol:str=None, 
                  kl_weight:float=None,
+                 activation:str=None,
+                 subtask_activation:str=None,
                  scale_method:str=None):
         self.input_types = input_types
         self.subset_microarray = subset_microarray
-        self.scale_method = scale_method # scale_method is accessed but not used directly
-        self.input_dims = input_dims 
         self.layer_dims = layer_dims 
         self.input_types_subtask = input_types_subtask 
         self.input_dims_subtask = input_dims_subtask 
@@ -63,6 +62,9 @@ class VAE(BaseEstimator):
         self.eventcol = eventcol
         self.durationcol = durationcol
         self.kl_weight = kl_weight
+        self.activation = activation
+        self.subtask_activation = subtask_activation
+        self.scale_method = scale_method # scale_method is accessed but not used directly
     
     def fit(self, X:pd.DataFrame, y=None, verbose:bool=False):
         """
@@ -70,32 +72,43 @@ class VAE(BaseEstimator):
         y: ignored, because the event and duration columns should be in X.
         verbose: whether to print loss at every epoch
         """
-        # Check that X and y have correct shape, set n_features_in_, etc.
+        assert isinstance(X, pd.DataFrame)
+        # Check that X has correct shape, set n_features_in_, etc.
         X = pd.DataFrame(validate_data(self, X, y), index=X.index, columns=X.columns)
         if self.subset_microarray:
             X, genes_keep = subset_to_microarray_genes(X)
-        self.genes = genes_keep
+            self.genes = genes_keep
+        else:
+            self.genes = None
         self.X_ = X
         self.y_ = y
-        assert isinstance(X,pd.DataFrame)
         # assign non-parameter attributes to estimator
         self.input_types_all = self.input_types + self.input_types_subtask
-        self.model = Model(self.input_types, 
-                           self.input_dims, 
-                           self.layer_dims, 
-                           self.input_types_subtask,
-                           self.input_dims_subtask, 
-                           self.layer_dims_subtask, 
-                           self.z_dim)
+        # convert X into a multi omics dataset
+        dataset = Dataset(X,self.input_types_all,event_indicator_col=self.eventcol,event_time_col=self.durationcol)
+        # determine input dims lazily
+        self.input_dims = [getattr(dataset, f"X_{input_type}").shape[1] for input_type in self.input_types]
+        # determine subtask input dims lazily
+        self.input_dims_subtask = [getattr(dataset, f"X_{input_type}").shape[1] for input_type in self.input_types_subtask]
+
+        self.model = Model(input_types = self.input_types, 
+                           input_dims = self.input_dims, 
+                           layer_dims = self.layer_dims, 
+                           input_types_subtask = self.input_types_subtask,
+                           input_dims_subtask = self.input_dims_subtask, 
+                           layer_dims_subtask = self.layer_dims_subtask, 
+                           z_dim = self.z_dim,
+                           activation = self.activation,
+                           subtask_activation = self.subtask_activation)
         self.optimizer = Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=self.lr)
         self.survival_loss_func = CoxPHLoss()
         self.kl_loss_func = KLDivergence()
-        self.reconstruction_loss_funcs = [MSELoss(reduction='mean') for datatype in self.model.input_types_vae]
+        self.reconstruction_loss_funcs = [MSELoss(reduction='mean') for _ in self.model.input_types_vae]
         self.model.train()
         self.optimizer.zero_grad()
-        trainloader = DataLoader(Dataset(X,self.input_types_all,event_indicator_col=self.eventcol,event_time_col=self.durationcol), batch_size=self.batch_size, shuffle=True)
         best_loss = np.inf
         epochs_since_best = 0
+        trainloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
         for epoch in range(1,1+self.epochs):
             current_loss = 0 # survival loss summed across batches
             for batch_idx, data in enumerate(trainloader):
@@ -136,13 +149,16 @@ class VAE(BaseEstimator):
     def predict(self, X:pd.DataFrame)->torch_tensor:
         # check if fit has been called
         check_is_fitted(self)
-        if self.subset_microarray:
-            X = subset_to_microarray_genes(X)
         # input validation
         X = pd.DataFrame(validate_data(self, X, reset=False), index=X.index, columns=X.columns)
+
+        # remove non-microarray genes if necessary
+        if self.subset_microarray:
+            X, _ = subset_to_microarray_genes(X)
+        
         self.model.eval()
-        estimates = []
         dataloader = DataLoader(Dataset(X, self.input_types_all, event_indicator_col=self.eventcol,event_time_col=self.durationcol), batch_size=1024, shuffle=False)
+        estimates = []
         for _, data in enumerate(dataloader):
             with no_grad():
                 inputs_vae = [data[f'X_{input_type}'] for input_type in self.model.input_types_vae]
@@ -155,7 +171,7 @@ class VAE(BaseEstimator):
     def score(self, X:pd.DataFrame, y=None)->float:
         assert isinstance(X, pd.DataFrame)
         X = pd.DataFrame(validate_data(self, X, reset=False),index=X.index,columns=X.columns)
-        estimates = np.concatenate([t.numpy() for t in self.predict(X)])
+        estimates = self.predict(X)
         event = X[self.eventcol].values.astype(bool)
         duration = X[self.durationcol].values
         metric = concordance_index_censored(event, duration, estimates)[0].item()
