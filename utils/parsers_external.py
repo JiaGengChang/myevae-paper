@@ -118,11 +118,16 @@ def parse_clin_hovon():
     return parse_clin_helper("HOVON65")
 def parse_clin_emtab():
     return parse_clin_helper("EMTAB4032")
-
 def parse_clin_apex():
-    # FIXME
-    df=pd.read_csv(os.environ.get("APEXCLINDATAFILE"))
-    return NotImplementedError()
+    """
+    Returns a full NA for 264 patients in apex trial
+    Since there is no clinical data as of now
+    """
+    parse_clin_emtab = globals()['parse_clin_emtab'] # get the column names
+    df=pd.read_csv(os.environ.get("APEXCLINDATAFILE"),sep='\t')
+    dfnas = parse_clin_emtab().reindex(df.SAMPLE)
+    dfnas.index.name='PUBLIC_ID'
+    return dfnas
 
 def parse_exp_uams(genes,level):
     return parse_exp_helper("UAMSDATAFILE",genes,level)
@@ -133,10 +138,23 @@ def parse_exp_hovon(genes,level):
 def parse_exp_emtab(genes,level):
     return parse_exp_helper("EMTABDATAFILE",genes,level)
 
-def parse_exp_apex(genes): # probelevel only
-    # FIXME
-    df=pd.read_csv(os.environ.get("APEXDATAFILE"))
-    return NotImplementedError()
+def parse_exp_apex(genes,level):
+    """
+    only affy is supported for level
+    """
+    assert level=="affy"
+    df=pd.read_csv(os.environ.get("APEXDATAFILE"),index_col=0)
+    affychip = "affy_hg_u133_plus_2"
+    df.index.name=affychip
+    train_ref = ref[ref.ensembl_gene_id.isin(genes)][['ensembl_gene_id',affychip]].drop_duplicates()
+    df_ensg = df.merge(train_ref,on=affychip).drop_duplicates().drop(columns=[affychip])
+    public_ids = df_ensg.filter(regex='^(?!ensembl_gene_id)').columns
+    df_ensg = df_ensg.groupby('ensembl_gene_id')[public_ids].agg(geo_mean)
+    df_ensg = df_ensg.transpose()
+    df_ensg.index.name='PUBLIC_ID'
+    df_ensg_missing = pd.DataFrame(pd.NA, index=df_ensg.index, columns=[g for g in genes if g not in df_ensg.columns])
+    df_ensg_full = pd.concat([df_ensg, df_ensg_missing],axis=1)
+    return df_ensg_full
 
 def parse_surv_uams(endpoint):
     return list(zip(*parse_surv_helper("GSE24080UAMS",endpoint)))
@@ -144,11 +162,13 @@ def parse_surv_hovon(endpoint):
     return list(zip(*parse_surv_helper("HOVON65",endpoint)))
 def parse_surv_emtab(endpoint):
     return list(zip(*parse_surv_helper("EMTAB4032",endpoint)))
-
 def parse_surv_apex(endpoint):
-    # FIXME
-    df=pd.read_csv(os.environ.get("APEXCLINDATAFILE"))
-    return NotImplementedError()
+    """
+    parse_surv_helper does not support APEX so just handle it here
+    """
+    df=pd.read_csv(os.environ.get("APEXCLINDATAFILE"),sep='\t')
+    survarray = Surv.from_dataframe(f'{endpoint.upper()}_EVENT',endpoint.upper(),df)
+    return list(zip(*survarray))
 
 # for PCA RNA-Seq model
 def parse_exp_pc_uams():
