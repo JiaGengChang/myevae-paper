@@ -178,4 +178,5 @@ class VAE(BaseEstimator):
         return metric
     
     def save(self, pth_path):
-        return torch_save(self.model.state_dict(), pth_path)
+        torch_save(self.model.state_dict(), pth_path)
+        return
