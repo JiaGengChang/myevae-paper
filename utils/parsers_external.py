@@ -9,7 +9,7 @@ from sksurv.util import Surv
 # if train features is already loaded, better to use 
 def helper_get_training_genes(endpoint,shuffle,fold):
     # read the significant genes
-    features_file=f'{os.environ.get("SPLITDATADIR")}/{shuffle}/{fold}/valid_features_processed.parquet'
+    features_file=f'{os.environ.get("SPLITDATADIR")}/{shuffle}/{fold}/valid_features_{endpoint}_processed.parquet'
     features=pd.read_parquet(features_file)
     columns = features.filter(regex='Feature_exp').columns
     genes = columns.str.extract('.*Feature_exp_(ENSG.*)$').iloc[:,0].values.tolist()
@@ -119,6 +119,11 @@ def parse_clin_hovon():
 def parse_clin_emtab():
     return parse_clin_helper("EMTAB4032")
 
+def parse_clin_apex():
+    # FIXME
+    df=pd.read_csv(os.environ.get("APEXCLINDATAFILE"))
+    return NotImplementedError()
+
 def parse_exp_uams(genes,level):
     return parse_exp_helper("UAMSDATAFILE",genes,level)
 
@@ -128,12 +133,22 @@ def parse_exp_hovon(genes,level):
 def parse_exp_emtab(genes,level):
     return parse_exp_helper("EMTABDATAFILE",genes,level)
 
+def parse_exp_apex(genes): # probelevel only
+    # FIXME
+    df=pd.read_csv(os.environ.get("APEXDATAFILE"))
+    return NotImplementedError()
+
 def parse_surv_uams(endpoint):
     return list(zip(*parse_surv_helper("GSE24080UAMS",endpoint)))
 def parse_surv_hovon(endpoint):
     return list(zip(*parse_surv_helper("HOVON65",endpoint)))
 def parse_surv_emtab(endpoint):
     return list(zip(*parse_surv_helper("EMTAB4032",endpoint)))
+
+def parse_surv_apex(endpoint):
+    # FIXME
+    df=pd.read_csv(os.environ.get("APEXCLINDATAFILE"))
+    return NotImplementedError()
 
 # for PCA RNA-Seq model
 def parse_exp_pc_uams():
