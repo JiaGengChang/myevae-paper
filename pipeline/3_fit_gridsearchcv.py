@@ -123,13 +123,14 @@ def main(model_name:str='default',
             best_estimator = grid_search.best_estimator_.model.net # DeepSurv estimator
         except AttributeError:
             best_estimator = grid_search.best_estimator_.model # VAE estimator
-            
+        
         cindex_uams, cindex_hovon, cindex_emtab, cindex_apex = score_external_datasets(best_estimator,params)
         results['best_epoch']['uams_metric'] = cindex_uams
         results['best_epoch']['hovon_metric'] = cindex_hovon
         results['best_epoch']['emtab_metric'] = cindex_emtab
-        results['best_epoch']['apex_metric'] = cindex_apex # APEX has no clinical data at all
-
+        results['best_epoch']['apex_metric'] = cindex_apex
+        results['best_epoch']['timestamp'] = datetime.now().__str__()
+        
     os.makedirs(os.path.dirname(params.resultsprefix),exist_ok=True)
 
     # save results
