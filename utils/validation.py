@@ -26,8 +26,13 @@ def score_external_datasets(model:Module,params:dict,level:str="affy")->tuple[fl
     """
     # the only permitted input types for external validation
     # exp + clin or pure exp
-    # assert params.input_types_all in [['exp', 'clin'], ['exp']]
-
+    if params.architecture.lower()=='vae':
+        assert params.input_types == ['exp']
+    elif params.architecture.lower()=='deepsurv':
+        assert params.input_types_all in [['exp'],['exp','clin']]
+    else:
+        raise NotImplementedError()
+    
     # subset external validation data to genes seen by the model
     uams_clin_tensor = torch_tensor(scale_impute(parse_clin_uams(), params.scale_method).values)
     uams_exp_tensor = torch_tensor(scale_impute(parse_exp_uams(params.genes,level), params.scale_method).values)
