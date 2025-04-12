@@ -33,7 +33,6 @@ class VAE(BaseEstimator):
                  subset_microarray:bool=None,
                  layer_dims:list[list[int]]=[[None]], 
                  input_types_subtask:list[str]=None,
-                 input_dims_subtask:list[int]=None, 
                  layer_dims_subtask:list[int]=None,
                  z_dim:int=None,
                  lr:float=None,
@@ -51,7 +50,6 @@ class VAE(BaseEstimator):
         self.subset_microarray = subset_microarray
         self.layer_dims = layer_dims 
         self.input_types_subtask = input_types_subtask 
-        self.input_dims_subtask = input_dims_subtask 
         self.layer_dims_subtask = layer_dims_subtask        
         self.z_dim = z_dim
         self.lr = lr
