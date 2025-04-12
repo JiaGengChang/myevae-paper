@@ -15,18 +15,39 @@ from utils.attrdict import AttrDict
 from modules_deepsurv.estimator import DeepSurv
 from modules_vae.estimator import VAE
 
-def main(architecture,model_name,endpoint,resultspath=None,statedictpath=None):
+def main(architecture:str,
+         model_name:str,
+         endpoint:str,
+         shuffle:int,
+         fold:int,
+         fulldata:bool,
+         subset:bool,
+         resultspath:str=None,
+         statedictpath:str=None) -> None:
     # FIXME: VAE is not implemented
     if architecture=="VAE":
         raise NotImplementedError
     
     # assumes model is trained on full data by default
     if resultspath is None:
-        resultspath = f"{os.environ.get("OUTPUTDIR")}/{architecture.lower()}_models/{model_name}/{endpoint}_full.json"
+        if fulldata:
+            if subset:
+                resultspath = f"{os.environ.get("OUTPUTDIR")}/{architecture.lower()}_models/{model_name}_subset_full/{endpoint}_full.json"
+            else:
+                resultspath = f"{os.environ.get("OUTPUTDIR")}/{architecture.lower()}_models/{model_name}_full/{endpoint}_full.json"
+        else:
+            resultspath = f"{os.environ.get("OUTPUTDIR")}/{architecture.lower()}_models/{model_name}/{endpoint}_shuffle{shuffle}_fold{fold}.json"
     if statedictpath is None:
-        statedictpath = f"{os.environ.get("OUTPUTDIR")}/{architecture.lower()}_models/{model_name}/{endpoint}_full.pth"
+        if fulldata:
+            if subset:
+                statedictpath = f"{os.environ.get("OUTPUTDIR")}/{architecture.lower()}_models/{model_name}_subset_full/{endpoint}_full.pth"
+            else:
+                statedictpath = f"{os.environ.get("OUTPUTDIR")}/{architecture.lower()}_models/{model_name}_full/{endpoint}_full.pth"
+        else:
+            statedictpath = f"{os.environ.get("OUTPUTDIR")}/{architecture.lower()}_models/{model_name}/{endpoint}_shuffle{shuffle}_fold{fold}.pth"        
     assert os.path.exists(resultspath)
     assert os.path.exists(statedictpath)
+    
     results = json.load(open(resultspath,'r'))
     genes = results['params_fixed']['genes']
     params = results['best_epoch']['params'] # hyperparameters for fit
@@ -36,7 +57,7 @@ def main(architecture,model_name,endpoint,resultspath=None,statedictpath=None):
 
     best_estimator = \
     DeepSurv(input_types_all=eval(params['input_types_all']),
-            subset_microarray=eval(params['subset_microarray']),
+            subset_microarray=subset,
             layer_dims=eval(params['layer_dims']),
             activation=eval(params['activation']),
             dropout=eval(params['dropout']),
@@ -87,16 +108,21 @@ def main(architecture,model_name,endpoint,resultspath=None,statedictpath=None):
 
 if __name__ == "__main__":
     parser = ArgumentParser(description='Scoring of trained model')
-    parser.add_argument('-a','--architecture',type=str,choices=['VAE','Deepsurv'])
-    parser.add_argument('-m','--model_name',type=str)
+    parser.add_argument('-a','--architecture',type=str,choices=['VAE','Deepsurv'],default='VAE')
+    parser.add_argument('-m','--model_name',type=str,default='exp')
+    parser.add_argument('-e','--endpoint',choices=['both','os','pfs'],default='both')
+    parser.add_argument('-f','--fulldata',action='store_true',help='Was model trained on full CoMMpass data')
+    parser.add_argument('-s','--subset',action='store_true',help='Was model trained on microarray subset genes')
     parser.add_argument('-p','--paramsfile',type=str,default=None,help='Path to the .json params file')
     parser.add_argument('-w','--weightsfile',type=str,default=None,help='Path to the .pth weights file')
-    parser.add_argument('-e','--endpoint',default='both',choices=['both','os','pfs'])
 
     args = parser.parse_args()
+    _pbs_array_id = int(os.getenv('PBS_ARRAY_INDEX', "-1"))
+    pbs_shuffle=_pbs_array_id%10
+    pbs_fold=_pbs_array_id//10
     
     if args.endpoint=="both":
-        main(args.architecture, args.model_name, 'os', args.paramsfile, args.weightsfile)
-        main(args.architecture, args.model_name, 'pfs', args.paramsfile, args.weightsfile)
+        main(args.architecture, args.model_name, 'os', pbs_shuffle, pbs_fold, args.fulldata, args.subset, args.paramsfile, args.weightsfile)
+        main(args.architecture, args.model_name, 'pfs', pbs_shuffle, pbs_fold, args.fulldata, args.subset, args.paramsfile, args.weightsfile)
     else:
-        main(args.architecture, args.model_name, args.endpoint, args.paramsfile, args.weightsfile)
+        main(args.architecture, args.model_name, args.endpoint, pbs_shuffle, pbs_fold, args.fulldata, args.subset, args.paramsfile, args.weightsfile)
