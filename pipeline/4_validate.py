@@ -92,13 +92,18 @@ def main(architecture:str,
     
     # get sample data to fit on
     splitsdir=os.environ.get("SPLITDATADIR")
-    train_features_file=f'{splitsdir}/full_features_{endpoint}_processed.parquet'
-    train_labels_file=f'{splitsdir}/full_labels.parquet'
+    if fulldata:
+        train_features_file=f'{splitsdir}/full_features_{endpoint}_processed.parquet'
+        train_labels_file=f'{splitsdir}/full_labels.parquet'
+    else:
+        train_features_file=f"{splitsdir}/{shuffle}/{fold}/train_features_{endpoint}_processed.parquet"
+        train_labels_file=f"{splitsdir}/{shuffle}/{fold}/train_labels.parquet"
+    
     assert os.path.exists(train_features_file) and os.path.exists(train_labels_file)
     train_features=pd.read_parquet(train_features_file)
     train_labels=pd.read_parquet(train_labels_file)[[results['params_fixed']['eventcol'],results['params_fixed']['durationcol']]]
     train_dataframe=pd.concat([train_labels,train_features],axis=1)
-    
+        
     # call fit to establish torch nn module inside the estimator
     # should be fine as no training occurs since n.epochs is 0
     best_estimator.fit(train_dataframe)
@@ -120,10 +125,12 @@ def main(architecture:str,
     params_attr.endpoint = params['endpoint']
     params_attr.architecture = architecture
     params_attr.scale_method = params['scale_method']
-    params_attr.input_types_all = best_estimator.input_types_all
+    try:
+        params_attr.input_types_all = params['input_types_all'] # Deepsurv
+    except:
+        params_attr.input_types_all = params['input_types'] + params['input_types_subtask'] # VAE
 
     cindex_uams, cindex_hovon, cindex_emtab, cindex_apex = score_external_datasets(model, params_attr)
-    results['best_epoch']['valid_metric'] = 0
     results['best_epoch']['uams_metric'] = cindex_uams
     results['best_epoch']['hovon_metric'] = cindex_hovon
     results['best_epoch']['emtab_metric'] = cindex_emtab
@@ -131,7 +138,7 @@ def main(architecture:str,
     results['best_epoch']['timestamp'] = datetime.now().__str__() # add timestamp
     
     # update the same json results file
-    resultspath='test.json' # for debug
+    # resultspath='test.json' # for debug
     with  open(resultspath,'w') as f:
         json.dump(results, f, indent=4)
 
