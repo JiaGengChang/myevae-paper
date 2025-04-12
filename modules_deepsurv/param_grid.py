@@ -1,6 +1,20 @@
 from torch.nn import LeakyReLU, ReLU, Sigmoid
 
-param_grid = {
+param_grid_exp_cna = {
+    'input_types_all':[['exp','cna','clin']],
+    'lr': [5e-4, 1e-4, 5e-5, 1e-5],
+    'layer_dims': [[64, 16, 1], [128, 32, 1], [256, 64, 8, 1]],
+    'batch_size': [128, 256, 512],
+    'dropout': [0.2, 0.3, 0.5],
+    'activation': [LeakyReLU(), ReLU(), Sigmoid()],
+    'epochs': [300],
+    'burn_in': [50],
+    'patience': [20],
+    'subset_microarray': [False], # want to do this only for full models
+    'scale_method': ['std'] # only for external validation with full model
+}
+
+param_grid_exp = {
     'input_types_all':[['exp','cna','clin']],
     'lr': [5e-4, 1e-4, 5e-5, 1e-5],
     'layer_dims': [[64, 16, 1], [128, 32, 1], [256, 64, 8, 1]],
