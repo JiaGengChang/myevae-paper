@@ -20,6 +20,7 @@ def summary_statistics_single_model(model_path):
         uams_metric = []
         hovon_metric = []
         emtab_metric = []
+        apex_metric = []
         for jsonfile in jsonfiles:
             with open(jsonfile, 'r') as f:
                 result = json.load(f)
@@ -28,13 +29,17 @@ def summary_statistics_single_model(model_path):
                 uams_metric.append(result['best_epoch']['uams_metric'])
                 hovon_metric.append(result['best_epoch']['hovon_metric'])
                 emtab_metric.append(result['best_epoch']['emtab_metric'])
+                apex_metric.append(result['best_epoch']['apex_metric'])
             except(KeyError):
                 continue
         
-        for metric_name in ['valid_metric', 'uams_metric', 'hovon_metric', 'emtab_metric']:
+        for metric_name in ['valid_metric', 'uams_metric', 'hovon_metric', 'emtab_metric', 'apex_metric']:
             metric = eval(metric_name)
             count = len(metric)
             if count == 0:
+                continue
+            if count == 1:
+                model[endpoint][metric_name] = metric[0]
                 continue
             average_metric = np.mean(metric)
             std_metric = np.std(metric)
