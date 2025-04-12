@@ -10,8 +10,8 @@ import sys
 sys.path.append(os.environ.get("PROJECTDIR"))
 from modules_vae.estimator import VAE
 from modules_deepsurv.estimator import DeepSurv
-from modules_vae.param_grid import param_grid as param_grid_vae
-from modules_deepsurv.param_grid import param_grid as param_grid_deepsurv
+from modules_vae.param_grid import param_grid_exp as param_grid_vae
+from modules_deepsurv.param_grid import param_grid_exp as param_grid_deepsurv
 from utils.params import VAEParams, DeepsurvParams
 from utils.validation import score_external_datasets
 from utils.annotate_exp_genes import annotate_exp_genes
@@ -24,13 +24,19 @@ from dask.distributed import Client, LocalCluster
 # if model is exp-only, perform benchmark on external GEO datasets
 # scores on these external dataset will also be in the json file
 # select the model to be either VAE (default) or Deepsurv (benchmark)
-def main(model_name:str='default', endpoint:str='os', shuffle:int=5, fold:int=10, architecture:str='VAE', fulldata:bool=False) -> None:
+def main(model_name:str='default', 
+         endpoint:str='os', 
+         shuffle:int=5, 
+         fold:int=10, 
+         architecture:str='VAE', 
+         fulldata:bool=False, 
+         subset:bool=False) -> None:
     
     if architecture=='VAE':
-        params = VAEParams(model_name=model_name, endpoint=endpoint, shuffle=shuffle, fold=fold, fulldata=fulldata)
+        params = VAEParams(model_name=model_name, endpoint=endpoint, shuffle=shuffle, fold=fold, fulldata=fulldata, subset=subset)
         param_grid = param_grid_vae
     elif architecture=='Deepsurv':
-        params = DeepsurvParams(model_name=model_name,endpoint=endpoint, shuffle=shuffle, fold=fold, fulldata=fulldata)
+        params = DeepsurvParams(model_name=model_name,endpoint=endpoint, shuffle=shuffle, fold=fold, fulldata=fulldata, subset=subset)
         param_grid = param_grid_deepsurv
     else:
         raise NotImplementedError(architecture)
@@ -79,7 +85,7 @@ def main(model_name:str='default', endpoint:str='os', shuffle:int=5, fold:int=10
 
     cluster = LocalCluster()
     client = Client(cluster)
-    with joblib.parallel_config("dask", n_jobs=12): # set n_jobs to NCPUS
+    with joblib.parallel_config("dask", n_jobs=20): # set n_jobs to NCPUS
         grid_search.fit(train_dataframe)
 
     # update params with best params
@@ -87,7 +93,7 @@ def main(model_name:str='default', endpoint:str='os', shuffle:int=5, fold:int=10
         setattr(params,k,v)
     # update params with RNA-Seq gene names
     # this field is needed in score_external_datasets
-    if grid_search.best_estimator_.subset_microarray:
+    if params.subset_microarray:
         # only microarray compatible genes were used
         setattr(params,"genes",grid_search.best_estimator_.genes)
     else:
@@ -110,18 +116,19 @@ def main(model_name:str='default', endpoint:str='os', shuffle:int=5, fold:int=10
         results['best_epoch']['valid_metric'] = valid_metric
 
     # score external datasets if using only RNASeq as input
-    if grid_search.best_estimator_.input_types_all==['exp','clin']:
+    if grid_search.best_estimator_.input_types_all==['exp','clin'] or \
+         grid_search.best_estimator_.input_types_all==['exp'] :
         # pass in the torch.nn.Module
         try:
             best_estimator = grid_search.best_estimator_.model.net # DeepSurv estimator
         except AttributeError:
             best_estimator = grid_search.best_estimator_.model # VAE estimator
             
-        cindex_uams, cindex_hovon, cindex_emtab = score_external_datasets(best_estimator,params)
+        cindex_uams, cindex_hovon, cindex_emtab, cindex_apex = score_external_datasets(best_estimator,params)
         results['best_epoch']['uams_metric'] = cindex_uams
         results['best_epoch']['hovon_metric'] = cindex_hovon
         results['best_epoch']['emtab_metric'] = cindex_emtab
-
+        results['best_epoch']['apex_metric'] = cindex_apex # APEX has no clinical data at all
 
     os.makedirs(os.path.dirname(params.resultsprefix),exist_ok=True)
 
@@ -133,14 +140,13 @@ def main(model_name:str='default', endpoint:str='os', shuffle:int=5, fold:int=10
     # either estimator class or model class should implement `save`
     grid_search.best_estimator_.save(f'{params.resultsprefix}.pth')
 
-    return 
-
 if __name__ == "__main__":
     parser = ArgumentParser(description='Tune hyperparameters of VAE model using scikit-learn GridSearchCV. For adjusting hyperparameters, modify params.py and param_grid.py')
-    parser.add_argument('-m','--model_name', type=str, help='An experiment name for the model')
-    parser.add_argument('-e','--endpoint', type=str, choices=['pfs', 'os','both'], help='Survival endpoint (pfs or os)')
-    parser.add_argument('-a', '--architecture', type=str, choices=['VAE','Deepsurv'], help='Choice of model architecture. In-house VAE or comparator Deepsurv.')
-    parser.add_argument('-f', '--fulldata', action='store_true', help='Flag to indicate using train + validation data')
+    parser.add_argument('-m','--model_name', type=str, default='exp', help='An experiment name for the model')
+    parser.add_argument('-e','--endpoint', type=str, choices=['pfs', 'os','both'], default='both', help='Survival endpoint (pfs or os or both)')
+    parser.add_argument('-a', '--architecture', type=str, choices=['VAE','Deepsurv'], default='VAE', help='Choice of model architecture. In-house VAE or comparator Deepsurv.')
+    parser.add_argument('-f', '--fulldata', action='store_true', help='Whether to train with full CoMMpass dataset')
+    parser.add_argument('-s', '--subset', action='store_true', help='Whether to subset to ensembl genes that have matching microarray probes')
     args = parser.parse_args()
     _pbs_array_id = int(os.getenv('PBS_ARRAY_INDEX', "-1"))
     pbs_shuffle=_pbs_array_id%10
@@ -148,7 +154,7 @@ if __name__ == "__main__":
     if args.endpoint=="both":
         # useful for training the train-valid splits
         # because scheduler has a limit of 99 jobs
-        main(args.model_name, 'os', pbs_shuffle, pbs_fold, args.architecture, args.fulldata)
-        main(args.model_name, 'pfs', pbs_shuffle, pbs_fold, args.architecture, args.fulldata)
+        main(args.model_name, 'os', pbs_shuffle, pbs_fold, args.architecture, args.fulldata, args.subset)
+        main(args.model_name, 'pfs', pbs_shuffle, pbs_fold, args.architecture, args.fulldata, args.subset)
     else:
-        main(args.model_name, args.endpoint, pbs_shuffle, pbs_fold, args.architecture, args.fulldata)
+        main(args.model_name, args.endpoint, pbs_shuffle, pbs_fold, args.architecture, args.fulldata, args.subset)
