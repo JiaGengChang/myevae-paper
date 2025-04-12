@@ -24,27 +24,27 @@ def main(architecture:str,
          subset:bool,
          resultspath:str=None,
          statedictpath:str=None) -> None:
-    # FIXME: VAE is not implemented
-    if architecture=="VAE":
-        raise NotImplementedError
     
     # assumes model is trained on full data by default
+    arch = architecture.lower()
+    assert arch in ['deepsurv','vae']
+    outputdir = os.environ.get("OUTPUTDIR")
     if resultspath is None:
         if fulldata:
             if subset:
-                resultspath = f"{os.environ.get("OUTPUTDIR")}/{architecture.lower()}_models/{model_name}_subset_full/{endpoint}_full.json"
+                resultspath = f"{outputdir}/{arch}_models/{model_name}_subset_full/{endpoint}_full.json"
             else:
-                resultspath = f"{os.environ.get("OUTPUTDIR")}/{architecture.lower()}_models/{model_name}_full/{endpoint}_full.json"
+                resultspath = f"{outputdir}/{arch}_models/{model_name}_full/{endpoint}_full.json"
         else:
-            resultspath = f"{os.environ.get("OUTPUTDIR")}/{architecture.lower()}_models/{model_name}/{endpoint}_shuffle{shuffle}_fold{fold}.json"
+            resultspath = f"{outputdir}/{arch}_models/{model_name}/{endpoint}_shuffle{shuffle}_fold{fold}.json"
     if statedictpath is None:
         if fulldata:
             if subset:
-                statedictpath = f"{os.environ.get("OUTPUTDIR")}/{architecture.lower()}_models/{model_name}_subset_full/{endpoint}_full.pth"
+                statedictpath = f"{outputdir}/{arch}_models/{model_name}_subset_full/{endpoint}_full.pth"
             else:
-                statedictpath = f"{os.environ.get("OUTPUTDIR")}/{architecture.lower()}_models/{model_name}_full/{endpoint}_full.pth"
+                statedictpath = f"{outputdir}/{arch}_models/{model_name}_full/{endpoint}_full.pth"
         else:
-            statedictpath = f"{os.environ.get("OUTPUTDIR")}/{architecture.lower()}_models/{model_name}/{endpoint}_shuffle{shuffle}_fold{fold}.pth"        
+            statedictpath = f"{outputdir}/{arch}_models/{model_name}/{endpoint}_shuffle{shuffle}_fold{fold}.pth"        
     assert os.path.exists(resultspath)
     assert os.path.exists(statedictpath)
     
@@ -55,20 +55,40 @@ def main(architecture:str,
     params["genes"] = genes # genes seen by the model
     params["endpoint"] = endpoint # accessed by score_external_datasets
 
-    best_estimator = \
-    DeepSurv(input_types_all=eval(params['input_types_all']),
-            subset_microarray=subset,
-            layer_dims=eval(params['layer_dims']),
-            activation=eval(params['activation']),
-            dropout=eval(params['dropout']),
-            lr=eval(params['lr']),
-            epochs=0, # fit for 0 epochs
-            burn_in=eval(params['burn_in']),
-            patience=eval(params['patience']),
-            batch_size=eval(params['batch_size']),
-            eventcol=results['params_fixed']['eventcol'],
-            durationcol=results['params_fixed']['durationcol'],
-            scale_method=params['scale_method'])
+    if arch=="vae":
+        best_estimator = \
+            VAE(input_types=eval(params['input_types']),
+                subset_microarray=subset,
+                layer_dims=eval(params['layer_dims']),
+                input_types_subtask=eval(params['input_types_subtask']),
+                layer_dims_subtask=eval(params['layer_dims_subtask']),
+                z_dim=eval(params['z_dim']),
+                lr=eval(params['lr']),
+                epochs=0, # fit for 0 epochs
+                burn_in=eval(params['burn_in']),
+                patience=eval(params['patience']),
+                batch_size=eval(params['batch_size']),
+                eventcol=results['params_fixed']['eventcol'],
+                durationcol=results['params_fixed']['durationcol'],
+                kl_weight=eval(params['kl_weight']),
+                activation=eval(params['activation']),
+                subtask_activation=eval(params['subtask_activation']),
+                scale_method=params['scale_method'])
+    elif arch=="deepsurv":
+        best_estimator = \
+            DeepSurv(input_types_all=eval(params['input_types_all']),
+                     subset_microarray=subset,
+                     layer_dims=eval(params['layer_dims']),
+                     activation=eval(params['activation']),
+                     dropout=eval(params['dropout']),
+                     lr=eval(params['lr']),
+                     epochs=0, # fit for 0 epochs
+                     burn_in=eval(params['burn_in']),
+                     patience=eval(params['patience']),
+                     batch_size=eval(params['batch_size']),
+                     eventcol=results['params_fixed']['eventcol'],
+                     durationcol=results['params_fixed']['durationcol'],
+                     scale_method=params['scale_method'])
     
     # get sample data to fit on
     splitsdir=os.environ.get("SPLITDATADIR")
@@ -79,27 +99,39 @@ def main(architecture:str,
     train_labels=pd.read_parquet(train_labels_file)[[results['params_fixed']['eventcol'],results['params_fixed']['durationcol']]]
     train_dataframe=pd.concat([train_labels,train_features],axis=1)
     
-    # call fit to establish torch module inside the class
+    # call fit to establish torch nn module inside the estimator
+    # should be fine as no training occurs since n.epochs is 0
     best_estimator.fit(train_dataframe)
+    # create a handle for the torch nn module
+    if arch=='vae':
+        model = best_estimator.model
+    elif arch=='deepsurv':
+        model = best_estimator.model.net
+    # load stored weights
     state_dict = torch_load(statedictpath)
-    best_estimator.model.net.load_state_dict(state_dict)
-    model = best_estimator.model.net
+    model.load_state_dict(state_dict)
 
+    # copy params dictionary into a custom dict class
+    # allowing for attribute access with dot syntax
+    # this mimics the actual `Params`` class
+    # which is an argument for `score_external_datasets`
     params_attr = AttrDict()
     params_attr.genes = params['genes']
     params_attr.endpoint = params['endpoint']
     params_attr.architecture = architecture
     params_attr.scale_method = params['scale_method']
-    params_attr.input_types_all = eval(params['input_types_all'])
+    params_attr.input_types_all = best_estimator.input_types_all
 
     cindex_uams, cindex_hovon, cindex_emtab, cindex_apex = score_external_datasets(model, params_attr)
+    results['best_epoch']['valid_metric'] = 0
     results['best_epoch']['uams_metric'] = cindex_uams
     results['best_epoch']['hovon_metric'] = cindex_hovon
     results['best_epoch']['emtab_metric'] = cindex_emtab
-    results['best_epoch']['apex_metric'] = cindex_apex # APEX has no clinical data at all
+    results['best_epoch']['apex_metric'] = cindex_apex
     results['best_epoch']['timestamp'] = datetime.now().__str__() # add timestamp
     
-    # update values in json results file
+    # update the same json results file
+    resultspath='test.json' # for debug
     with  open(resultspath,'w') as f:
         json.dump(results, f, indent=4)
 
