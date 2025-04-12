@@ -3,6 +3,7 @@ from argparse import ArgumentParser
 from json import dump as json_dump
 import pandas as pd
 from sklearn.model_selection import GridSearchCV
+from datetime import datetime 
 
 from dotenv import load_dotenv
 assert load_dotenv('../.env') or load_dotenv('.env')
@@ -93,7 +94,7 @@ def main(model_name:str='default',
         setattr(params,k,v)
     # update params with RNA-Seq gene names
     # this field is needed in score_external_datasets
-    if params.subset_microarray:
+    if subset:
         # only microarray compatible genes were used
         setattr(params,"genes",grid_search.best_estimator_.genes)
     else:
