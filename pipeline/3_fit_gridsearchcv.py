@@ -11,8 +11,8 @@ import sys
 sys.path.append(os.environ.get("PROJECTDIR"))
 from modules_vae.estimator import VAE
 from modules_deepsurv.estimator import DeepSurv
-from modules_vae.param_grid import param_grid_exp as param_grid_vae
-from modules_deepsurv.param_grid import param_grid_exp as param_grid_deepsurv
+from modules_vae.param_grid import param_grid_exp_cna_gistic_fish_ig as param_grid_vae
+from modules_deepsurv.param_grid import param_grid_exp_cna_gistic_fish_sbs_ig as param_grid_deepsurv
 from utils.params import VAEParams, DeepsurvParams
 from utils.validation import score_external_datasets
 from utils.annotate_exp_genes import annotate_exp_genes
@@ -144,8 +144,8 @@ def main(model_name:str='default',
 
 if __name__ == "__main__":
     parser = ArgumentParser(description='Tune hyperparameters of VAE model using scikit-learn GridSearchCV. For adjusting hyperparameters, modify params.py and param_grid.py')
-    parser.add_argument('-m','--model_name', type=str, default='exp', help='An experiment name for the model')
-    parser.add_argument('-e','--endpoint', type=str, choices=['pfs', 'os','both'], default='both', help='Survival endpoint (pfs or os or both)')
+    parser.add_argument('-m', '--model_name', type=str, default='exp', help='An experiment name for the model')
+    parser.add_argument('-e', '--endpoint', type=str, choices=['pfs', 'os','both'], default='both', help='Survival endpoint (pfs or os or both)')
     parser.add_argument('-a', '--architecture', type=str, choices=['VAE','Deepsurv'], default='VAE', help='Choice of model architecture. In-house VAE or comparator Deepsurv.')
     parser.add_argument('-f', '--fulldata', action='store_true', help='Whether to train with full CoMMpass dataset')
     parser.add_argument('-s', '--subset', action='store_true', help='Whether to subset to ensembl genes that have matching microarray probes')

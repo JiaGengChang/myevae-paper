@@ -1,5 +1,53 @@
 from torch.nn import *
 
+param_grid_exp_cna_gistic_fish_sbs_ig = {
+    'input_types_all':[['exp','cna','gistic','fish','sbs','ig','clin']],
+    'lr': [5e-4, 1e-4, 5e-5, 1e-5],
+    'layer_dims': [[64, 16, 1], [128, 32, 1], [256, 64, 8, 1], [512, 128, 16, 1], [512, 256, 64, 32, 1]],
+    'batch_size': [128, 256, 512],
+    'dropout': [0.2, 0.3, 0.5],
+    'activation': [LeakyReLU(), ReLU(), Sigmoid(), Tanh()],
+    'epochs': [300],
+    'burn_in': [50],
+    'patience': [20],
+}
+
+param_grid_exp_cna_gistic_fish_sbs = {
+    'input_types_all':[['exp','cna','gistic','fish','sbs','clin']],
+    'lr': [5e-4, 1e-4, 5e-5, 1e-5],
+    'layer_dims': [[64, 16, 1], [128, 32, 1], [256, 64, 8, 1], [512, 128, 16, 1]],
+    'batch_size': [128, 256, 512],
+    'dropout': [0.2, 0.3, 0.5],
+    'activation': [LeakyReLU(), ReLU(), Sigmoid(), Tanh()],
+    'epochs': [300],
+    'burn_in': [50],
+    'patience': [20],
+}
+
+param_grid_exp_cna_gistic_fish = {
+    'input_types_all':[['exp','cna','gistic','fish','clin']],
+    'lr': [5e-4, 1e-4, 5e-5, 1e-5],
+    'layer_dims': [[64, 16, 1], [128, 32, 1], [256, 64, 8, 1], [512, 128, 16, 1]],
+    'batch_size': [128, 256, 512],
+    'dropout': [0.2, 0.3, 0.5],
+    'activation': [LeakyReLU(), ReLU(), Sigmoid(), Tanh()],
+    'epochs': [300],
+    'burn_in': [50],
+    'patience': [20],
+}
+
+param_grid_exp_cna_gistic = {
+    'input_types_all':[['exp','cna','gistic','clin']],
+    'lr': [5e-4, 1e-4, 5e-5, 1e-5],
+    'layer_dims': [[64, 16, 1], [128, 32, 1], [256, 64, 8, 1]],
+    'batch_size': [128, 256, 512],
+    'dropout': [0.2, 0.3, 0.5],
+    'activation': [LeakyReLU(), ReLU(), Sigmoid(), Tanh()],
+    'epochs': [300],
+    'burn_in': [50],
+    'patience': [20],
+}
+
 param_grid_exp_cna = {
     'input_types_all':[['exp','cna','clin']],
     'lr': [5e-4, 1e-4, 5e-5, 1e-5],
@@ -10,7 +58,6 @@ param_grid_exp_cna = {
     'epochs': [300],
     'burn_in': [50],
     'patience': [20],
-    'scale_method': ['std'] # only for external validation with full model
 }
 
 param_grid_exp = {
