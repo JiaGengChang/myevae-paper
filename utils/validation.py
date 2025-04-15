@@ -9,6 +9,37 @@ sys.path.append(os.environ.get("PROJECTDIR"))
 from utils.parsers_external import *
 from utils.scaler_external import scale_and_impute_external_dataset as scale_impute
 
+def score_apex_dataset(model:Module,params:dict,level:str="affy")->float:
+    """ 
+    Score gene expression model on APEX GSE9782 dataset only
+    This is useful if we just want to get the score for APEX, saving wasted computation
+    """
+    if params.architecture.lower()=='vae':
+        assert params.input_types == ['exp']
+    elif params.architecture.lower()=='deepsurv':
+        assert params.input_types_all in [['exp'],['exp','clin']]
+    else:
+        raise NotImplementedError()
+    apex_clin_tensor = torch_tensor(scale_impute(parse_clin_apex(),params.scale_method).values)
+    apex_exp_tensor = torch_tensor(scale_impute(parse_exp_apex(params.genes,level), params.scale_method).values)
+    apex_events, apex_times = parse_surv_apex(params.endpoint)
+    if params.architecture=="VAE":
+        # use the VAE API for scoring. VAE is a torch.nn.Module
+        model.eval()
+        with no_grad():
+            _, _, _, estimates_apex = model([[apex_exp_tensor], [apex_clin_tensor]])
+    elif params.architecture=='Deepsurv':
+        model.eval()
+        # use the Deepsurv API for scoring. model is a CoxPH object (pycox)
+        with no_grad():
+            # potential bug, I don't know if -1 is the concatenation axis
+            estimates_apex = model(torch_cat([apex_exp_tensor,apex_clin_tensor],axis=-1))
+    else:
+        raise NotImplementedError(params.architecture)
+
+    cindex_apex = concordance_index_censored(apex_events, apex_times, estimates_apex.flatten())[0].item()
+    return max(cindex_apex,1-cindex_apex)
+
 def score_external_datasets(model:Module,params:dict,level:str="affy")->tuple[float]:
     """
     Scores a gene expression model on 4 microarray datasets
