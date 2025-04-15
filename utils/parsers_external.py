@@ -169,7 +169,7 @@ def parse_surv_apex(endpoint):
     """
     parse_surv_helper does not support APEX so just handle it here
     """
-    df=pd.read_csv(os.environ.get("APEXCLINDATAFILE"),sep='\t')
+    df=pd.read_csv(os.environ.get("APEXCLINDATAFILE"),sep='\t').convert_dtypes() # PFS_EVENT is 1.0 0.0
     survarray = Surv.from_dataframe(f'{endpoint.upper()}_EVENT',endpoint.upper(),df)
     return list(zip(*survarray))
 
