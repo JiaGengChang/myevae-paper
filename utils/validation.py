@@ -14,12 +14,13 @@ def score_apex_dataset(model:Module,params:dict,level:str="affy")->float:
     Score gene expression model on APEX GSE9782 dataset only
     This is useful if we just want to get the score for APEX, saving wasted computation
     """
-    if params.architecture.lower()=='vae':
-        assert params.input_types == ['exp']
-    elif params.architecture.lower()=='deepsurv':
-        assert params.input_types_all in [['exp'],['exp','clin']]
-    else:
-        raise NotImplementedError()
+    assert params.input_types_all in [['exp'],['exp','clin']]
+    # if params.architecture.lower()=='vae':
+    #     assert params.input_types_all == ['exp','clin']
+    # elif params.architecture.lower()=='deepsurv':
+    #     assert params.input_types_all in [['exp'],['exp','clin']]
+    # else:
+    #     raise NotImplementedError()
     apex_clin_tensor = torch_tensor(scale_impute(parse_clin_apex(),params.scale_method).values)
     apex_exp_tensor = torch_tensor(scale_impute(parse_exp_apex(params.genes,level), params.scale_method).values)
     apex_events, apex_times = parse_surv_apex(params.endpoint)
@@ -98,7 +99,7 @@ def score_external_datasets(model:Module,params:dict,level:str="affy")->tuple[fl
             estimates_uams =  model(torch_cat([uams_exp_tensor, uams_clin_tensor],axis=-1))
             estimates_hovon = model(torch_cat([hovon_exp_tensor, hovon_clin_tensor],axis=-1))
             estimates_emtab = model(torch_cat([emtab_exp_tensor, emtab_clin_tensor],axis=-1))
-            estimates_apex = model(torch_cat([apex_exp_tensor,apex_clin_tensor],axis=-1))
+            estimates_apex = model(torch_cat([apex_exp_tensor, apex_clin_tensor],axis=-1))
     else:
         raise NotImplementedError(params.architecture)
 
