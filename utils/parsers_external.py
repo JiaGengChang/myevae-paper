@@ -119,15 +119,18 @@ def parse_clin_hovon():
 def parse_clin_emtab():
     return parse_clin_helper("EMTAB4032")
 def parse_clin_apex():
-    """
-    Returns a full NA for 264 patients in apex trial
-    Since there is no clinical data as of now
-    """
-    parse_clin_emtab = globals()['parse_clin_emtab'] # get the column names
-    df=pd.read_csv(os.environ.get("APEXCLINDATAFILE"),sep='\t')
-    dfnas = parse_clin_emtab().reindex(df.SAMPLE)
-    dfnas.index.name='PUBLIC_ID'
-    return dfnas
+    df = pd.read_csv(os.environ.get("APEXCLINDATAFILE"),sep='\t',index_col=0)
+    # annotate ISS on the fly using ALBUMIN and B2M information
+    dfout = pd.DataFrame({
+        'age': (df['AGE']).astype(float),
+        'iss_1': (np.logical_and(df['B2M'] < 3.5, df['ALBUMIN'] >= 35.0)).astype(int),
+        'iss_2': (np.logical_or(np.logical_and(df['B2M'] < 3.5, df['ALBUMIN'] < 35.0), np.logical_and(df['B2M'] >= 3.5, df['B2M'] < 5.5))).astype(int),
+        'iss_3': (df['B2M'] >= 5.5).astype(int),
+        'male': (df['SEX']=='Male').astype(int), 
+    })
+    dfout.columns = [f'Feature_clin_D_PT_{s}' for s in dfout.columns]
+    dfout.index.name = 'PUBLIC_ID'
+    return dfout
 
 def parse_exp_uams(genes,level):
     return parse_exp_helper("UAMSDATAFILE",genes,level)
