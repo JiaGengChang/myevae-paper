@@ -1,6 +1,24 @@
 from torch.nn import LeakyReLU, ReLU, Sigmoid, Tanh
 
-param_grid_exp_cna_gistic_fish_ig = {
+param_grid_exp_cna_gistic_fish_sbs_ig_chrom = {
+    'z_dim': [8, 16, 32, 64],
+    'lr': [5e-4, 1e-4, 5e-5], 
+    'batch_size': [128, 256, 512],
+    'input_types': [['exp','cna', 'gistic', 'fish', 'sbs', 'ig']],
+    'input_types_subtask': [['cth','clin']],
+    'layer_dims': [[[64, 16], [16, 8], [16, 4], [16, 4], [4], [2]], 
+                   [[128, 32], [64, 16], [16, 8], [16, 4], [4], [2]], 
+                   [[256, 64], [128, 32], [32, 8], [16, 4], [4], [2]]],
+    'layer_dims_subtask' : [[4,1], [8,1], [16,1], [32, 8, 1]],
+    'kl_weight': [1],
+    'activation': [LeakyReLU(),ReLU(),Sigmoid()],
+    'subtask_activation': [Tanh()],
+    'epochs': [300],
+    'burn_in': [50],
+    'patience': [20],
+}
+
+param_grid_exp_cna_gistic_fish_sbs_ig = {
     'z_dim': [8, 16, 32, 64],
     'lr': [5e-4, 1e-4, 5e-5], 
     'batch_size': [128, 256, 512],
