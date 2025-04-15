@@ -168,8 +168,13 @@ def parse_surv_emtab(endpoint):
 def parse_surv_apex(endpoint):
     """
     parse_surv_helper does not support APEX so just handle it here
+    there is missing PFS information, so it is imputed using OS columns
     """
-    df=pd.read_csv(os.environ.get("APEXCLINDATAFILE"),sep='\t').convert_dtypes() # PFS_EVENT is 1.0 0.0
+    df=pd.read_csv(os.environ.get("APEXCLINDATAFILE"),sep='\t').convert_dtypes()
+    # borrow OS and OS_EVENT for rows which are missing PFS and PFS_EVENT
+    NA_rows=np.logical_or(df['PFS'].isna(), df['PFS_EVENT'].isna())
+    df.loc[NA_rows,'PFS'] = df.loc[NA_rows,'OS']
+    df.loc[NA_rows,'PFS_EVENT'] = df.loc[NA_rows,'OS_EVENT']
     survarray = Surv.from_dataframe(f'{endpoint.upper()}_EVENT',endpoint.upper(),df)
     return list(zip(*survarray))
 
