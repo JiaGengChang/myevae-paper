@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 assert load_dotenv('.env') or load_dotenv('../.env')
+outputdir = os.environ.get("OUTPUTDIR")
 
 class Params():
     """
@@ -31,15 +32,15 @@ class VAEParams(Params):
         if self.fulldata:
             # model is trained on subset of microarray genes
             if self.subset:
-                self.resultsprefix = f'{os.environ.get("OUTPUTDIR")}/vae_models/{self.model_name}_subset_full/{self.endpoint}_full'
+                self.resultsprefix = f'{outputdir}/vae_models/{self.model_name}_subset_full/{self.endpoint}_full'
             else:
-                self.resultsprefix = f'{os.environ.get("OUTPUTDIR")}/vae_models/{self.model_name}_full/{self.endpoint}_full'
+                self.resultsprefix = f'{outputdir}/vae_models/{self.model_name}_full/{self.endpoint}_full'
         # model is trained on a 80-20 split
         else:
             if self.subset:
-                self.resultsprefix = f'{os.environ.get("OUTPUTDIR")}/vae_models/{self.model_name}_subset/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
+                self.resultsprefix = f'{outputdir}/vae_models/{self.model_name}_subset/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
             else:
-                self.resultsprefix = f'{os.environ.get("OUTPUTDIR")}/vae_models/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
+                self.resultsprefix = f'{outputdir}/vae_models/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
     
 class DeepsurvParams(Params):
     """
@@ -52,12 +53,33 @@ class DeepsurvParams(Params):
         # model is trained on full data
         if self.fulldata:
             if self.subset:
-                self.resultsprefix = f'{os.environ.get("OUTPUTDIR")}/deepsurv_models/{self.model_name}_subset_full/{self.endpoint}_full'
+                self.resultsprefix = f'{outputdir}/deepsurv_models/{self.model_name}_subset_full/{self.endpoint}_full'
             else:
-                self.resultsprefix = f'{os.environ.get("OUTPUTDIR")}/deepsurv_models/{self.model_name}_full/{self.endpoint}_full'
+                self.resultsprefix = f'{outputdir}/deepsurv_models/{self.model_name}_full/{self.endpoint}_full'
         # model is trained on a 80-20 split
         else:
             if self.subset:
-                self.resultsprefix = f'{os.environ.get("OUTPUTDIR")}/deepsurv_models/{self.model_name}_subset/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
+                self.resultsprefix = f'{outputdir}/deepsurv_models/{self.model_name}_subset/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
             else:
-                self.resultsprefix = f'{os.environ.get("OUTPUTDIR")}/deepsurv_models/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
+                self.resultsprefix = f'{outputdir}/deepsurv_models/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
+
+class CoxnetParams(Params):
+    """
+    To hold additional parameters relevant for the Elastic net Cox PH model.
+    Instantiated by pipeline/3_fit_gridsearchcv.py when model='Coxnet'
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.architecture = 'Coxnet' # DO NOT MODIFY
+        # model is trained on full data
+        if self.fulldata:
+            if self.subset:
+                self.resultsprefix = f'{outputdir}/coxnet_models/{self.model_name}_subset_full/{self.endpoint}_full'
+            else:
+                self.resultsprefix = f'{outputdir}/coxnet_models/{self.model_name}_full/{self.endpoint}_full'
+        # model is trained on a 80-20 split
+        else:
+            if self.subset:
+                self.resultsprefix = f'{outputdir}/coxnet_models/{self.model_name}_subset/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
+            else:
+                self.resultsprefix = f'{outputdir}/coxnet_models/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
