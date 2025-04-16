@@ -11,8 +11,9 @@ import sys
 sys.path.append(os.environ.get("PROJECTDIR"))
 from modules_vae.estimator import VAE
 from modules_deepsurv.estimator import DeepSurv
-from modules_vae.param_grid import param_grid_exp_cna_gistic_fish_ig as param_grid_vae
-from modules_deepsurv.param_grid import param_grid_exp_cna_gistic_fish_sbs_ig as param_grid_deepsurv
+from sksurv.linear_model import CoxnetSurvivalAnalysis
+from modules_vae.param_grid import param_grid_exp_cna_gistic_fish_sbs_ig_chrom as param_grid_vae
+from modules_deepsurv.param_grid import param_grid_exp_cna_gistic_fish_sbs_ig_chrom as param_grid_deepsurv
 from utils.params import VAEParams, DeepsurvParams
 from utils.validation import score_external_datasets
 from utils.annotate_exp_genes import annotate_exp_genes
