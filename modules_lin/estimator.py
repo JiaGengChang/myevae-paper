@@ -1,20 +1,13 @@
-from sklearn.base import BaseEstimator
-from sksurv.linear_model import CoxnetSurvivalAnalysis
 
 import pandas as pd
 import numpy as np
 import warnings
 warnings.formatwarning = lambda msg, *args, **kwargs: f'{msg}\n'
-from pycox.models import CoxPH
 from sklearn.base import BaseEstimator
+from sksurv.linear_model import CoxnetSurvivalAnalysis
 from sklearn.utils.validation import validate_data, check_is_fitted
 from sksurv.metrics import concordance_index_censored
-from torch import cat as torch_cat, no_grad, save as torch_save
-from torch.nn import Module # for type checking purposes
-from torch.nn.modules import activation
-from torch.optim import Adam
-from torch.utils.data import DataLoader
-from torch import tensor as torch_tensor
+from torch import cat as torch_cat, tensor as torch_tensor
 from sksurv.util import Surv
 from json import dump as json_dump
 
@@ -24,7 +17,6 @@ assert load_dotenv("../.env") or load_dotenv(".env")
 import sys
 sys.path.append(os.environ.get("PROJECTDIR"))
 from utils.dataset import Dataset
-from utils.buildnetwork import buildNetwork
 from utils.subset_affy_features import subset_to_microarray_genes
 
 class Coxnet(BaseEstimator):
