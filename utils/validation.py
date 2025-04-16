@@ -9,38 +9,6 @@ sys.path.append(os.environ.get("PROJECTDIR"))
 from utils.parsers_external import *
 from utils.scaler_external import scale_and_impute_external_dataset as scale_impute
 
-def score_apex_dataset(model:Module,params:dict,level:str="affy")->float:
-    """ 
-    Score gene expression model on APEX GSE9782 dataset only
-    This is useful if we just want to get the score for APEX, saving wasted computation
-    """
-    assert params.input_types_all in [['exp'],['exp','clin']]
-    # if params.architecture.lower()=='vae':
-    #     assert params.input_types_all == ['exp','clin']
-    # elif params.architecture.lower()=='deepsurv':
-    #     assert params.input_types_all in [['exp'],['exp','clin']]
-    # else:
-    #     raise NotImplementedError()
-    apex_clin_tensor = torch_tensor(scale_impute(parse_clin_apex(),params.scale_method).values)
-    apex_exp_tensor = torch_tensor(scale_impute(parse_exp_apex(params.genes,level), params.scale_method).values)
-    apex_events, apex_times = parse_surv_apex(params.endpoint)
-    if params.architecture=="VAE":
-        # use the VAE API for scoring. VAE is a torch.nn.Module
-        model.eval()
-        with no_grad():
-            _, _, _, estimates_apex = model([[apex_exp_tensor], [apex_clin_tensor]])
-    elif params.architecture=='Deepsurv':
-        model.eval()
-        # use the Deepsurv API for scoring. model is a CoxPH object (pycox)
-        with no_grad():
-            # potential bug, I don't know if -1 is the concatenation axis
-            estimates_apex = model(torch_cat([apex_exp_tensor,apex_clin_tensor],axis=-1))
-    else:
-        raise NotImplementedError(params.architecture)
-
-    cindex_apex = concordance_index_censored(apex_events, apex_times, estimates_apex.flatten())[0].item()
-    return max(cindex_apex,1-cindex_apex)
-
 def score_external_datasets(model:Module,params:dict,level:str="affy")->tuple[float]:
     """
     Scores a gene expression model on 4 microarray datasets
@@ -49,8 +17,8 @@ def score_external_datasets(model:Module,params:dict,level:str="affy")->tuple[fl
     3. E-MTAB-4032
     4. GSE9782 APEX trial 039
     @Inputs:
-        model: an instance of modules_vae.model.MultimodalVAE or modules_deepsurv.Deepsurv
-        params: an instance of utils.params.Params
+        model: an instance of modules_vae.model.MultimodalVAE or modules_deepsurv.Deepsurv. The input types of the model can only be exp or clin+exp. This is assumed and not checked.
+        params: an instance of utils.params.Params, but with the additional fields `input_types_all`, `scale_method`, `genes`, `endpoint`
         level: "affy", "entrez", or "ensg". Should use affymetrix probeset as features.
         genes: a list of expression genes to subset the datasets to. Corresponds to the genes the model has seen.
     @Outputs:
@@ -58,12 +26,7 @@ def score_external_datasets(model:Module,params:dict,level:str="affy")->tuple[fl
     """
     # the only permitted input types for external validation
     # exp + clin or pure exp
-    if params.architecture.lower()=='vae':
-        assert params.input_types == ['exp']
-    elif params.architecture.lower()=='deepsurv':
-        assert params.input_types_all in [['exp'],['exp','clin']]
-    else:
-        raise NotImplementedError()
+    assert params.input_types_all in [['exp'],['exp','clin']]
     
     # subset external validation data to genes seen by the model
     uams_clin_tensor = torch_tensor(scale_impute(parse_clin_uams(), params.scale_method).values)
@@ -91,11 +54,11 @@ def score_external_datasets(model:Module,params:dict,level:str="affy")->tuple[fl
             _, _, _, estimates_hovon = model([[hovon_exp_tensor], [hovon_clin_tensor]])
             _, _, _, estimates_emtab = model([[emtab_exp_tensor], [emtab_clin_tensor]])
             _, _, _, estimates_apex = model([[apex_exp_tensor], [apex_clin_tensor]])
-    elif params.architecture=='Deepsurv':
-        model.eval()
-        # use the Deepsurv API for scoring. model is a CoxPH object (pycox)
+    elif params.architecture in ['Deepsurv','Coxnet']:
+        if params.architecture=='Deepsurv':
+            model.eval()
+            # no need to eval for Coxnet
         with no_grad():
-            # potential bug, I don't know if -1 is the concatenation axis
             estimates_uams =  model(torch_cat([uams_exp_tensor, uams_clin_tensor],axis=-1))
             estimates_hovon = model(torch_cat([hovon_exp_tensor, hovon_clin_tensor],axis=-1))
             estimates_emtab = model(torch_cat([emtab_exp_tensor, emtab_clin_tensor],axis=-1))
@@ -109,4 +72,32 @@ def score_external_datasets(model:Module,params:dict,level:str="affy")->tuple[fl
     cindex_apex = concordance_index_censored(apex_events, apex_times, estimates_apex.flatten())[0].item()
 
     return max(cindex_uams,1-cindex_uams), max(cindex_hovon,1-cindex_hovon), max(cindex_emtab,1-cindex_emtab), max(cindex_apex,1-cindex_apex)   
+
+def score_apex_dataset(model:Module,params:dict,level:str="affy")->float:
+    """ 
+    Score gene expression model on APEX GSE9782 dataset only
+    This is useful if we just want to get the score for APEX, saving wasted computation
+    """
+    assert params.input_types_all in [['exp'],['exp','clin']]
+    apex_clin_tensor = torch_tensor(scale_impute(parse_clin_apex(),params.scale_method).values)
+    apex_exp_tensor = torch_tensor(scale_impute(parse_exp_apex(params.genes,level), params.scale_method).values)
+    apex_events, apex_times = parse_surv_apex(params.endpoint)
+    if params.architecture=="VAE":
+        # use the VAE API for scoring. VAE is a torch.nn.Module
+        model.eval()
+        with no_grad():
+            _, _, _, estimates_apex = model([[apex_exp_tensor], [apex_clin_tensor]])
+    elif params.architecture in ['Deepsurv','Coxnet']:
+        if params.architecture=='Deepsurv':
+            model.eval()
+            # no need to eval for Coxnet
+        # use the Deepsurv API for scoring. model is a CoxPH object (pycox)
+        with no_grad():
+            # potential bug, I don't know if -1 is the concatenation axis
+            estimates_apex = model(torch_cat([apex_exp_tensor,apex_clin_tensor],axis=-1))
+    else:
+        raise NotImplementedError(params.architecture)
+
+    cindex_apex = concordance_index_censored(apex_events, apex_times, estimates_apex.flatten())[0].item()
+    return max(cindex_apex,1-cindex_apex)
 
