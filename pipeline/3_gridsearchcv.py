@@ -11,10 +11,11 @@ import sys
 sys.path.append(os.environ.get("PROJECTDIR"))
 from modules_vae.estimator import VAE
 from modules_deepsurv.estimator import DeepSurv
-from sksurv.linear_model import CoxnetSurvivalAnalysis
+from modules_lin.estimator import Coxnet
 from modules_vae.param_grid import param_grid_exp_cna_gistic_fish_sbs_ig_chrom as param_grid_vae
 from modules_deepsurv.param_grid import param_grid_exp_cna_gistic_fish_sbs_ig_chrom as param_grid_deepsurv
-from utils.params import VAEParams, DeepsurvParams
+from modules_lin.param_grid import param_grid as param_grid_coxnet
+from utils.params import VAEParams, DeepsurvParams, CoxnetParams
 from utils.validation import score_external_datasets
 from utils.annotate_exp_genes import annotate_exp_genes
 
@@ -40,6 +41,9 @@ def main(model_name:str='default',
     elif architecture=='Deepsurv':
         params = DeepsurvParams(model_name=model_name,endpoint=endpoint, shuffle=shuffle, fold=fold, fulldata=fulldata, subset=subset)
         param_grid = param_grid_deepsurv
+    elif architecture=='Coxnet':
+        params = CoxnetParams(model_name=model_name,endpoint=endpoint, shuffle=shuffle, fold=fold, fulldata=fulldata, subset=subset)
+        param_grid = param_grid_coxnet
     else:
         raise NotImplementedError(architecture)
     
@@ -51,35 +55,33 @@ def main(model_name:str='default',
         # the validation C-index metric will be set to 0
         train_features_file=f'{splitsdir}/full_features_{endpoint}_processed.parquet'
         train_labels_file=f'{splitsdir}/full_labels.parquet'
-        assert os.path.exists(train_features_file) and os.path.exists(train_labels_file)
-        train_features=pd.read_parquet(train_features_file)
-        train_labels=pd.read_parquet(train_labels_file)[[params.eventcol,params.durationcol]]
-        params = annotate_exp_genes(train_features, params)
-        train_dataframe=pd.concat([train_labels,train_features],axis=1)
     else:
         # the default mode
         # the model is trained on 80% of the data
         # the 20% validation data is used as calculate hold out C-index metrics
         train_features_file=f'{splitsdir}/{params.shuffle}/{params.fold}/train_features_{endpoint}_processed.parquet'
         train_labels_file=f'{splitsdir}/{params.shuffle}/{params.fold}/train_labels.parquet'
-        assert os.path.exists(train_features_file) and os.path.exists(train_labels_file)
         valid_features_file=f'{splitsdir}/{params.shuffle}/{params.fold}/valid_features_{endpoint}_processed.parquet'
         valid_labels_file=f'{splitsdir}/{params.shuffle}/{params.fold}/valid_labels.parquet'
         assert os.path.exists(valid_features_file) and os.path.exists(valid_labels_file)
-        train_features=pd.read_parquet(train_features_file)
-        train_labels=pd.read_parquet(train_labels_file)[[params.eventcol,params.durationcol]]
         valid_features=pd.read_parquet(valid_features_file)
         valid_labels=pd.read_parquet(valid_labels_file)[[params.eventcol,params.durationcol]]
-        params = annotate_exp_genes(train_features, params)
-        train_dataframe=pd.concat([train_labels,train_features],axis=1)
         valid_dataframe=pd.concat([valid_labels,valid_features],axis=1)
+
+    assert os.path.exists(train_features_file) and os.path.exists(train_labels_file)
+    train_features=pd.read_parquet(train_features_file)
+    train_labels=pd.read_parquet(train_labels_file)[[params.eventcol,params.durationcol]]
+    params = annotate_exp_genes(train_features, params)
+    train_dataframe=pd.concat([train_labels,train_features],axis=1)
 
     if architecture=='VAE':
         # lazy input dims and subtask input dims is already built into VAE estimator.py
-        base_estimator = VAE(eventcol=params.eventcol,durationcol=params.durationcol)
+        base_estimator = VAE(eventcol=params.eventcol,durationcol=params.durationcol,subset_microarray=subset)
     elif architecture=='Deepsurv':
         # lazy input dims is already built into Deepsurv
-        base_estimator = DeepSurv(eventcol=params.eventcol,durationcol=params.durationcol)
+        base_estimator = DeepSurv(eventcol=params.eventcol,durationcol=params.durationcol,subset_microarray=subset)
+    elif architecture=='Coxnet':
+        base_estimator = Coxnet(eventcol=params.eventcol,durationcol=params.durationcol,subset_microarray=subset)
     else:
         raise NotImplementedError(architecture)
     
@@ -101,7 +103,7 @@ def main(model_name:str='default',
     else:
         # all genes were used, including those not found in microarray
         setattr(params,"genes",params.all_exp_genes)
-        
+
     results = {}
     # drop exp genes because it is too long
     # but do print out the final genes used
@@ -117,16 +119,13 @@ def main(model_name:str='default',
         valid_metric = grid_search.score(valid_dataframe)
         results['best_epoch']['valid_metric'] = valid_metric
 
+    # add additional attributes to params needed for external validation (`score_external_datasets`)
+    params.input_types_all = grid_search.best_estimator_.input_types_all
+    params.scale_method = grid_search.best_estimator_.scale_method
+    
     # score external datasets if using only RNASeq as input
-    if grid_search.best_estimator_.input_types_all==['exp','clin'] or \
-         grid_search.best_estimator_.input_types_all==['exp'] :
-        # pass in the torch.nn.Module
-        try:
-            best_estimator = grid_search.best_estimator_.model.net # DeepSurv estimator
-        except AttributeError:
-            best_estimator = grid_search.best_estimator_.model # VAE estimator
-        
-        cindex_uams, cindex_hovon, cindex_emtab, cindex_apex = score_external_datasets(best_estimator,params)
+    if params.input_types_all ==['exp','clin'] or params.input_types_all ==['exp']:        
+        cindex_uams, cindex_hovon, cindex_emtab, cindex_apex = score_external_datasets(grid_search.best_estimator_,params)
         results['best_epoch']['uams_metric'] = cindex_uams
         results['best_epoch']['hovon_metric'] = cindex_hovon
         results['best_epoch']['emtab_metric'] = cindex_emtab
@@ -141,13 +140,14 @@ def main(model_name:str='default',
 
     # save model state dict
     # either estimator class or model class should implement `save`
+    # for Coxnet, `.pth` file is actually a json file with pth extension to be consistent
     grid_search.best_estimator_.save(f'{params.resultsprefix}.pth')
 
 if __name__ == "__main__":
     parser = ArgumentParser(description='Tune hyperparameters of VAE model using scikit-learn GridSearchCV. For adjusting hyperparameters, modify params.py and param_grid.py')
     parser.add_argument('-m', '--model_name', type=str, default='exp', help='An experiment name for the model')
     parser.add_argument('-e', '--endpoint', type=str, choices=['pfs', 'os','both'], default='both', help='Survival endpoint (pfs or os or both)')
-    parser.add_argument('-a', '--architecture', type=str, choices=['VAE','Deepsurv'], default='VAE', help='Choice of model architecture. In-house VAE or comparator Deepsurv.')
+    parser.add_argument('-a', '--architecture', type=str, choices=['VAE','Deepsurv','Coxnet'], default='VAE', help='Choice of model architecture. In-house VAE, comparator Deepsurv, or baseline Elastic net Cox model.')
     parser.add_argument('-f', '--fulldata', action='store_true', help='Whether to train with full CoMMpass dataset')
     parser.add_argument('-s', '--subset', action='store_true', help='Whether to subset to ensembl genes that have matching microarray probes')
     args = parser.parse_args()
