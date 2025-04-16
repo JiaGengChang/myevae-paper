@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 assert load_dotenv("../.env") or load_dotenv('.env')
 sys.path.append(os.environ.get("PROJECTDIR"))
 from utils.parsers_external import *
-from utils.validation import score_external_datasets
+from utils.validation import score_external_datasets,score_apex_dataset
 from utils.attrdict import AttrDict
 from modules_deepsurv.estimator import DeepSurv
 from modules_vae.estimator import VAE
@@ -126,9 +126,9 @@ def main(architecture:str,
     params_attr.architecture = architecture
     params_attr.scale_method = params['scale_method']
     try:
-        params_attr.input_types_all = params['input_types_all'] # Deepsurv
+        params_attr.input_types_all = eval(params['input_types_all']) # Deepsurv
     except:
-        params_attr.input_types_all = params['input_types'] + params['input_types_subtask'] # VAE
+        params_attr.input_types_all = eval(params['input_types']) + eval(params['input_types_subtask']) # VAE
 
     cindex_uams, cindex_hovon, cindex_emtab, cindex_apex = score_external_datasets(model, params_attr)
     results['best_epoch']['uams_metric'] = cindex_uams
