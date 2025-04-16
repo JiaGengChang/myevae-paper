@@ -170,3 +170,7 @@ class DeepSurv(BaseEstimator):
     def save(self, pth_path):
         torch_save(self.model.net.state_dict(), pth_path)
         return
+    
+    # call method is handled by the torch.nn.Module
+    def __call__(self, X:torch_tensor)->torch_tensor:
+        return self.model.net.__call__(X)

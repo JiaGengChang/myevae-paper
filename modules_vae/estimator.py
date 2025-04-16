@@ -178,3 +178,6 @@ class VAE(BaseEstimator):
     def save(self, pth_path):
         torch_save(self.model.state_dict(), pth_path)
         return
+
+    def __call__(self, X:torch_tensor)->torch_tensor:
+        return self.model.__call__(X)
