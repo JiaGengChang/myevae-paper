@@ -11,10 +11,10 @@ import sys
 sys.path.append(os.environ.get("PROJECTDIR"))
 from modules_vae.estimator import VAE
 from modules_deepsurv.estimator import DeepSurv
-from modules_lin.estimator import Coxnet
+from modules_coxnet.estimator import Coxnet
 from modules_vae.param_grid import param_grid_exp_cna_gistic_fish_sbs_ig_chrom as param_grid_vae
 from modules_deepsurv.param_grid import param_grid_exp_cna_gistic_fish_sbs_ig_chrom as param_grid_deepsurv
-from modules_lin.param_grid import param_grid as param_grid_coxnet
+from modules_coxnet.param_grid import param_grid as param_grid_coxnet
 from utils.params import VAEParams, DeepsurvParams, CoxnetParams
 from utils.validation import score_external_datasets
 from utils.annotate_exp_genes import annotate_exp_genes
