@@ -12,10 +12,12 @@ sys.path.append(os.environ.get("PROJECTDIR"))
 from modules_vae.estimator import VAE
 from modules_deepsurv.estimator import DeepSurv
 from modules_coxnet.estimator import Coxnet
+from modules_rsf.estimator import RSF
 from modules_vae.param_grid import param_grid_exp_cna_gistic_fish_sbs_ig_chrom as param_grid_vae
 from modules_deepsurv.param_grid import param_grid_exp_cna_gistic_fish_sbs_ig_chrom as param_grid_deepsurv
 from modules_coxnet.param_grid import param_grid as param_grid_coxnet
-from utils.params import VAEParams, DeepsurvParams, CoxnetParams
+from modules_rsf.param_grid import param_grid as param_grid_rsf
+from utils.params import VAEParams, DeepsurvParams, CoxnetParams, RSFParams
 from utils.validation import score_external_datasets
 from utils.annotate_exp_genes import annotate_exp_genes
 
@@ -44,6 +46,9 @@ def main(model_name:str='default',
     elif architecture=='Coxnet':
         params = CoxnetParams(model_name=model_name,endpoint=endpoint, shuffle=shuffle, fold=fold, fulldata=fulldata, subset=subset)
         param_grid = param_grid_coxnet
+    elif architecture=='RSF':
+        params = RSFParams(model_name=model_name,endpoint=endpoint, shuffle=shuffle, fold=fold, fulldata=fulldata, subset=subset)
+        param_grid = param_grid_rsf
     else:
         raise NotImplementedError(architecture)
     
@@ -75,13 +80,13 @@ def main(model_name:str='default',
     train_dataframe=pd.concat([train_labels,train_features],axis=1)
 
     if architecture=='VAE':
-        # lazy input dims and subtask input dims is already built into VAE estimator.py
         base_estimator = VAE(eventcol=params.eventcol,durationcol=params.durationcol,subset_microarray=subset)
     elif architecture=='Deepsurv':
-        # lazy input dims is already built into Deepsurv
         base_estimator = DeepSurv(eventcol=params.eventcol,durationcol=params.durationcol,subset_microarray=subset)
     elif architecture=='Coxnet':
         base_estimator = Coxnet(eventcol=params.eventcol,durationcol=params.durationcol,subset_microarray=subset)
+    elif architecture=='RSF':
+        base_estimator = RSF(eventcol=params.eventcol,durationcol=params.durationcol,subset_microarray=subset)
     else:
         raise NotImplementedError(architecture)
     
@@ -89,7 +94,7 @@ def main(model_name:str='default',
 
     cluster = LocalCluster()
     client = Client(cluster)
-    with joblib.parallel_config("dask", n_jobs=20): # set n_jobs to NCPUS
+    with joblib.parallel_config("dask", n_jobs=10): # set n_jobs to NCPUS
         grid_search.fit(train_dataframe)
 
     # update params with best params
@@ -146,8 +151,8 @@ def main(model_name:str='default',
 if __name__ == "__main__":
     parser = ArgumentParser(description='Tune hyperparameters of VAE model using scikit-learn GridSearchCV. For adjusting hyperparameters, modify params.py and param_grid.py')
     parser.add_argument('-m', '--model_name', type=str, default='exp', help='An experiment name for the model')
-    parser.add_argument('-e', '--endpoint', type=str, choices=['pfs', 'os','both'], default='both', help='Survival endpoint (pfs or os or both)')
-    parser.add_argument('-a', '--architecture', type=str, choices=['VAE','Deepsurv','Coxnet'], default='VAE', help='Choice of model architecture. In-house VAE, comparator Deepsurv, or baseline Elastic net Cox model.')
+    parser.add_argument('-e', '--endpoint', type=str, choices=['pfs','os','both'], default='both', help='Survival endpoint (pfs or os or both)')
+    parser.add_argument('-a', '--architecture', type=str, choices=['VAE','Deepsurv','Coxnet','RSF'], default='VAE', help='Choice of model architecture. In-house VAE, comparator Deepsurv, or baseline models like Coxnet and random survival forests.')
     parser.add_argument('-f', '--fulldata', action='store_true', help='Whether to train with full CoMMpass dataset')
     parser.add_argument('-s', '--subset', action='store_true', help='Whether to subset to ensembl genes that have matching microarray probes')
     args = parser.parse_args()

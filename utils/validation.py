@@ -54,7 +54,7 @@ def score_external_datasets(model:Module,params:dict,level:str="affy")->tuple[fl
             _, _, _, estimates_hovon = model([[hovon_exp_tensor], [hovon_clin_tensor]])
             _, _, _, estimates_emtab = model([[emtab_exp_tensor], [emtab_clin_tensor]])
             _, _, _, estimates_apex = model([[apex_exp_tensor], [apex_clin_tensor]])
-    elif params.architecture in ['Deepsurv','Coxnet']:
+    elif params.architecture in ['Deepsurv','Coxnet','RSF']:
         if params.architecture=='Deepsurv':
             model.eval()
             # no need to eval for Coxnet
@@ -87,7 +87,7 @@ def score_apex_dataset(model:Module,params:dict,level:str="affy")->float:
         model.eval()
         with no_grad():
             _, _, _, estimates_apex = model([[apex_exp_tensor], [apex_clin_tensor]])
-    elif params.architecture in ['Deepsurv','Coxnet']:
+    elif params.architecture in ['Deepsurv','Coxnet','RSF']:
         if params.architecture=='Deepsurv':
             model.eval()
             # no need to eval for Coxnet

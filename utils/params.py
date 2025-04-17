@@ -83,3 +83,24 @@ class CoxnetParams(Params):
                 self.resultsprefix = f'{outputdir}/coxnet_models/{self.model_name}_subset/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
             else:
                 self.resultsprefix = f'{outputdir}/coxnet_models/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
+                
+class RSFParams(Params):
+    """
+    To hold additional parameters relevant for the Random survival forests model.
+    Instantiated by pipeline/3_fit_gridsearchcv.py when model='RSF'
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.architecture = 'RSF' # DO NOT MODIFY
+        # model is trained on full data
+        if self.fulldata:
+            if self.subset:
+                self.resultsprefix = f'{outputdir}/rsf_models/{self.model_name}_subset_full/{self.endpoint}_full'
+            else:
+                self.resultsprefix = f'{outputdir}/rsf_models/{self.model_name}_full/{self.endpoint}_full'
+        # model is trained on a 80-20 split
+        else:
+            if self.subset:
+                self.resultsprefix = f'{outputdir}/rsf_models/{self.model_name}_subset/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
+            else:
+                self.resultsprefix = f'{outputdir}/rsf_models/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
