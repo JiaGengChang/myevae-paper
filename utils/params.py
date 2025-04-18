@@ -23,7 +23,7 @@ class Params():
 class VAEParams(Params):
     """
     To hold additional parameters relevant for the multi-omics VAE model (myeVAE).
-    Instantiated by pipeline/3_fit_gridsearchcv.py when model='VAE'
+    Instantiated by pipeline/3_gridsearchcv.py when model='VAE'
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -45,7 +45,7 @@ class VAEParams(Params):
 class DeepsurvParams(Params):
     """
     To hold additional parameters relevant for the Deepsurv model.
-    Instantiated by pipeline/3_fit_gridsearchcv.py when model='Deepsurv'
+    Instantiated by pipeline/3_gridsearchcv.py when model='Deepsurv'
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -66,7 +66,7 @@ class DeepsurvParams(Params):
 class CoxnetParams(Params):
     """
     To hold additional parameters relevant for the Elastic net Cox PH model.
-    Instantiated by pipeline/3_fit_gridsearchcv.py when model='Coxnet'
+    Instantiated by pipeline/3_gridsearchcv.py when model='Coxnet'
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -87,7 +87,7 @@ class CoxnetParams(Params):
 class RSFParams(Params):
     """
     To hold additional parameters relevant for the Random survival forests model.
-    Instantiated by pipeline/3_fit_gridsearchcv.py when model='RSF'
+    Instantiated by pipeline/3_gridsearchcv.py when model='RSF'
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -104,3 +104,19 @@ class RSFParams(Params):
                 self.resultsprefix = f'{outputdir}/rsf_models/{self.model_name}_subset/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
             else:
                 self.resultsprefix = f'{outputdir}/rsf_models/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
+                
+class CoxPHParams(Params):
+    """
+    To hold additional parameters relevant for the baseline Cox PH model.
+    Instantiated by pipeline/3_gridsearchcv.py when model='CoxPH'
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs, subset=False)
+        # Concept of subsetting genes not applicable to models based on risk scores
+        self.architecture = 'CoxPH' # DO NOT MODIFY
+        # model is trained on full data
+        if self.fulldata:
+            self.resultsprefix = f'{outputdir}/coxph_models/{self.model_name}_full/{self.endpoint}_full'
+        # model is trained on a 80-20 split
+        else:
+            self.resultsprefix = f'{outputdir}/coxph_models/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
