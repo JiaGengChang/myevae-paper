@@ -71,7 +71,7 @@ class RSF(BaseEstimator):
             bootstrap = self.bootstrap,
             oob_score = self.oob_score,
             max_samples = self.max_samples,
-            low_memory = True,
+            low_memory = False,
             random_state = 42, # ensure deterministic behavior
         )
         assert isinstance(X, pd.DataFrame)
