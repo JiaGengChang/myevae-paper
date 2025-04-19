@@ -16,7 +16,7 @@ from utils.params import CoxPHParams
 from utils.parsers_external import *
 from utils.coxph import create_baseline_model
 
-def main(endpoint, shuffle, fold, fulldata):
+def main(endpoint, shuffle, fold, fulldata, use_clin):
     params = CoxPHParams(model_name='to_replace',endpoint=endpoint,shuffle=shuffle,fold=fold,fulldata=fulldata)
     splitsdir=os.environ.get("SPLITDATADIR")
     if fulldata:
@@ -42,7 +42,6 @@ def main(endpoint, shuffle, fold, fulldata):
     assert os.path.exists(train_features_file) and os.path.exists(train_labels_file)
     train_features=pd.read_parquet(train_features_file)
     train_labels=pd.read_parquet(train_labels_file)[[params.eventcol,params.durationcol]]
-    train_dataframe=pd.concat([train_labels,train_features],axis=1)
     
     # Parse survival information
     # Minimum-offset to ensure survival duration is positive, which is required by Cox PH
@@ -96,18 +95,22 @@ def main(endpoint, shuffle, fold, fulldata):
     template['fulldata'] = fulldata
     template['subset'] = params.subset
     template['timestamp'] = datetime.now().__str__()
+    template['use_clin'] = use_clin
 
     # final model names in results
     # their results.json files will be written to separate output folders
     modelnames = ['Clin_only','GEP_UAMS70','GEP_SKY92','GEP_IFM15','GEP_MRC-IX-6']
 
     for _mname in modelnames:
+        if not _mname.startswith('GEP') and not use_clin:
+            continue
+
         results = template.copy()
         results["best_epoch"]={} # for compatibility with other models
 
         _fname = 'Feature_' + _mname # pattern to match GEP feature column
         # ClinOnly should be a pattern that no GEP features will match
-        _model = create_baseline_model(_fname)
+        _model = create_baseline_model(_fname,use_clin)
         # train on CoMMpass training data
         _model.fit(X_train, train_y)
         
@@ -129,7 +132,7 @@ def main(endpoint, shuffle, fold, fulldata):
         results["best_epoch"]["emtab_metric"] =  _emtab
         results["best_epoch"]["apex_metric"] = _apex
 
-        resultsprefix = params.resultsprefix.replace('to_replace',_mname)
+        resultsprefix = params.resultsprefix.replace('to_replace',_mname+'_noclin' if not use_clin else '')
         os.makedirs(os.path.dirname(resultsprefix),exist_ok=True)
 
         with open(resultsprefix + '.json','w') as f:
@@ -140,12 +143,13 @@ if __name__ == "__main__":
     parser = ArgumentParser(description='Score CoxPH models using GEP risk scores on all datasets')
     parser.add_argument('-e', '--endpoint', type=str, choices=['pfs','os','both'], default='both', help='Survival endpoint (pfs or os or both)')
     parser.add_argument('-f', '--fulldata', action='store_true', help='Whether to train with full CoMMpass dataset')
+    parser.add_argument('-c', '--use_clin', action='store_true', help='Whether to train with clinical features - age, sex, ISS.')
     args = parser.parse_args()
     _pbs_array_id = int(os.getenv('PBS_ARRAY_INDEX', "-1"))
     pbs_shuffle=_pbs_array_id%10
     pbs_fold=_pbs_array_id//10
     if args.endpoint=="both":
-        main('os', pbs_shuffle, pbs_fold, args.fulldata)
-        main('pfs', pbs_shuffle, pbs_fold, args.fulldata)
+        main('os', pbs_shuffle, pbs_fold, args.fulldata, args.use_clin)
+        main('pfs', pbs_shuffle, pbs_fold, args.fulldata, args.use_clin)
     else:
-        main(args.endpoint, pbs_shuffle, pbs_fold, args.fulldata)
+        main(args.endpoint, pbs_shuffle, pbs_fold, args.fulldata, args.use_clin)

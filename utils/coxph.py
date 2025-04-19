@@ -5,7 +5,7 @@ from sksurv.linear_model import CoxPHSurvivalAnalysis
 from sklearn.pipeline import Pipeline
 
 
-def create_baseline_model(gepfeaturename:str='Feature_Clin_only')->Pipeline:
+def create_baseline_model(gepfeaturename:str='Feature_Clin_only',use_clin:bool=True)->Pipeline:
     """
     @ input
     gepfeaturename is a pattern that matches EXACTLY ONE of the GEP risk score column names
@@ -17,13 +17,19 @@ def create_baseline_model(gepfeaturename:str='Feature_Clin_only')->Pipeline:
     a scikit learn Pipeline estimator, with fit, transform, and score functions
     """
     _ss = StandardScaler().set_output(transform='pandas')
-        
-    _transform = ColumnTransformer([
-        ('clin.age', _ss, make_column_selector(pattern='Feature_clin_D_PT_age')),
-        ('clin.other', 'passthrough', make_column_selector(pattern='Feature_clin_(?!D_PT_age)')),
-        ('gep', 'passthrough', make_column_selector(pattern=gepfeaturename))
+
+    if use_clin:
+        _transform = ColumnTransformer([
+            ('clin.age', _ss, make_column_selector(pattern='Feature_clin_D_PT_age')),
+            ('clin.other', 'passthrough', make_column_selector(pattern='Feature_clin_(?!D_PT_age)')),
+            ('gep', 'passthrough', make_column_selector(pattern=gepfeaturename))
+            ], remainder='drop'
+        ).set_output(transform='pandas')
+    else:
+        _transform = ColumnTransformer([
+            ('gep','passthrough', make_column_selector(pattern=gepfeaturename))
         ], remainder='drop'
-    ).set_output(transform='pandas')
+        ).set_output(transform='pandas')
     
     _imputer = SimpleImputer(strategy='mean').set_output(transform='pandas')
     
