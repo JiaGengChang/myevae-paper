@@ -1,0 +1,1962 @@
+{
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxnet_models/exp": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.6663095715961657,
+                "CI lower": 0.6563088581346462,
+                "CI upper": 0.6763102850576851,
+                "N": 50
+            },
+            "uams_metric": {
+                "mean": 0.5939128575094813,
+                "CI lower": 0.5892889236697069,
+                "CI upper": 0.5985367913492557,
+                "N": 50
+            },
+            "hovon_metric": {
+                "mean": 0.6044792075323656,
+                "CI lower": 0.5946405164911283,
+                "CI upper": 0.614317898573603,
+                "N": 50
+            },
+            "emtab_metric": {
+                "mean": 0.536694214876033,
+                "CI lower": 0.5291106355213909,
+                "CI upper": 0.544277794230675,
+                "N": 50
+            },
+            "apex_metric": {
+                "mean": 0.5671086542127335,
+                "CI lower": 0.5577642844370096,
+                "CI upper": 0.5764530239884573,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.6024609473253867,
+                "CI lower": 0.5931346513753718,
+                "CI upper": 0.6117872432754016,
+                "N": 50
+            },
+            "uams_metric": {
+                "mean": 0.5681004907100616,
+                "CI lower": 0.564269962745679,
+                "CI upper": 0.5719310186744443,
+                "N": 50
+            },
+            "hovon_metric": {
+                "mean": 0.5579506279241566,
+                "CI lower": 0.5506945377899783,
+                "CI upper": 0.5652067180583349,
+                "N": 50
+            },
+            "emtab_metric": {
+                "mean": 0.5507591448931116,
+                "CI lower": 0.5442244900737523,
+                "CI upper": 0.557293799712471,
+                "N": 50
+            },
+            "apex_metric": {
+                "mean": 0.5190568169393929,
+                "CI lower": 0.5149202317589346,
+                "CI upper": 0.5231934021198511,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxnet_models/exp-cna": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.6703991975151911,
+                "CI lower": 0.6606224688433513,
+                "CI upper": 0.6801759261870308,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.6041273183758902,
+                "CI lower": 0.5948414644598721,
+                "CI upper": 0.6134131722919083,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxnet_models/exp-cna-gistic": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.6722588229410945,
+                "CI lower": 0.6626115532199928,
+                "CI upper": 0.6819060926621963,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.604322925605517,
+                "CI lower": 0.5948036680680973,
+                "CI upper": 0.6138421831429368,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxnet_models/exp-cna-gistic-fish": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.6726860879471301,
+                "CI lower": 0.6631197703791021,
+                "CI upper": 0.6822524055151582,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.6041406964917517,
+                "CI lower": 0.5946199413706977,
+                "CI upper": 0.6136614516128057,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxnet_models/exp-cna-gistic-fish-sbs": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.6749709268785737,
+                "CI lower": 0.6649901277360706,
+                "CI upper": 0.6849517260210769,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.604011171230435,
+                "CI lower": 0.5948799502694893,
+                "CI upper": 0.6131423921913808,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxnet_models/exp-cna-gistic-fish-sbs-ig": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.6750689639310834,
+                "CI lower": 0.6650919295616528,
+                "CI upper": 0.685045998300514,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.6041078536756548,
+                "CI lower": 0.5949799125949671,
+                "CI upper": 0.6132357947563425,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxnet_models/exp-cna-gistic-fish-sbs-ig-chrom": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.6750554587905512,
+                "CI lower": 0.6650735859105197,
+                "CI upper": 0.6850373316705827,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.604200142615315,
+                "CI lower": 0.5950804712697824,
+                "CI upper": 0.6133198139608476,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxnet_models/exp_full": {
+        "os": {
+            "valid_metric": 0,
+            "uams_metric": 0.6109384356554222,
+            "hovon_metric": 0.6350529619458611,
+            "emtab_metric": 0.5628689492325856,
+            "apex_metric": 0.5687762104460541
+        },
+        "pfs": {
+            "valid_metric": 0,
+            "uams_metric": 0.5493960491548883,
+            "hovon_metric": 0.5366289091356808,
+            "emtab_metric": 0.5885985748218527,
+            "apex_metric": 0.5331462516855571
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxnet_models/exp_subset_full": {
+        "os": {
+            "valid_metric": 0,
+            "uams_metric": 0.6066468961190795,
+            "hovon_metric": 0.618085523734798,
+            "emtab_metric": 0.5244982290436836,
+            "apex_metric": 0.5275257338924895
+        },
+        "pfs": {
+            "valid_metric": 0,
+            "uams_metric": 0.5210334270016357,
+            "hovon_metric": 0.5414306820980054,
+            "emtab_metric": 0.5041330166270783,
+            "apex_metric": 0.5160902365246547
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/Clin_only": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.6811082420086685,
+                "CI lower": 0.6713791202581252,
+                "CI upper": 0.6908373637592118,
+                "N": 50
+            },
+            "uams_metric": {
+                "mean": 0.5814097921240983,
+                "CI lower": 0.5812128142692341,
+                "CI upper": 0.5816067699789624,
+                "N": 50
+            },
+            "hovon_metric": {
+                "mean": 0.6520792467634365,
+                "CI lower": 0.6512482740924065,
+                "CI upper": 0.6529102194344666,
+                "N": 50
+            },
+            "emtab_metric": {
+                "mean": 0.4823140495867768,
+                "CI lower": 0.482089193494404,
+                "CI upper": 0.48253890567914964,
+                "N": 50
+            },
+            "apex_metric": {
+                "mean": 0.5674769348074723,
+                "CI lower": 0.5672013528778903,
+                "CI upper": 0.5677525167370543,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.6344456410786915,
+                "CI lower": 0.6239901017859987,
+                "CI upper": 0.6449011803713843,
+                "N": 50
+            },
+            "uams_metric": {
+                "mean": 0.5462425030407247,
+                "CI lower": 0.5461026397500779,
+                "CI upper": 0.5463823663313716,
+                "N": 50
+            },
+            "hovon_metric": {
+                "mean": 0.6193813100221621,
+                "CI lower": 0.6191753738023613,
+                "CI upper": 0.6195872462419629,
+                "N": 50
+            },
+            "emtab_metric": {
+                "mean": 0.5720076009501188,
+                "CI lower": 0.5718657882863862,
+                "CI upper": 0.5721494136138514,
+                "N": 50
+            },
+            "apex_metric": {
+                "mean": 0.5169146105907649,
+                "CI lower": 0.5167691062875023,
+                "CI upper": 0.5170601148940276,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/Clin_only_full": {
+        "os": {
+            "valid_metric": 0.0,
+            "uams_metric": 0.5813539023068807,
+            "hovon_metric": 0.653785798352295,
+            "emtab_metric": 0.48288075560802834,
+            "apex_metric": 0.5677468547464735
+        },
+        "pfs": {
+            "valid_metric": 0.0,
+            "uams_metric": 0.5460564945686365,
+            "hovon_metric": 0.6191978576705245,
+            "emtab_metric": 0.571686460807601,
+            "apex_metric": 0.5169831262072233
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/GEP_IFM15": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.7019857381288384,
+                "CI lower": 0.6918594960889413,
+                "CI upper": 0.7121119801687354,
+                "N": 50
+            },
+            "uams_metric": {
+                "mean": 0.587269098063817,
+                "CI lower": 0.5869482538653829,
+                "CI upper": 0.5875899422622511,
+                "N": 50
+            },
+            "hovon_metric": {
+                "mean": 0.6772018438603373,
+                "CI lower": 0.6765349101510623,
+                "CI upper": 0.6778687775696124,
+                "N": 50
+            },
+            "emtab_metric": {
+                "mean": 0.47626328217237307,
+                "CI lower": 0.4759223660392127,
+                "CI upper": 0.47660419830553347,
+                "N": 50
+            },
+            "apex_metric": {
+                "mean": 0.5721189477697294,
+                "CI lower": 0.5718410769170584,
+                "CI upper": 0.5723968186224003,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.6534776955102712,
+                "CI lower": 0.643625200294895,
+                "CI upper": 0.6633301907256475,
+                "N": 50
+            },
+            "uams_metric": {
+                "mean": 0.5509902277397978,
+                "CI lower": 0.5507439538321657,
+                "CI upper": 0.5512365016474299,
+                "N": 50
+            },
+            "hovon_metric": {
+                "mean": 0.6339836247229746,
+                "CI lower": 0.6335487632001382,
+                "CI upper": 0.6344184862458111,
+                "N": 50
+            },
+            "emtab_metric": {
+                "mean": 0.5765016627078385,
+                "CI lower": 0.5763198538457719,
+                "CI upper": 0.5766834715699052,
+                "N": 50
+            },
+            "apex_metric": {
+                "mean": 0.5195305951383067,
+                "CI lower": 0.5193902551474157,
+                "CI upper": 0.5196709351291977,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/GEP_IFM15_full": {
+        "os": {
+            "valid_metric": 0.0,
+            "uams_metric": 0.5870997176993926,
+            "hovon_metric": 0.677961945861122,
+            "emtab_metric": 0.47638724911452185,
+            "apex_metric": 0.5721692718261533
+        },
+        "pfs": {
+            "valid_metric": 0.0,
+            "uams_metric": 0.5509373820408505,
+            "hovon_metric": 0.6341110563900517,
+            "emtab_metric": 0.5770071258907363,
+            "apex_metric": 0.5193702394402129
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/GEP_IFM15_noclin": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.5968307283345133,
+                "CI lower": 0.5838189636698912,
+                "CI upper": 0.6098424929991355,
+                "N": 50
+            },
+            "uams_metric": {
+                "mean": 0.5548060965525107,
+                "CI lower": 0.5548058199120294,
+                "CI upper": 0.554806373192992,
+                "N": 50
+            },
+            "hovon_metric": {
+                "mean": 0.5913103177716752,
+                "CI lower": 0.5913103177716752,
+                "CI upper": 0.5913103177716752,
+                "N": 50
+            },
+            "emtab_metric": {
+                "mean": 0.4303423848878395,
+                "CI lower": 0.4303423848878395,
+                "CI upper": 0.4303423848878395,
+                "N": 50
+            },
+            "apex_metric": {
+                "mean": 0.604269919939001,
+                "CI lower": 0.604269919939001,
+                "CI upper": 0.604269919939001,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.5802144508918726,
+                "CI lower": 0.5697144187933483,
+                "CI upper": 0.590714482990397,
+                "N": 50
+            },
+            "uams_metric": {
+                "mean": 0.5319914650002096,
+                "CI lower": 0.5319909067056933,
+                "CI upper": 0.5319920232947258,
+                "N": 50
+            },
+            "hovon_metric": {
+                "mean": 0.5458015267175572,
+                "CI lower": 0.5458015267175572,
+                "CI upper": 0.5458015267175572,
+                "N": 50
+            },
+            "emtab_metric": {
+                "mean": 0.5913539192399049,
+                "CI lower": 0.5913539192399049,
+                "CI upper": 0.5913539192399049,
+                "N": 50
+            },
+            "apex_metric": {
+                "mean": 0.5447355953205291,
+                "CI lower": 0.5447355953205291,
+                "CI upper": 0.5447355953205291,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/GEP_IFM15_noclin_full": {
+        "os": {
+            "valid_metric": 0.0,
+            "uams_metric": 0.5548062391285751,
+            "hovon_metric": 0.5913103177716752,
+            "emtab_metric": 0.43034238488783944,
+            "apex_metric": 0.6042699199390011
+        },
+        "pfs": {
+            "valid_metric": 0.0,
+            "uams_metric": 0.5319905213270142,
+            "hovon_metric": 0.5458015267175572,
+            "emtab_metric": 0.591353919239905,
+            "apex_metric": 0.5447355953205292
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/GEP_MRC-IX-6": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.6822844343106089,
+                "CI lower": 0.6722219281046826,
+                "CI upper": 0.6923469405165352,
+                "N": 50
+            },
+            "uams_metric": {
+                "mean": 0.5810707462431206,
+                "CI lower": 0.5809059195819949,
+                "CI upper": 0.5812355729042463,
+                "N": 50
+            },
+            "hovon_metric": {
+                "mean": 0.6575892506865437,
+                "CI lower": 0.6570652694427311,
+                "CI upper": 0.6581132319303563,
+                "N": 50
+            },
+            "emtab_metric": {
+                "mean": 0.48383707201889015,
+                "CI lower": 0.48357961905247493,
+                "CI upper": 0.48409452498530536,
+                "N": 50
+            },
+            "apex_metric": {
+                "mean": 0.5663293938238657,
+                "CI lower": 0.5660984730933604,
+                "CI upper": 0.5665603145543711,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.6375418232353222,
+                "CI lower": 0.6270359745510556,
+                "CI upper": 0.6480476719195887,
+                "N": 50
+            },
+            "uams_metric": {
+                "mean": 0.545193138447343,
+                "CI lower": 0.5450425939388142,
+                "CI upper": 0.5453436829558718,
+                "N": 50
+            },
+            "hovon_metric": {
+                "mean": 0.6227410120659936,
+                "CI lower": 0.6225008210591478,
+                "CI upper": 0.6229812030728394,
+                "N": 50
+            },
+            "emtab_metric": {
+                "mean": 0.570897862232779,
+                "CI lower": 0.570752536469322,
+                "CI upper": 0.5710431879962361,
+                "N": 50
+            },
+            "apex_metric": {
+                "mean": 0.5165669302817159,
+                "CI lower": 0.5164211009189394,
+                "CI upper": 0.5167127596444923,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/GEP_MRC-IX-6_full": {
+        "os": {
+            "valid_metric": 0.0,
+            "uams_metric": 0.581025977358921,
+            "hovon_metric": 0.6587877599058455,
+            "emtab_metric": 0.4846517119244392,
+            "apex_metric": 0.566488753335875
+        },
+        "pfs": {
+            "valid_metric": 0.0,
+            "uams_metric": 0.5451495197751961,
+            "hovon_metric": 0.6224759911351884,
+            "emtab_metric": 0.5702612826603325,
+            "apex_metric": 0.5164182368162105
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/GEP_MRC-IX-6_noclin": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.5441023356854723,
+                "CI lower": 0.5331045195508932,
+                "CI upper": 0.5551001518200513,
+                "N": 50
+            },
+            "uams_metric": {
+                "mean": 0.5031509310217,
+                "CI lower": 0.5031509310217,
+                "CI upper": 0.5031509310217,
+                "N": 50
+            },
+            "hovon_metric": {
+                "mean": 0.5419772459788151,
+                "CI lower": 0.5419772459788151,
+                "CI upper": 0.5419772459788151,
+                "N": 50
+            },
+            "emtab_metric": {
+                "mean": 0.5947461629279812,
+                "CI lower": 0.5947461629279812,
+                "CI upper": 0.5947461629279812,
+                "N": 50
+            },
+            "apex_metric": {
+                "mean": 0.5121997712542888,
+                "CI lower": 0.5121997712542888,
+                "CI upper": 0.5121997712542888,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.5201484569454471,
+                "CI lower": 0.511057369239294,
+                "CI upper": 0.5292395446516002,
+                "N": 50
+            },
+            "uams_metric": {
+                "mean": 0.483515706916076,
+                "CI lower": 0.4835150544387154,
+                "CI upper": 0.48351635939343657,
+                "N": 50
+            },
+            "hovon_metric": {
+                "mean": 0.5367212509234178,
+                "CI lower": 0.5367212509234178,
+                "CI upper": 0.5367212509234178,
+                "N": 50
+            },
+            "emtab_metric": {
+                "mean": 0.50270783847981,
+                "CI lower": 0.50270783847981,
+                "CI upper": 0.50270783847981,
+                "N": 50
+            },
+            "apex_metric": {
+                "mean": 0.5012937789278035,
+                "CI lower": 0.5012937789278035,
+                "CI upper": 0.5012937789278035,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/GEP_MRC-IX-6_noclin_full": {
+        "os": {
+            "valid_metric": 0.0,
+            "uams_metric": 0.5031509310217,
+            "hovon_metric": 0.5419772459788152,
+            "emtab_metric": 0.5947461629279811,
+            "apex_metric": 0.512199771254289
+        },
+        "pfs": {
+            "valid_metric": 0.0,
+            "uams_metric": 0.48351717485215784,
+            "hovon_metric": 0.5367212509234178,
+            "emtab_metric": 0.5027078384798099,
+            "apex_metric": 0.5012937789278035
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/GEP_SKY92": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.7148575365914338,
+                "CI lower": 0.7043096892955488,
+                "CI upper": 0.7254053838873188,
+                "N": 50
+            },
+            "uams_metric": {
+                "mean": 0.6005683081924206,
+                "CI lower": 0.6000917986708499,
+                "CI upper": 0.6010448177139912,
+                "N": 50
+            },
+            "hovon_metric": {
+                "mean": 0.7473342487249903,
+                "CI lower": 0.7470864441331493,
+                "CI upper": 0.7475820533168314,
+                "N": 50
+            },
+            "emtab_metric": {
+                "mean": 0.4747284533648171,
+                "CI lower": 0.47453013918022163,
+                "CI upper": 0.4749267675494126,
+                "N": 50
+            },
+            "apex_metric": {
+                "mean": 0.5824155547083493,
+                "CI lower": 0.5820122379473675,
+                "CI upper": 0.5828188714693311,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.665235049437285,
+                "CI lower": 0.6541638821601153,
+                "CI upper": 0.6763062167144546,
+                "N": 50
+            },
+            "uams_metric": {
+                "mean": 0.5667508283353605,
+                "CI lower": 0.5661152213951636,
+                "CI upper": 0.5673864352755574,
+                "N": 50
+            },
+            "hovon_metric": {
+                "mean": 0.711145038167939,
+                "CI lower": 0.710782465841586,
+                "CI upper": 0.7115076104942919,
+                "N": 50
+            },
+            "emtab_metric": {
+                "mean": 0.5789092636579573,
+                "CI lower": 0.5786806111975495,
+                "CI upper": 0.579137916118365,
+                "N": 50
+            },
+            "apex_metric": {
+                "mean": 0.5271802908269251,
+                "CI lower": 0.5268731517271963,
+                "CI upper": 0.5274874299266539,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/GEP_SKY92_full": {
+        "os": {
+            "valid_metric": 0.0,
+            "uams_metric": 0.6002880036499473,
+            "hovon_metric": 0.747204786190663,
+            "emtab_metric": 0.4743211334120425,
+            "apex_metric": 0.5821197102554327
+        },
+        "pfs": {
+            "valid_metric": 0.0,
+            "uams_metric": 0.5667596359518517,
+            "hovon_metric": 0.7118320610687023,
+            "emtab_metric": 0.5787173396674584,
+            "apex_metric": 0.5269871350996757
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/GEP_SKY92_noclin": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.6278374426724712,
+                "CI lower": 0.6144350962394372,
+                "CI upper": 0.6412397891055053,
+                "N": 50
+            },
+            "uams_metric": {
+                "mean": 0.6590150845476062,
+                "CI lower": 0.6590150845476062,
+                "CI upper": 0.6590150845476062,
+                "N": 50
+            },
+            "hovon_metric": {
+                "mean": 0.7269027069438995,
+                "CI lower": 0.7269027069438995,
+                "CI upper": 0.7269027069438995,
+                "N": 50
+            },
+            "emtab_metric": {
+                "mean": 0.4315230224321133,
+                "CI lower": 0.4315230224321133,
+                "CI upper": 0.4315230224321133,
+                "N": 50
+            },
+            "apex_metric": {
+                "mean": 0.6499046892870759,
+                "CI lower": 0.6499046892870759,
+                "CI upper": 0.6499046892870759,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.6024719946217987,
+                "CI lower": 0.5915798826136067,
+                "CI upper": 0.6133641066299906,
+                "N": 50
+            },
+            "uams_metric": {
+                "mean": 0.6534622321016651,
+                "CI lower": 0.6534622321016651,
+                "CI upper": 0.6534622321016651,
+                "N": 50
+            },
+            "hovon_metric": {
+                "mean": 0.7035828613641961,
+                "CI lower": 0.7035828613641961,
+                "CI upper": 0.7035828613641961,
+                "N": 50
+            },
+            "emtab_metric": {
+                "mean": 0.5898337292161521,
+                "CI lower": 0.5898337292161521,
+                "CI upper": 0.5898337292161521,
+                "N": 50
+            },
+            "apex_metric": {
+                "mean": 0.5828565180946828,
+                "CI lower": 0.5828565180946828,
+                "CI upper": 0.5828565180946828,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/GEP_SKY92_noclin_full": {
+        "os": {
+            "valid_metric": 0.0,
+            "uams_metric": 0.6590150845476062,
+            "hovon_metric": 0.7269027069438996,
+            "emtab_metric": 0.4315230224321133,
+            "apex_metric": 0.6499046892870759
+        },
+        "pfs": {
+            "valid_metric": 0.0,
+            "uams_metric": 0.6534622321016651,
+            "hovon_metric": 0.703582861364196,
+            "emtab_metric": 0.5898337292161521,
+            "apex_metric": 0.5828565180946828
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/GEP_UAMS70": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.7366031663873467,
+                "CI lower": 0.72865964143017,
+                "CI upper": 0.7445466913445233,
+                "N": 50
+            },
+            "uams_metric": {
+                "mean": 0.6037200946705067,
+                "CI lower": 0.6032315051084152,
+                "CI upper": 0.6042086842325982,
+                "N": 50
+            },
+            "hovon_metric": {
+                "mean": 0.7148332679482149,
+                "CI lower": 0.7144370489783669,
+                "CI upper": 0.7152294869180629,
+                "N": 50
+            },
+            "emtab_metric": {
+                "mean": 0.47279811097992913,
+                "CI lower": 0.47246826352381177,
+                "CI upper": 0.4731279584360465,
+                "N": 50
+            },
+            "apex_metric": {
+                "mean": 0.5812710636675562,
+                "CI lower": 0.5809472297625753,
+                "CI upper": 0.5815948975725371,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.6762006905099218,
+                "CI lower": 0.6658229331142198,
+                "CI upper": 0.6865784479056238,
+                "N": 50
+            },
+            "uams_metric": {
+                "mean": 0.5688017447468859,
+                "CI lower": 0.5682749421703007,
+                "CI upper": 0.5693285473234712,
+                "N": 50
+            },
+            "hovon_metric": {
+                "mean": 0.6721872691455308,
+                "CI lower": 0.6718993011706209,
+                "CI upper": 0.6724752371204408,
+                "N": 50
+            },
+            "emtab_metric": {
+                "mean": 0.5771952494061757,
+                "CI lower": 0.5770275665378343,
+                "CI upper": 0.5773629322745172,
+                "N": 50
+            },
+            "apex_metric": {
+                "mean": 0.5245774262910455,
+                "CI lower": 0.5243746358156488,
+                "CI upper": 0.5247802167664423,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/GEP_UAMS70_full": {
+        "os": {
+            "valid_metric": 0.0,
+            "uams_metric": 0.6039522085032365,
+            "hovon_metric": 0.7144958807375441,
+            "emtab_metric": 0.4722550177095632,
+            "apex_metric": 0.58131910026687
+        },
+        "pfs": {
+            "valid_metric": 0.0,
+            "uams_metric": 0.5694019208992157,
+            "hovon_metric": 0.6712632356562424,
+            "emtab_metric": 0.5771021377672209,
+            "apex_metric": 0.5243266882903896
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/GEP_UAMS70_noclin": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.6589083810896887,
+                "CI lower": 0.6491753259599918,
+                "CI upper": 0.6686414362193857,
+                "N": 50
+            },
+            "uams_metric": {
+                "mean": 0.649619321908238,
+                "CI lower": 0.649619321908238,
+                "CI upper": 0.649619321908238,
+                "N": 50
+            },
+            "hovon_metric": {
+                "mean": 0.6607493134562573,
+                "CI lower": 0.6607493134562573,
+                "CI upper": 0.6607493134562573,
+                "N": 50
+            },
+            "emtab_metric": {
+                "mean": 0.40879574970484056,
+                "CI lower": 0.40879574970484056,
+                "CI upper": 0.40879574970484056,
+                "N": 50
+            },
+            "apex_metric": {
+                "mean": 0.602630575676706,
+                "CI lower": 0.602630575676706,
+                "CI upper": 0.602630575676706,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.6181025832928525,
+                "CI lower": 0.609917874783414,
+                "CI upper": 0.626287291802291,
+                "N": 50
+            },
+            "uams_metric": {
+                "mean": 0.6382586083965944,
+                "CI lower": 0.6382586083965944,
+                "CI upper": 0.6382586083965944,
+                "N": 50
+            },
+            "hovon_metric": {
+                "mean": 0.6305097266683082,
+                "CI lower": 0.6305097266683082,
+                "CI upper": 0.6305097266683082,
+                "N": 50
+            },
+            "emtab_metric": {
+                "mean": 0.578622327790974,
+                "CI lower": 0.578622327790974,
+                "CI upper": 0.578622327790974,
+                "N": 50
+            },
+            "apex_metric": {
+                "mean": 0.5609169430372828,
+                "CI lower": 0.5609169430372828,
+                "CI upper": 0.5609169430372828,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/GEP_UAMS70_noclin_full": {
+        "os": {
+            "valid_metric": 0.0,
+            "uams_metric": 0.649619321908238,
+            "hovon_metric": 0.6607493134562573,
+            "emtab_metric": 0.4087957497048406,
+            "apex_metric": 0.6026305756767061
+        },
+        "pfs": {
+            "valid_metric": 0.0,
+            "uams_metric": 0.6382586083965944,
+            "hovon_metric": 0.6305097266683083,
+            "emtab_metric": 0.5786223277909739,
+            "apex_metric": 0.5609169430372827
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/_full": {
+        "os": {
+            "valid_metric": 0.0,
+            "uams_metric": 0.581025977358921,
+            "hovon_metric": 0.6587877599058455,
+            "emtab_metric": 0.4846517119244392,
+            "apex_metric": 0.566488753335875
+        },
+        "pfs": {
+            "valid_metric": 0.0,
+            "uams_metric": 0.5451495197751961,
+            "hovon_metric": 0.6224759911351884,
+            "emtab_metric": 0.5702612826603325,
+            "apex_metric": 0.5164182368162105
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle0_fold0.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle0_fold1.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle0_fold2.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle0_fold3.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle0_fold4.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle1_fold0.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle1_fold1.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle1_fold2.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle1_fold3.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle1_fold4.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle2_fold0.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle2_fold1.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle2_fold2.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle2_fold3.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle2_fold4.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle3_fold0.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle3_fold1.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle3_fold2.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle3_fold3.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle3_fold4.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle4_fold0.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle4_fold1.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle4_fold2.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle4_fold3.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle4_fold4.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle5_fold0.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle5_fold1.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle5_fold2.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle5_fold3.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle5_fold4.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle6_fold0.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle6_fold1.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle6_fold2.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle6_fold3.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle6_fold4.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle7_fold0.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle7_fold1.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle7_fold2.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle7_fold3.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle7_fold4.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle8_fold0.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle8_fold1.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle8_fold2.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle8_fold3.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle8_fold4.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle9_fold0.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle9_fold1.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle9_fold2.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle9_fold3.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/os_shuffle9_fold4.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle0_fold0.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle0_fold1.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle0_fold2.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle0_fold3.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle0_fold4.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle1_fold0.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle1_fold1.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle1_fold2.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle1_fold3.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle1_fold4.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle2_fold0.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle2_fold1.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle2_fold2.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle2_fold3.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle2_fold4.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle3_fold0.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle3_fold1.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle3_fold2.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle3_fold3.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle3_fold4.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle4_fold0.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle4_fold1.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle4_fold2.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle4_fold3.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle4_fold4.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle5_fold0.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle5_fold1.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle5_fold2.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle5_fold3.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle5_fold4.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle6_fold0.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle6_fold1.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle6_fold2.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle6_fold3.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle6_fold4.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle7_fold0.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle7_fold1.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle7_fold2.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle7_fold3.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle7_fold4.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle8_fold0.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle8_fold1.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle8_fold2.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle8_fold3.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle8_fold4.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle9_fold0.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle9_fold1.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle9_fold2.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle9_fold3.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxph_models/pfs_shuffle9_fold4.json": {
+        "os": {},
+        "pfs": {}
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/deepsurv_models/exp": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.6371811741338038,
+                "CI lower": 0.6268516817965032,
+                "CI upper": 0.6475106664711044,
+                "N": 50
+            },
+            "uams_metric": {
+                "mean": 0.555064729533206,
+                "CI lower": 0.5489242691351315,
+                "CI upper": 0.5612051899312804,
+                "N": 50
+            },
+            "hovon_metric": {
+                "mean": 0.5877893291486858,
+                "CI lower": 0.5775189917603369,
+                "CI upper": 0.5980596665370346,
+                "N": 50
+            },
+            "emtab_metric": {
+                "mean": 0.5391145218417946,
+                "CI lower": 0.530483128670509,
+                "CI upper": 0.5477459150130803,
+                "N": 50
+            },
+            "apex_metric": {
+                "mean": 0.561540221120854,
+                "CI lower": 0.5511740187932694,
+                "CI upper": 0.5719064234484386,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.5924967176395609,
+                "CI lower": 0.5840855640626605,
+                "CI upper": 0.6009078712164613,
+                "N": 50
+            },
+            "uams_metric": {
+                "mean": 0.5346139328104684,
+                "CI lower": 0.5295280832592709,
+                "CI upper": 0.5396997823616659,
+                "N": 50
+            },
+            "hovon_metric": {
+                "mean": 0.536948411721251,
+                "CI lower": 0.529963971979745,
+                "CI upper": 0.5439328514627569,
+                "N": 50
+            },
+            "emtab_metric": {
+                "mean": 0.530363895486936,
+                "CI lower": 0.5242433126245547,
+                "CI upper": 0.5364844783493172,
+                "N": 50
+            },
+            "apex_metric": {
+                "mean": 0.5248303509603119,
+                "CI lower": 0.5199832309535071,
+                "CI upper": 0.5296774709671168,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/deepsurv_models/exp-cna": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.6504047555613155,
+                "CI lower": 0.6397352981767435,
+                "CI upper": 0.6610742129458875,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.5939425574337408,
+                "CI lower": 0.5851945941287391,
+                "CI upper": 0.6026905207387425,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/deepsurv_models/exp-cna-gistic": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.6560672048836791,
+                "CI lower": 0.6452410486257016,
+                "CI upper": 0.6668933611416565,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.5943405928082297,
+                "CI lower": 0.5862789460306927,
+                "CI upper": 0.6024022395857667,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/deepsurv_models/exp-cna-gistic-fish": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.6524815538355938,
+                "CI lower": 0.6428291967687679,
+                "CI upper": 0.6621339109024197,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.5952915884333603,
+                "CI lower": 0.5855942921240995,
+                "CI upper": 0.604988884742621,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/deepsurv_models/exp-cna-gistic-fish-sbs": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.6534327627364205,
+                "CI lower": 0.6427363091489467,
+                "CI upper": 0.6641292163238942,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.5916485340259432,
+                "CI lower": 0.5822224581161991,
+                "CI upper": 0.6010746099356873,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/deepsurv_models/exp-cna-gistic-fish-sbs-ig": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.6587480550360756,
+                "CI lower": 0.6475081008628035,
+                "CI upper": 0.6699880092093476,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.5957091044313978,
+                "CI lower": 0.5858484393399777,
+                "CI upper": 0.6055697695228179,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/deepsurv_models/exp-cna-gistic-fish-sbs-ig-chrom": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.655745461485856,
+                "CI lower": 0.6438552789278305,
+                "CI upper": 0.6676356440438815,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.595435999485089,
+                "CI lower": 0.5866223467254925,
+                "CI upper": 0.6042496522446854,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/deepsurv_models/exp_full": {
+        "os": {
+            "valid_metric": 0,
+            "uams_metric": 0.5474350566026975,
+            "hovon_metric": 0.62171439780306,
+            "emtab_metric": 0.5239079102715467,
+            "apex_metric": 0.5799847502859321
+        },
+        "pfs": {
+            "valid_metric": 0,
+            "uams_metric": 0.51378811391184,
+            "hovon_metric": 0.5390605762127555,
+            "emtab_metric": 0.5354869358669834,
+            "apex_metric": 0.5410182586828967
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/deepsurv_models/exp_subset_full": {
+        "os": {
+            "valid_metric": 0,
+            "uams_metric": 0.5998175026376572,
+            "hovon_metric": 0.6071498626912515,
+            "emtab_metric": 0.5236127508854782,
+            "apex_metric": 0.518795272588639
+        },
+        "pfs": {
+            "valid_metric": 0,
+            "uams_metric": 0.5136937465922913,
+            "hovon_metric": 0.5337663137158335,
+            "emtab_metric": 0.5036579572446556,
+            "apex_metric": 0.5152520135573454
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/rsf_models/exp": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.6935948197775251,
+                "CI lower": 0.6834102935940082,
+                "CI upper": 0.7037793459610421,
+                "N": 50
+            },
+            "uams_metric": {
+                "mean": 0.5732917961732585,
+                "CI lower": 0.5683216843103719,
+                "CI upper": 0.5782619080361452,
+                "N": 50
+            },
+            "hovon_metric": {
+                "mean": 0.5920429580227541,
+                "CI lower": 0.5846165317075687,
+                "CI upper": 0.5994693843379395,
+                "N": 50
+            },
+            "emtab_metric": {
+                "mean": 0.5218595041322315,
+                "CI lower": 0.5174602405506641,
+                "CI upper": 0.5262587677137989,
+                "N": 50
+            },
+            "apex_metric": {
+                "mean": 0.5698787647731605,
+                "CI lower": 0.5637610594987447,
+                "CI upper": 0.5759964700475763,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.6293955730847607,
+                "CI lower": 0.619179402415836,
+                "CI upper": 0.6396117437536853,
+                "N": 50
+            },
+            "uams_metric": {
+                "mean": 0.538971396216919,
+                "CI lower": 0.53467097936441,
+                "CI upper": 0.5432718130694281,
+                "N": 50
+            },
+            "hovon_metric": {
+                "mean": 0.5504032258064516,
+                "CI lower": 0.5445663273128017,
+                "CI upper": 0.5562401243001015,
+                "N": 50
+            },
+            "emtab_metric": {
+                "mean": 0.5793330166270784,
+                "CI lower": 0.5747463611390858,
+                "CI upper": 0.5839196721150709,
+                "N": 50
+            },
+            "apex_metric": {
+                "mean": 0.5230693538394257,
+                "CI lower": 0.5179429557617681,
+                "CI upper": 0.5281957519170832,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/rsf_models/exp-cna": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.6947248849380787,
+                "CI lower": 0.685066381567966,
+                "CI upper": 0.7043833883081915,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.6289123166882891,
+                "CI lower": 0.6189020587299039,
+                "CI upper": 0.6389225746466742,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/rsf_models/exp-cna-gistic": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.6965292325404918,
+                "CI lower": 0.6863711120278242,
+                "CI upper": 0.7066873530531594,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.6299668540200191,
+                "CI lower": 0.6203834075133147,
+                "CI upper": 0.6395503005267235,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/rsf_models/exp-cna-gistic-fish": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.693783979309847,
+                "CI lower": 0.6831988998558508,
+                "CI upper": 0.7043690587638433,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.6296813657916561,
+                "CI lower": 0.619758003841394,
+                "CI upper": 0.6396047277419182,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/rsf_models/exp-cna-gistic-fish-sbs": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.6979396352531705,
+                "CI lower": 0.6865127994581272,
+                "CI upper": 0.7093664710482138,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.6307725628854903,
+                "CI lower": 0.6212425068872292,
+                "CI upper": 0.6403026188837515,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/rsf_models/exp-cna-gistic-fish-sbs-ig": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.697610590023382,
+                "CI lower": 0.6868385969295798,
+                "CI upper": 0.7083825831171842,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.6283675427459038,
+                "CI lower": 0.6186928874325244,
+                "CI upper": 0.6380421980592832,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/rsf_models/exp_full": {
+        "os": {
+            "valid_metric": 0,
+            "uams_metric": 0.5629045595825373,
+            "hovon_metric": 0.595723813260102,
+            "emtab_metric": 0.5162337662337662,
+            "apex_metric": 0.5532215020968357
+        },
+        "pfs": {
+            "valid_metric": 0,
+            "uams_metric": 0.5126871618504383,
+            "hovon_metric": 0.5316732331937947,
+            "emtab_metric": 0.5499287410926366,
+            "apex_metric": 0.5381391450125733
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/rsf_models/exp_subset_full": {
+        "os": {
+            "valid_metric": 0,
+            "uams_metric": 0.5543785109355841,
+            "hovon_metric": 0.6051392703020793,
+            "emtab_metric": 0.552538370720189,
+            "apex_metric": 0.5454822722073961
+        },
+        "pfs": {
+            "valid_metric": 0,
+            "uams_metric": 0.5140187895818479,
+            "hovon_metric": 0.5301649839940902,
+            "emtab_metric": 0.5512589073634204,
+            "apex_metric": 0.5277524691133059
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/vae_models/exp": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.7018073879517084,
+                "CI lower": 0.6925409024643967,
+                "CI upper": 0.7110738734390201,
+                "N": 50
+            },
+            "uams_metric": {
+                "mean": 0.625140294847301,
+                "CI lower": 0.6230437011653902,
+                "CI upper": 0.6272368885292119,
+                "N": 50
+            },
+            "hovon_metric": {
+                "mean": 0.6503560219693998,
+                "CI lower": 0.6470655770054724,
+                "CI upper": 0.6536464669333272,
+                "N": 50
+            },
+            "emtab_metric": {
+                "mean": 0.5459681227863046,
+                "CI lower": 0.5422623253578189,
+                "CI upper": 0.5496739202147902,
+                "N": 50
+            },
+            "apex_metric": {
+                "mean": 0.6013488372093023,
+                "CI lower": 0.5985398445264734,
+                "CI upper": 0.6041578298921313,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.6281650122630497,
+                "CI lower": 0.6178257373093746,
+                "CI upper": 0.6385042872167247,
+                "N": 50
+            },
+            "uams_metric": {
+                "mean": 0.6061414251562303,
+                "CI lower": 0.6035873773427192,
+                "CI upper": 0.6086954729697414,
+                "N": 50
+            },
+            "hovon_metric": {
+                "mean": 0.6187287613888205,
+                "CI lower": 0.616320221134026,
+                "CI upper": 0.621137301643615,
+                "N": 50
+            },
+            "emtab_metric": {
+                "mean": 0.6036180522565321,
+                "CI lower": 0.6002564715390161,
+                "CI upper": 0.6069796329740481,
+                "N": 50
+            },
+            "apex_metric": {
+                "mean": 0.5341521192463281,
+                "CI lower": 0.5320033156387171,
+                "CI upper": 0.5363009228539392,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/vae_models/exp-cna": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.7011804306815936,
+                "CI lower": 0.6911637190815686,
+                "CI upper": 0.7111971422816187,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.6263328317654482,
+                "CI lower": 0.6160262759232124,
+                "CI upper": 0.636639387607684,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/vae_models/exp-cna-gistic": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.6985670141899224,
+                "CI lower": 0.688268673061483,
+                "CI upper": 0.7088653553183618,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.6204562123691888,
+                "CI lower": 0.6082958949354624,
+                "CI upper": 0.6326165298029152,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/vae_models/exp-cna-gistic-fish": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.6994629694614839,
+                "CI lower": 0.6883103890485488,
+                "CI upper": 0.710615549874419,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.6278516816706072,
+                "CI lower": 0.616808772273322,
+                "CI upper": 0.6388945910678925,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/vae_models/exp-cna-gistic-fish-sbs": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.698017463885304,
+                "CI lower": 0.687372652743868,
+                "CI upper": 0.7086622750267398,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.6215445319802008,
+                "CI lower": 0.6106833160531246,
+                "CI upper": 0.6324057479072769,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/vae_models/exp-cna-gistic-fish-sbs-ig": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.6969066689469152,
+                "CI lower": 0.6871379155544104,
+                "CI upper": 0.70667542233942,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.6296595132331292,
+                "CI lower": 0.619538510192003,
+                "CI upper": 0.6397805162742554,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/vae_models/exp-cna-gistic-fish-sbs-ig-chrom": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.6979625527167974,
+                "CI lower": 0.6865997848478156,
+                "CI upper": 0.7093253205857792,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.6258194239124172,
+                "CI lower": 0.6150053887524022,
+                "CI upper": 0.6366334590724322,
+                "N": 50
+            }
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/vae_models/exp_full": {
+        "os": {
+            "valid_metric": 0,
+            "uams_metric": 0.6205765776041519,
+            "hovon_metric": 0.6722244017261672,
+            "emtab_metric": 0.5608028335301063,
+            "apex_metric": 0.6099504384292794
+        },
+        "pfs": {
+            "valid_metric": 0,
+            "uams_metric": 0.6098959862433418,
+            "hovon_metric": 0.6150578675203152,
+            "emtab_metric": 0.6088361045130641,
+            "apex_metric": 0.5410547031597361
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/vae_models/exp_subset_full": {
+        "os": {
+            "valid_metric": 0,
+            "uams_metric": 0.6365878696284468,
+            "hovon_metric": 0.6534425264809729,
+            "emtab_metric": 0.5554899645808737,
+            "apex_metric": 0.6034311856652688
+        },
+        "pfs": {
+            "valid_metric": 0,
+            "uams_metric": 0.6073690391309818,
+            "hovon_metric": 0.6050541738488057,
+            "emtab_metric": 0.603895486935867,
+            "apex_metric": 0.5549764933124385
+        }
+    }
+}
