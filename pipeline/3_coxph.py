@@ -132,7 +132,7 @@ def main(endpoint, shuffle, fold, fulldata, use_clin):
         results["best_epoch"]["emtab_metric"] =  _emtab
         results["best_epoch"]["apex_metric"] = _apex
 
-        resultsprefix = params.resultsprefix.replace('to_replace',_mname+'_noclin' if not use_clin else '')
+        resultsprefix = params.resultsprefix.replace('to_replace',_mname + ('_noclin' if not use_clin else ''))
         os.makedirs(os.path.dirname(resultsprefix),exist_ok=True)
 
         with open(resultsprefix + '.json','w') as f:
