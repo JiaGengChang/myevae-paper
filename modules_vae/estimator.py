@@ -143,6 +143,9 @@ class VAE(BaseEstimator):
                 
         warnings.warn(f'Early stopping not triggered. patience: {self.patience}, best_loss: {best_loss}, epochs_since_best: {epochs_since_best}')
         return self
+    
+    def eval(self)->None:
+        self.model.eval()
         
     def predict(self, X:pd.DataFrame)->torch_tensor:
         # check if fit has been called
