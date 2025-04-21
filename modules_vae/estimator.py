@@ -16,7 +16,6 @@ assert load_dotenv('../.env') or load_dotenv('.env')
 import sys
 sys.path.append(os.environ.get("PROJECTDIR"))
 
-from modules_vae.model import MultiModalVAE as Model
 from utils.dataset import Dataset
 from utils.coxphloss import CoxPHLoss
 from utils.kldivergence import KLDivergence
@@ -64,11 +63,12 @@ class VAE(BaseEstimator):
         self.subtask_activation = subtask_activation
         self.scale_method = scale_method # scale_method is accessed but not used directly
     
-    def fit(self, X:pd.DataFrame, y=None, verbose:bool=False):
+    def fit(self, X:pd.DataFrame, y=None, verbose:bool=False, SHAP:bool=False):
         """
         X: dataframe with named columns according to the input type. Also contains event and duration columns.
         y: ignored, because the event and duration columns should be in X.
         verbose: whether to print loss at every epoch
+        SHAP: uses ShapMultiModalVAE for the model, where __call__() returns riskpreds only instead of (xs,mu,logvar,riskpreds)
         """
         assert isinstance(X, pd.DataFrame)
         # Check that X has correct shape, set n_features_in_, etc.
@@ -88,7 +88,12 @@ class VAE(BaseEstimator):
         self.input_dims = [getattr(dataset, f"X_{input_type}").shape[1] for input_type in self.input_types]
         # determine subtask input dims lazily
         self.input_dims_subtask = [getattr(dataset, f"X_{input_type}").shape[1] for input_type in self.input_types_subtask]
-
+        
+        if SHAP:
+            from modules_vae.model import ShapMultiModalVAE as Model
+        else:
+            from modules_vae.model import MultiModalVAE as Model
+        
         self.model = Model(input_types = self.input_types, 
                            input_dims = self.input_dims, 
                            layer_dims = self.layer_dims, 
@@ -182,5 +187,19 @@ class VAE(BaseEstimator):
         torch_save(self.model.state_dict(), pth_path)
         return
 
-    def __call__(self, X:torch_tensor)->torch_tensor:
+    def __call__(self, X:torch_tensor)->tuple:
         return self.model.__call__(X)
+
+# class ShapVAE(VAE, BaseEstimator):
+#     def __init__(self, **kwargs):
+#         super().__init__(**kwargs)
+    
+#     def __call__(self, X:torch_tensor)->torch_tensor:
+#         """
+#         the call function for SHAP VAE takes in a tensor rather than a pd.DataFrame
+#         this tensor is shaped as per the VAE model's requirements
+#         which is a tuple of (a list of tensors main VAE network, a list of tensors for subtask network)
+#         the forward function returns only the risk preds rather than a tple
+#         """
+#         _, _, _, riskpred = self.model(X)
+#         return riskpred
