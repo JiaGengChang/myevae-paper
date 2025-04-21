@@ -31,7 +31,8 @@ class MultiModalVAE(torch.nn.Module):
                  # activation function for the risk network
                  subtask_activation = torch.nn.Tanh()
                 ):
-        super(self.__class__, self).__init__()
+        # super(self.__class__, self).__init__()
+        super().__init__()
         
         assert all([f in ['exp','cna','gistic','sbs','fish','ig','apobec','cth'] for f in input_types]) # these predictors go into the VAE 
         assert all([f in ['gistic','sbs','fish','ig','apobec','cth','clin'] for f in input_types_subtask]) # these predictors may skip the VAE
@@ -114,3 +115,21 @@ class MultiModalVAE(torch.nn.Module):
     
     def save(self, outfile):
         torch.save(self.state_dict(), outfile)
+
+class ShapMultiModalVAE(MultiModalVAE):
+    def __init__(self,**kwargs):
+        super().__init__(**kwargs)
+
+    def __call__(self, xs):
+        """
+        for SHAP, the input will arrive as a single list
+        we need to partition it into two lists as per the requirement for MultiModalVAE's forward()
+        """
+        n_subtask = len(self.input_types_subtask) # 1 if only clin
+        xs_vae = xs[:-n_subtask]
+        xs_subtask = xs[-n_subtask:]
+        assert isinstance(xs_vae,list)
+        assert isinstance(xs_subtask,list)
+        xs_rearranged = [xs_vae, xs_subtask]
+        _, _, _, riskpred = self.forward(xs_rearranged)
+        return riskpred
