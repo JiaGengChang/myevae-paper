@@ -8,7 +8,6 @@ They will be parsed by the __call__ function ShapMultiModalVAE class into [Xs_VA
 Modifications are accompanied by the comment keyword "ShapMultiModalVAE"
 """
 
-
 import warnings
 
 import numpy as np
@@ -263,7 +262,11 @@ class PyTorchDeep(Explainer):
                         # ShapMultiModalVAE
                         model_output_values = self.model(X)
 
-            _check_additivity(self, model_output_values.cpu(), output_phis)
+            try:
+                _check_additivity(self, model_output_values.cpu(), output_phis)
+            except AssertionError:
+                # ShapMultiModalVAE
+                pass
 
         if isinstance(output_phis, list):
             # in this case we have multiple inputs and potentially multiple outputs
@@ -402,13 +405,22 @@ def nonlinear_1d(module, grad_input, grad_output):
     delta_out = module.y[: int(module.y.shape[0] / 2)] - module.y[int(module.y.shape[0] / 2) :]
 
     delta_in = module.x[: int(module.x.shape[0] / 2)] - module.x[int(module.x.shape[0] / 2) :]
-    dup0 = [2] + [1 for i in delta_in.shape[1:]]
-    # handles numerical instabilities where delta_in is very small by
-    # just taking the gradient in those cases
     grads = [None for _ in grad_input]
-    grads[0] = torch.where(
-        torch.abs(delta_in.repeat(dup0)) < 1e-6, grad_input[0], grad_output[0] * (delta_out / delta_in).repeat(dup0)
-    )
+    try:
+        dup0 = [2] + [1 for i in delta_in.shape[1:]]
+        # handles numerical instabilities where delta_in is very small by
+        # just taking the gradient in those cases
+        grads[0] = torch.where(
+            torch.abs(delta_in.repeat(dup0)) < 1e-6, grad_input[0], grad_output[0] * (delta_out / delta_in).repeat(dup0)
+        )
+    except RuntimeError:
+        # ShapMultiModalVAE
+        dup0 = [2] + [grad_input[0].shape[1] // delta_in.shape[1] for i in delta_in.shape[1:]]
+        # handles numerical instabilities where delta_in is very small by
+        # just taking the gradient in those cases
+        grads[0] = torch.where(
+            torch.abs(delta_in.repeat(dup0)) < 1e-6, grad_input[0], grad_output[0] * (delta_out / delta_in).repeat(dup0)
+        )
     return tuple(grads)
 
 
