@@ -13,7 +13,7 @@ from modules_vae.estimator import VAE
 from modules_deepsurv.estimator import DeepSurv
 from modules_coxnet.estimator import Coxnet
 from modules_rsf.estimator import RSF
-from modules_vae.param_grid import param_grid_exp as param_grid_vae
+from modules_vae.param_grid import param_grid_exp_cna_gistic_fish_sbs_ig as param_grid_vae
 from modules_deepsurv.param_grid import param_grid_exp_cna_gistic_fish_sbs_ig_chrom as param_grid_deepsurv
 from modules_coxnet.param_grid import param_grid as param_grid_coxnet
 from modules_rsf.param_grid import param_grid as param_grid_rsf
@@ -110,8 +110,8 @@ def main(model_name:str='default',
         setattr(params,"genes",params.all_exp_genes)
 
     results = {}
-    # stop keeping track of genes used
-    results['params_fixed'] = {k: v for k, v in vars(params).items() if not k.startswith('_') and k != 'all_exp_genes' and k!= 'genes' and k not in param_grid.keys()}
+    # keeping track of genes used
+    results['params_fixed'] = {k: v for k, v in vars(params).items() if not k.startswith('_') and k != 'all_exp_genes' and k not in param_grid.keys()}
     results['params_search'] = {k: v.__str__() for k, v in param_grid.items() } # save activation as string
     results['best_epoch'] = {}
     results['best_epoch']['params'] = {k:v.__str__() for k, v in grid_search.best_params_.items()} # save activation as string
