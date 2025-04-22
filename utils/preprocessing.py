@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-from sksurv.linear_model import CoxnetSurvivalAnalysis
+from sksurv.linear_model import CoxnetSurvivalAnalysis,CoxPHSurvivalAnalysis
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
@@ -35,6 +35,27 @@ class CoxnetSelector(TransformerMixin, BaseEstimator):
         notnan = np.where(~nan)[0]
         self.cns.fit(X.iloc[notnan,:], y[notnan])
         _keep = np.abs(self.cns.coef_[:,-1]) > self.coef_threshold
+        features_out = np.where(_keep)[0]
+        self.features_out = X.columns[features_out]
+        return self
+    
+    def transform(self, X):
+        return X.loc[:,self.features_out]
+
+    def get_feature_names_out(self):
+        return np.array(self.features_out)
+
+class CoxPHSelector(TransformerMixin, BaseEstimator):
+    def __init__(self,coef_threshold=0,**kwargs):
+        self.cph = CoxPHSurvivalAnalysis(**kwargs)
+        self.coef_threshold = coef_threshold
+        self.features_out = None
+        
+    def fit(self, X, y, **kwargs):
+        nan = np.isnan(X).any(axis=1).values
+        notnan = np.where(~nan)[0]
+        self.cph.fit(X.iloc[notnan,:], y[notnan])
+        _keep = np.abs(self.cph.coef_) > self.coef_threshold
         features_out = np.where(_keep)[0]
         self.features_out = X.columns[features_out]
         return self
