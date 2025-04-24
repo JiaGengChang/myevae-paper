@@ -1,4 +1,22 @@
 {
+    "/home/users/nus/e1083772/cancer-survival-ml/output/coxnet_models/cna-gistic-fish-sbs-ig": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.6629838677025676,
+                "CI lower": 0.6501155635586089,
+                "CI upper": 0.6758521718465262,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.5688903412131938,
+                "CI lower": 0.5570058670327035,
+                "CI upper": 0.5807748153936841,
+                "N": 50
+            }
+        }
+    },
     "/home/users/nus/e1083772/cancer-survival-ml/output/coxnet_models/exp": {
         "os": {
             "valid_metric": {
@@ -943,6 +961,17 @@
             "apex_metric": 0.5609169430372827
         }
     },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/deepsurv_models/cna-gistic-fish-sbs-ig": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.6303597644050953,
+                "CI lower": 0.6190328901030226,
+                "CI upper": 0.641686638707168,
+                "N": 50
+            }
+        },
+        "pfs": {}
+    },
     "/home/users/nus/e1083772/cancer-survival-ml/output/deepsurv_models/exp": {
         "os": {
             "valid_metric": {
@@ -1149,6 +1178,24 @@
             "apex_metric": 0.5152520135573454
         }
     },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/rsf_models/cna-gistic-fish-sbs-ig": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.7009204506272065,
+                "CI lower": 0.6902005170227222,
+                "CI upper": 0.7116403842316908,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.6376451624434796,
+                "CI lower": 0.6276958994423204,
+                "CI upper": 0.6475944254446387,
+                "N": 50
+            }
+        }
+    },
     "/home/users/nus/e1083772/cancer-survival-ml/output/rsf_models/exp": {
         "os": {
             "valid_metric": {
@@ -1335,6 +1382,24 @@
             "hovon_metric": 0.5301649839940902,
             "emtab_metric": 0.5512589073634204,
             "apex_metric": 0.5277524691133059
+        }
+    },
+    "/home/users/nus/e1083772/cancer-survival-ml/output/vae_models/cna-gistic-fish-sbs-ig": {
+        "os": {
+            "valid_metric": {
+                "mean": 0.6639414326190702,
+                "CI lower": 0.6502264770397388,
+                "CI upper": 0.6776563881984017,
+                "N": 50
+            }
+        },
+        "pfs": {
+            "valid_metric": {
+                "mean": 0.613555071066423,
+                "CI lower": 0.6015385132964655,
+                "CI upper": 0.6255716288363806,
+                "N": 50
+            }
         }
     },
     "/home/users/nus/e1083772/cancer-survival-ml/output/vae_models/exp": {
