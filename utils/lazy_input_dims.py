@@ -17,10 +17,13 @@ def lazy_input_dims(df:pd.DataFrame, params:dict):
     # lazy determination of input dimensions
     # works only for main VAE inputs like exp, fish, etc.
     # does not work for clinical, which is always 5 anyway
+    # params.input_dims = [
+    #     params.input_dims[i] 
+    #     if params.input_dims[i] 
+    #     else df.filter(regex=find_column[params.input_types[i]]).columns.__len__() 
+    #     for i in range(len(params.input_dims))
+    # ]
     params.input_dims = [
-        params.input_dims[i] 
-        if params.input_dims[i] 
-        else df.filter(regex=find_column[params.input_types[i]]).columns.__len__() 
-        for i in range(len(params.input_dims))
+        df.filter(regex=find_column[t]).columns.__len__() for t in params.input_types
     ]
     return params
