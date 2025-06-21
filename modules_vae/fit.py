@@ -44,8 +44,9 @@ def fit(model:Module, trainloader:DataLoader, validloader:DataLoader, params:dic
     reconstruction_loss_funcs = [MSELoss(reduction='mean') for datatype in model.input_types_vae]
 
     results={}
-    results['params'] = {k: v for k, v in vars(params).items() if not k.startswith('_') and k != 'exp_genes'}
-    results['history'] = {}
+    # do not save all_exp_genes and genes
+    results['params'] = {k: v for k, v in vars(params).items() if not k.startswith('_') and not k.endswith('genes')}
+    # results['history'] = {}
 
     def train_step(epoch:int):
         model.train()
@@ -75,11 +76,11 @@ def fit(model:Module, trainloader:DataLoader, validloader:DataLoader, params:dic
             train_survival_loss += batch_survival_loss.data.item()
         
         # at the end of the epoch, log losses to results dictionary
-        results['history'][epoch]['train']['kl_loss'] = train_kl_loss
-        results['history'][epoch]['train']['reconstruction_loss'] = {
-            input_type: loss for input_type, loss in zip(model.input_types_vae, train_reconstruction_losses)
-        }
-        results['history'][epoch]['train']['survival_loss'] = train_survival_loss
+        # results['history'][epoch]['train']['kl_loss'] = train_kl_loss
+        # results['history'][epoch]['train']['reconstruction_loss'] = {
+        #     input_type: loss for input_type, loss in zip(model.input_types_vae, train_reconstruction_losses)
+        # }
+        # results['history'][epoch]['train']['survival_loss'] = train_survival_loss
         return train_kl_loss, train_reconstruction_losses, train_survival_loss
     
     def valid_step(epoch:int):
@@ -116,12 +117,12 @@ def fit(model:Module, trainloader:DataLoader, validloader:DataLoader, params:dic
         valid_metric = ConcordanceIndex(event_indicator, event_time, estimate)
 
         # at the end of the epoch, log losses and metrics to results dictionary
-        results['history'][epoch]['valid']['kl_loss'] = valid_kl_loss
-        results['history'][epoch]['valid']['reconstruction_loss'] = {
-            input_type: loss for input_type, loss in zip(model.input_types_vae, valid_reconstruction_losses)
-        }
-        results['history'][epoch]['valid']['survival_loss'] = valid_survival_loss
-        results['history'][epoch]['valid']['metric'] = valid_metric
+        # results['history'][epoch]['valid']['kl_loss'] = valid_kl_loss
+        # results['history'][epoch]['valid']['reconstruction_loss'] = {
+        #     input_type: loss for input_type, loss in zip(model.input_types_vae, valid_reconstruction_losses)
+        # }
+        # results['history'][epoch]['valid']['survival_loss'] = valid_survival_loss
+        # results['history'][epoch]['valid']['metric'] = valid_metric
         
         # external datasets
         # cindex_uams, cindex_hovon, cindex_emtab = score_external_datasets(model,params.endpoint)
@@ -144,8 +145,8 @@ def fit(model:Module, trainloader:DataLoader, validloader:DataLoader, params:dic
     burn_in_epoch = 50 # ignore starting fluctuations in validation loss
     
     for epoch in range(params.epochs):
-        if epoch not in results['history']:
-            results['history'][epoch] = {'train': {}, 'valid': {}}
+        # if epoch not in results['history']:
+        #     results['history'][epoch] = {'train': {}, 'valid': {}}
         train_step(epoch)
         _, _, valid_survival_loss, valid_metric = valid_step(epoch)
         
@@ -177,10 +178,15 @@ def fit(model:Module, trainloader:DataLoader, validloader:DataLoader, params:dic
             params.exp_genes # genes seen by the model. Not necessarily all input genes.
         except AttributeError:
             params.exp_genes=None
-        cindex_uams, cindex_hovon, cindex_emtab = score_external_datasets(model,params.endpoint,params.shuffle,params.fold,genes=params.exp_genes)
+        # cindex_uams, cindex_hovon, cindex_emtab = score_external_datasets(model,params.endpoint,params.shuffle,params.fold,genes=params.exp_genes)
+        cindex_uams, cindex_hovon, cindex_emtab, cindex_apex = score_external_datasets(model,params)
         results['best_epoch']['uams_metric'] = cindex_uams
         results['best_epoch']['hovon_metric'] = cindex_hovon
         results['best_epoch']['emtab_metric'] = cindex_emtab
+        results['best_epoch']['apex_metric'] = cindex_apex
+
+    results['params']['all_exp_genes']=None
+    results['params']['genes']=None
 
     # save results
     with open(f'{params.resultsprefix}.json', 'w') as f:

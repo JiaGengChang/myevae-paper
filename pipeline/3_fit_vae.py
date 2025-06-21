@@ -35,8 +35,8 @@ def main():
     params = specify_params_here(args.endpoint, pbs_shuffle, pbs_fold)
 
     scratchdir=os.environ.get("SPLITDATADIR")
-    train_features_file=f'{scratchdir}/{params.shuffle}/{params.fold}/train_features_processed.parquet'
-    valid_features_file=f'{scratchdir}/{params.shuffle}/{params.fold}/valid_features_processed.parquet'
+    train_features_file=f'{scratchdir}/{params.shuffle}/{params.fold}/train_features_{params.endpoint}_processed.parquet'
+    valid_features_file=f'{scratchdir}/{params.shuffle}/{params.fold}/valid_features_{params.endpoint}_processed.parquet'
     
     train_labels_file=f'{scratchdir}/{params.shuffle}/{params.fold}/train_labels.parquet'
     valid_labels_file=f'{scratchdir}/{params.shuffle}/{params.fold}/valid_labels.parquet'
@@ -45,7 +45,7 @@ def main():
     valid_features=pd.read_parquet(valid_features_file)
     
     # subset RNA genes to those with affymetric probes
-    train_features,valid_features = subset_to_microarray_genes(train_features,valid_features)
+    # train_features,valid_features = subset_to_microarray_genes(train_features,valid_features)
 
     eventcol = f"cens{params.endpoint}"
     durationcol = f"{params.endpoint}cdy"
@@ -61,13 +61,15 @@ def main():
     params = lazy_input_dims(train_dataframe, params) # determine input dimensions
     params = annotate_exp_genes(train_dataframe, params) # determine RNA genes used for training
     
-    model = Model(params.input_types,
-                params.input_dims,
-                params.layer_dims,
-                params.input_types_subtask,
-                params.input_dims_subtask,
-                params.layer_dims_subtask,
-                params.z_dim)
+    setattr(params,"genes",params.all_exp_genes)
+
+    model = Model(input_types=params.input_types,
+                  input_dims=params.input_dims,
+                  layer_dims=params.layer_dims,
+                  input_types_subtask=params.input_types_subtask,
+                  input_dims_subtask=params.input_dims_subtask,
+                  layer_dims_subtask=params.layer_dims_subtask,
+                  z_dim=params.z_dim)
     
     # create output directory
     os.makedirs(os.path.dirname(params.resultsprefix),exist_ok=True)
@@ -76,7 +78,7 @@ def main():
     fit(model, trainloader, validloader, params)
 
     # predict on validation data once more and save to tsv
-    # predict_to_tsv(model, validloader, f'{params.resultsprefix}.tsv', save_embeddings=True)
+    predict_to_tsv(model, validloader, f'{params.resultsprefix}.tsv', save_embeddings=True)
 
     # plot losses and metrics to pdf
     # plot_results_to_pdf(f'{params.resultsprefix}.json',f'{params.resultsprefix}.pdf')
