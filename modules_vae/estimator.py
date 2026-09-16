@@ -20,6 +20,14 @@ from utils.dataset import Dataset
 from utils.coxphloss import CoxPHLoss
 from utils.kldivergence import KLDivergence
 from utils.subset_affy_features import subset_to_microarray_genes
+from utils.missing import input_pair, masked_mse
+
+
+def validate_data_allow_missing(estimator, X, y=None, reset=True):
+    try:
+        return validate_data(estimator, X, y, reset=reset, ensure_all_finite=False)
+    except TypeError:
+        return validate_data(estimator, X, y, reset=reset, force_all_finite=False)
 
 # scikit learn compliant estimator class
 # for meta-estimators like Pipeline and GridSearchCV
@@ -72,7 +80,7 @@ class VAE(BaseEstimator):
         """
         assert isinstance(X, pd.DataFrame)
         # Check that X has correct shape, set n_features_in_, etc.
-        X = pd.DataFrame(validate_data(self, X, y), index=X.index, columns=X.columns)
+        X = pd.DataFrame(validate_data_allow_missing(self, X, y), index=X.index, columns=X.columns)
         if self.subset_microarray:
             X, genes_keep = subset_to_microarray_genes(X)
             self.genes = genes_keep
@@ -115,14 +123,15 @@ class VAE(BaseEstimator):
         for epoch in range(1,1+self.epochs):
             current_loss = 0 # survival loss summed across batches
             for batch_idx, data in enumerate(trainloader):
-                inputs_vae = [data[f'X_{input_type}'] for input_type in self.model.input_types_vae]
-                inputs_task = [data[f'X_{input_type}'] for input_type in self.model.input_types_subtask]
+                inputs_vae = [input_pair(data, input_type) for input_type in self.model.input_types_vae]
+                inputs_task = [input_pair(data, input_type) for input_type in self.model.input_types_subtask]
                 outputs, mu, logvar, riskpred = self.model.forward((inputs_vae, inputs_task))
                 assert len(inputs_vae)==len(outputs)
                 batch_kl_loss = self.kl_weight * self.kl_loss_func(mu, logvar)
                 assert not batch_kl_loss.isnan().any().item()
                 batch_reconstruction_losses = [
-                    f(output, input_vae) for f, output, input_vae in zip(self.reconstruction_loss_funcs, outputs, inputs_vae)
+                    masked_mse(output, input_vae[0], input_vae[1])
+                    for output, input_vae in zip(outputs, inputs_vae)
                 ]
                 for brl in batch_reconstruction_losses:
                     assert not brl.isnan().any().item()
@@ -156,7 +165,7 @@ class VAE(BaseEstimator):
         # check if fit has been called
         check_is_fitted(self)
         # input validation
-        X = pd.DataFrame(validate_data(self, X, reset=False), index=X.index, columns=X.columns)
+        X = pd.DataFrame(validate_data_allow_missing(self, X, reset=False), index=X.index, columns=X.columns)
 
         # remove non-microarray genes if necessary
         if self.subset_microarray:
@@ -167,8 +176,8 @@ class VAE(BaseEstimator):
         estimates = []
         for _, data in enumerate(dataloader):
             with no_grad():
-                inputs_vae = [data[f'X_{input_type}'] for input_type in self.model.input_types_vae]
-                inputs_task = [data[f'X_{input_type}'] for input_type in self.model.input_types_subtask]
+                inputs_vae = [input_pair(data, input_type) for input_type in self.model.input_types_vae]
+                inputs_task = [input_pair(data, input_type) for input_type in self.model.input_types_subtask]
                 _, _, _, riskpred = self.model.forward((inputs_vae, inputs_task))
                 estimates.append(riskpred.flatten())
         estimates = torch_cat(estimates)
@@ -176,7 +185,7 @@ class VAE(BaseEstimator):
 
     def score(self, X:pd.DataFrame, y=None)->float:
         assert isinstance(X, pd.DataFrame)
-        X = pd.DataFrame(validate_data(self, X, reset=False),index=X.index,columns=X.columns)
+        X = pd.DataFrame(validate_data_allow_missing(self, X, reset=False),index=X.index,columns=X.columns)
         estimates = self.predict(X)
         event = X[self.eventcol].values.astype(bool)
         duration = X[self.durationcol].values

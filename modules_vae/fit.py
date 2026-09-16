@@ -13,6 +13,7 @@ from utils.validation import score_external_datasets
 from utils.cindexmetric import ConcordanceIndex # metric
 from utils.coxphloss import CoxPHLoss # optimization objective is negative partial log likelihood
 from utils.kldivergence import KLDivergence # regularization
+from utils.missing import input_pair, masked_mse
 
 def fit(model:Module, trainloader:DataLoader, validloader:DataLoader, params:dict):
     """
@@ -55,14 +56,15 @@ def fit(model:Module, trainloader:DataLoader, validloader:DataLoader, params:dic
         train_kl_loss = 0
         train_survival_loss = 0
         for batch_idx, data in enumerate(trainloader):
-            inputs_vae = [data[f'X_{input_type}'] for input_type in model.input_types_vae]
-            inputs_task = [data[f'X_{input_type}'] for input_type in model.input_types_subtask]
+            inputs_vae = [input_pair(data, input_type) for input_type in model.input_types_vae]
+            inputs_task = [input_pair(data, input_type) for input_type in model.input_types_subtask]
             outputs, mu, logvar, riskpred = model.forward((inputs_vae, inputs_task))
             assert len(inputs_vae)==len(outputs)
             batch_kl_loss = params.kl_weight * kl_loss_func(mu, logvar)
             assert not batch_kl_loss.isnan().any().item()
             batch_reconstruction_losses = [
-                f(output, input_vae) for f, output, input_vae in zip(reconstruction_loss_funcs, outputs, inputs_vae)
+                masked_mse(output, input_vae[0], input_vae[1])
+                for output, input_vae in zip(outputs, inputs_vae)
             ]
             for brl in batch_reconstruction_losses:
                 assert not brl.isnan().any().item()
@@ -93,15 +95,16 @@ def fit(model:Module, trainloader:DataLoader, validloader:DataLoader, params:dic
             event_indicator.append(data['event_indicator'])
             event_time.append(data['event_time'])
             with no_grad():
-                inputs_vae = [data[f'X_{input_type}'] for input_type in model.input_types_vae]
-                inputs_task = [data[f'X_{input_type}'] for input_type in model.input_types_subtask]
+                inputs_vae = [input_pair(data, input_type) for input_type in model.input_types_vae]
+                inputs_task = [input_pair(data, input_type) for input_type in model.input_types_subtask]
                 outputs, mu, logvar, riskpred = model.forward((inputs_vae, inputs_task))
                 estimate.append(riskpred.flatten())
                 assert len(inputs_vae)==len(outputs)
                 batch_kl_loss = kl_loss_func(mu, logvar)
                 assert not batch_kl_loss.isnan().any().item()
                 batch_reconstruction_losses = [
-                    f(output, input_vae) for f, output, input_vae in zip(reconstruction_loss_funcs, outputs, inputs_vae)
+                    masked_mse(output, input_vae[0], input_vae[1])
+                    for output, input_vae in zip(outputs, inputs_vae)
                 ]
                 for brl in batch_reconstruction_losses:
                     assert not brl.isnan().any().item()

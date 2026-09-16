@@ -48,24 +48,25 @@ model = Model(params.input_types,
               params.input_types_subtask,
               params.input_dims_subtask,
               params.layer_dims_subtask,
-              params.z_dim,
-              shap=True)
+              params.z_dim)
 
 # load model state dict
 model.load_state_dict(torch.load(f'{params.resultsprefix}.pth'))
 
 # background dataset to integrate over
 # concatenated along the feature dim (dim 1)
-background_data = [traindata.X_exp, traindata.X_clin]
+background_data = [traindata.X_exp, traindata.X_mask_exp,
+                   traindata.X_clin, traindata.X_mask_clin]
 
 # edit code in the SHAP package
 # /home/users/nus/e1083772/.localpython/lib/python3.9/site-packages/shap/explainers/_deep/deep_pytorch.py
 # set X = [X] / data = [data]
 # comment out the line `X = [x.detach().to(self.device) for x in X]`
 
-shap_explainer = shap.DeepExplainer((model, model.risk_predictor[2]), background_data)
+shap_explainer = shap.DeepExplainer((model, model.risk_predictor.network[2]), background_data)
 
-shap_data = [validdata.X_exp, validdata.X_clin]
+shap_data = [validdata.X_exp, validdata.X_mask_exp,
+             validdata.X_clin, validdata.X_mask_clin]
 
 shap_values = shap_explainer.shap_values(shap_data)
 
