@@ -13,7 +13,7 @@ from modules_vae.estimator import VAE
 from modules_deepsurv.estimator import DeepSurv
 from modules_coxnet.estimator import Coxnet
 from modules_rsf.estimator import RSF
-from modules_vae.param_grid import param_grid as param_grid_vae
+from modules_vae.param_grid import param_grid_exp_cna_gistic_fish_sbs_ig as param_grid_vae
 from modules_deepsurv.param_grid import param_grid as param_grid_deepsurv
 from modules_coxnet.param_grid import param_grid as param_grid_coxnet
 from modules_rsf.param_grid import param_grid as param_grid_rsf
