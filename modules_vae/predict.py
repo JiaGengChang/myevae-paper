@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import pandas as pd
+from utils.missing import input_pair
 
 def predict_to_tsv(model, loader, outputfile, save_embeddings=False):
     model.eval()
@@ -10,8 +11,8 @@ def predict_to_tsv(model, loader, outputfile, save_embeddings=False):
         mu_list = []
     for batch_idx, data in enumerate(loader):
         with torch.no_grad():
-            inputs_vae = [data[f'X_{input_type}'] for input_type in model.input_types_vae]
-            inputs_task = [data[f'X_{input_type}'] for input_type in model.input_types_subtask]
+            inputs_vae = [input_pair(data, input_type) for input_type in model.input_types_vae]
+            inputs_task = [input_pair(data, input_type) for input_type in model.input_types_subtask]
             _, mu, _, riskpred = model.forward((inputs_vae, inputs_task))
             predictions.append(riskpred.detach().numpy())
             if save_embeddings:

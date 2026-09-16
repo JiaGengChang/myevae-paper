@@ -8,6 +8,7 @@ load_dotenv("../.env")
 sys.path.append(os.environ.get("PROJECTDIR"))
 from utils.parsers_external import *
 from utils.scaler_external import scale_and_impute_external_dataset as scale_impute
+from utils.missing import tensor_pair
 
 def score_external_datasets(model:Module,params:dict,level:str="affy")->tuple[float]:
     """
@@ -50,10 +51,10 @@ def score_external_datasets(model:Module,params:dict,level:str="affy")->tuple[fl
         # use the VAE API for scoring. VAE is a torch.nn.Module
         model.eval()
         with no_grad():
-            _, _, _, estimates_uams =  model([[uams_exp_tensor], [uams_clin_tensor]])
-            _, _, _, estimates_hovon = model([[hovon_exp_tensor], [hovon_clin_tensor]])
-            _, _, _, estimates_emtab = model([[emtab_exp_tensor], [emtab_clin_tensor]])
-            _, _, _, estimates_apex = model([[apex_exp_tensor], [apex_clin_tensor]])
+            _, _, _, estimates_uams = model([[*tensor_pair(uams_exp_tensor)], [*tensor_pair(uams_clin_tensor)]])
+            _, _, _, estimates_hovon = model([[*tensor_pair(hovon_exp_tensor)], [*tensor_pair(hovon_clin_tensor)]])
+            _, _, _, estimates_emtab = model([[*tensor_pair(emtab_exp_tensor)], [*tensor_pair(emtab_clin_tensor)]])
+            _, _, _, estimates_apex = model([[*tensor_pair(apex_exp_tensor)], [*tensor_pair(apex_clin_tensor)]])
     elif params.architecture in ['Deepsurv','Coxnet','RSF']:
         if params.architecture=='Deepsurv':
             model.eval()
@@ -86,7 +87,7 @@ def score_apex_dataset(model:Module,params:dict,level:str="affy")->float:
         # use the VAE API for scoring. VAE is a torch.nn.Module
         model.eval()
         with no_grad():
-            _, _, _, estimates_apex = model([[apex_exp_tensor], [apex_clin_tensor]])
+            _, _, _, estimates_apex = model([[*tensor_pair(apex_exp_tensor)], [*tensor_pair(apex_clin_tensor)]])
     elif params.architecture in ['Deepsurv','Coxnet','RSF']:
         if params.architecture=='Deepsurv':
             model.eval()

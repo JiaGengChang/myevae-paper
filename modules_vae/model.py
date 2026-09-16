@@ -1,7 +1,7 @@
 import torch
 import sys
 sys.path.append('/home/users/nus/e1083772/cancer-survival-ml/')
-from utils.buildnetwork import buildNetwork 
+from utils.buildnetwork import buildNetwork, MaskAwareNetwork
 
 class MultiModalVAE(torch.nn.Module):
     def __init__(self,
@@ -46,7 +46,7 @@ class MultiModalVAE(torch.nn.Module):
         self.subtask_activation = subtask_activation
 
         for input_type, input_dim, layer_dim in zip(input_types, input_dims, layer_dims):
-            setattr(self, f'encoder_{input_type}', buildNetwork([input_dim] + layer_dim, activation=self.activation))
+            setattr(self, f'encoder_{input_type}', MaskAwareNetwork(input_dim, layer_dim, activation=self.activation))
             setattr(self, f'decoder_{input_type}', buildNetwork(layer_dim[::-1] + [input_dim], activation=self.activation))
             self.bottleneck_layer_input_dims.append(layer_dim[-1])
         
@@ -60,7 +60,7 @@ class MultiModalVAE(torch.nn.Module):
         
         # sub-task e.g. survival modelling
         # the last layer activation is always Tanh so that risk output is between -1 and 1
-        self.risk_predictor = buildNetwork([z_dim + sum(input_dims_subtask)] + layer_dims_subtask, activation=self.subtask_activation)
+        self.risk_predictor = MaskAwareNetwork(z_dim + sum(input_dims_subtask), layer_dims_subtask, activation=self.subtask_activation)
         
     # subroutine
     def _reparameterize(self, mu, logvar):
@@ -76,29 +76,43 @@ class MultiModalVAE(torch.nn.Module):
         # xs is a tuple of two things
         # 1. a list of vae input tensors and 
         # 2. a risk predictor input tensor
-        x_vae_list = xs[0]
-        x_survival_list = xs[1]
+        x_vae_list = [self._normalise_input(x) for x in xs[0]]
+        x_survival_list = [self._normalise_input(x) for x in xs[1]]
         # check if input sizes match
-        for x_task, input_dim_task in zip(x_survival_list, self.input_dims_subtask):
+        for (x_task, _), input_dim_task in zip(x_survival_list, self.input_dims_subtask):
             assert x_task.shape[-1] == input_dim_task, 'declared input sizes in fit/forward function do not match input sizes from dataloader'
         # forward pass through peripheral encoders
-        hs = [encoder(x_vae) for encoder,x_vae in zip(self.encoders, x_vae_list)]
+        hs = [encoder(x_zero, mask) for encoder, (x_zero, mask) in zip(self.encoders, x_vae_list)]
         # concat peripheral encodings into input for bottleneck layer
         h_cat = torch.cat(hs, dim=1)
-        assert not torch.isnan(h_cat).any().item(), 'nan values present in input to central encoder, h_cat'
+        assert torch.isfinite(h_cat).all().item(), 'non-finite values present in input to central encoder, h_cat'
         # pass through bottleneck layer. 1 for mean, 1 for log(variance)
         mu = self.joint_encoder_mu(h_cat)
         logvar = self.joint_encoder_log_sigma(h_cat)
         # reparameterize to get latent embedding
         z = self._reparameterize(mu, logvar)
-        assert not torch.isnan(z).any().item(), 'nan values present in z-embedding'
+        assert torch.isfinite(mu).all().item(), 'non-finite values present in mu-embedding'
+        assert torch.isfinite(logvar).all().item(), 'non-finite values present in log-variance'
+        assert torch.isfinite(z).all().item(), 'non-finite values present in z-embedding'
         # concat latent embedding with risk predictor input
-        x_survival_input = torch.cat((mu, torch.cat(x_survival_list, dim=1)), dim=1)
-        # get risk predictions
-        riskpred = self.risk_predictor(x_survival_input)
-        assert not torch.isnan(riskpred).any().item(), 'nan values present in log p hazards'
+        survival_zero = torch.cat([x_zero for x_zero, _ in x_survival_list], dim=1)
+        survival_mask = torch.cat([mask for _, mask in x_survival_list], dim=1)
+        riskpred = self.risk_predictor(torch.cat((mu, survival_zero), dim=1), torch.cat((torch.ones_like(mu), survival_mask), dim=1))
+        assert torch.isfinite(riskpred).all().item(), 'non-finite values present in log p hazards'
         # return latent embedding, its mu and logvar, and risk predictions
         return z, mu, logvar, riskpred
+
+    @staticmethod
+    def _normalise_input(value):
+        if isinstance(value, (tuple, list)) and len(value) == 2:
+            x_zero, mask = value
+        else:
+            x = value
+            mask = torch.isfinite(x).to(dtype=x.dtype)
+            x_zero = torch.where(mask.bool(), x, torch.zeros_like(x))
+        if not torch.isfinite(x_zero).all().item() or not torch.isfinite(mask).all().item():
+            raise ValueError('feature inputs must be finite after zero imputation')
+        return x_zero, mask
     
     def decode(self, z):
         h_cat = self.joint_decoder(z) # concatenated decoded input
@@ -125,9 +139,14 @@ class ShapMultiModalVAE(MultiModalVAE):
         for SHAP, the input will arrive as a single list
         we need to partition it into two lists as per the requirement for MultiModalVAE's forward()
         """
+        n_inputs = len(self.input_types_vae) + len(self.input_types_subtask)
+        if len(xs) == 2 * n_inputs:
+            pairs = list(zip(xs[::2], xs[1::2]))
+        else:
+            pairs = xs
         n_subtask = len(self.input_types_subtask) # 1 if only clin
-        xs_vae = xs[:-n_subtask]
-        xs_subtask = xs[-n_subtask:]
+        xs_vae = pairs[:-n_subtask]
+        xs_subtask = pairs[-n_subtask:]
         assert isinstance(xs_vae,list)
         assert isinstance(xs_subtask,list)
         xs_rearranged = [xs_vae, xs_subtask]

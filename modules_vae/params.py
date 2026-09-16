@@ -30,4 +30,4 @@ class VAEParams:
         self.architecture = 'VAE'
         # do not modify these two
         self.input_types_all = self.input_types + self.input_types_subtask
-        self.resultsprefix = f'{os.environ.get("OUTPUTDIR")}/vae_models/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
+        self.resultsprefix = f'{os.environ.get("OUTPUTDIR")}/missingvae_models/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
