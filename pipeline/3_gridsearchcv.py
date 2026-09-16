@@ -77,9 +77,7 @@ def main(model_name:str='default',
     train_features=pd.read_parquet(train_features_file)
     train_labels=pd.read_parquet(train_labels_file)[[params.eventcol,params.durationcol]]
     params = annotate_exp_genes(train_features, params)
-    train_dataframe=pd.concat([train_labels,train_features],axis=1)
-    # drop non-complete observations, leaving n.train=511 
-    train_dataframe = train_dataframe.loc[~train_dataframe.isna().any(axis=1)]
+    train_dataframe=pd.concat([train_labels,train_features],axis=1).fillna(value=0)
 
     if architecture=='VAE':
         base_estimator = VAE(eventcol=params.eventcol,durationcol=params.durationcol,subset_microarray=subset)
