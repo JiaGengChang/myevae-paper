@@ -4,7 +4,7 @@ from json import dump as json_dump
 import pandas as pd
 from sklearn.model_selection import GridSearchCV
 from datetime import datetime 
-
+os.chdir(os.path.dirname(__file__))
 from dotenv import load_dotenv
 assert load_dotenv('../.env') or load_dotenv('.env')
 import sys
@@ -13,7 +13,7 @@ from modules_vae.estimator import VAE
 from modules_deepsurv.estimator import DeepSurv
 from modules_coxnet.estimator import Coxnet
 from modules_rsf.estimator import RSF
-from modules_vae.param_grid import param_grid as param_grid_vae
+from modules_vae.param_grid import param_grid_exp_cna_gistic_fish_sbs_ig as param_grid_vae
 from modules_deepsurv.param_grid import param_grid as param_grid_deepsurv
 from modules_coxnet.param_grid import param_grid as param_grid_coxnet
 from modules_rsf.param_grid import param_grid as param_grid_rsf
@@ -58,15 +58,15 @@ def main(model_name:str='default',
         # shuffle and fold are ignored
         # the only use case is for external validation on GEO datasets
         # the validation C-index metric will be set to 0
-        train_features_file=f'{splitsdir}/full_features_{endpoint}_processed.parquet'
+        train_features_file=f'{splitsdir}/full_features_{endpoint}_processed_joint_imputation.parquet'
         train_labels_file=f'{splitsdir}/full_labels.parquet'
     else:
         # the default mode
         # the model is trained on 80% of the data
         # the 20% validation data is used as calculate hold out C-index metrics
-        train_features_file=f'{splitsdir}/{params.shuffle}/{params.fold}/train_features_{endpoint}_processed.parquet'
+        train_features_file=f'{splitsdir}/{params.shuffle}/{params.fold}/train_features_{endpoint}_processed_joint_imputation.parquet'
         train_labels_file=f'{splitsdir}/{params.shuffle}/{params.fold}/train_labels.parquet'
-        valid_features_file=f'{splitsdir}/{params.shuffle}/{params.fold}/valid_features_{endpoint}_processed.parquet'
+        valid_features_file=f'{splitsdir}/{params.shuffle}/{params.fold}/valid_features_{endpoint}_processed_joint_imputation.parquet'
         valid_labels_file=f'{splitsdir}/{params.shuffle}/{params.fold}/valid_labels.parquet'
         assert os.path.exists(valid_features_file) and os.path.exists(valid_labels_file)
         valid_features=pd.read_parquet(valid_features_file)
