@@ -4,7 +4,7 @@ from json import dump as json_dump
 import pandas as pd
 from sklearn.model_selection import GridSearchCV
 from datetime import datetime 
-
+os.chdir(os.path.dirname(__file__))
 from dotenv import load_dotenv
 assert load_dotenv('../.env') or load_dotenv('.env')
 import sys
@@ -64,9 +64,9 @@ def main(model_name:str='default',
         # the default mode
         # the model is trained on 80% of the data
         # the 20% validation data is used as calculate hold out C-index metrics
-        train_features_file=f'{splitsdir}/{params.shuffle}/{params.fold}/train_features_{endpoint}_processed.parquet'
+        train_features_file=f'{splitsdir}/{params.shuffle}/{params.fold}/train_features_{endpoint}_processed_nan.parquet'
         train_labels_file=f'{splitsdir}/{params.shuffle}/{params.fold}/train_labels.parquet'
-        valid_features_file=f'{splitsdir}/{params.shuffle}/{params.fold}/valid_features_{endpoint}_processed.parquet'
+        valid_features_file=f'{splitsdir}/{params.shuffle}/{params.fold}/valid_features_{endpoint}_processed_nan.parquet'
         valid_labels_file=f'{splitsdir}/{params.shuffle}/{params.fold}/valid_labels.parquet'
         assert os.path.exists(valid_features_file) and os.path.exists(valid_labels_file)
         valid_features=pd.read_parquet(valid_features_file)
@@ -78,15 +78,11 @@ def main(model_name:str='default',
     train_labels=pd.read_parquet(train_labels_file)[[params.eventcol,params.durationcol]]
     params = annotate_exp_genes(train_features, params)
     train_dataframe=pd.concat([train_labels,train_features],axis=1)
+    # drop non-complete observations, leaving n.train=511 
+    train_dataframe = train_dataframe.loc[~train_dataframe.isna().any(axis=1)]
 
     if architecture=='VAE':
         base_estimator = VAE(eventcol=params.eventcol,durationcol=params.durationcol,subset_microarray=subset)
-    elif architecture=='Deepsurv':
-        base_estimator = DeepSurv(eventcol=params.eventcol,durationcol=params.durationcol,subset_microarray=subset)
-    elif architecture=='Coxnet':
-        base_estimator = Coxnet(eventcol=params.eventcol,durationcol=params.durationcol,subset_microarray=subset)
-    elif architecture=='RSF':
-        base_estimator = RSF(eventcol=params.eventcol,durationcol=params.durationcol,subset_microarray=subset)
     else:
         raise NotImplementedError(architecture)
     

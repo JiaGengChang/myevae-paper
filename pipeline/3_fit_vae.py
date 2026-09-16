@@ -35,8 +35,8 @@ def main():
     params = specify_params_here(args.endpoint, pbs_shuffle, pbs_fold)
 
     scratchdir=os.environ.get("SPLITDATADIR")
-    train_features_file=f'{scratchdir}/{params.shuffle}/{params.fold}/train_features_{params.endpoint}_processed.parquet'
-    valid_features_file=f'{scratchdir}/{params.shuffle}/{params.fold}/valid_features_{params.endpoint}_processed.parquet'
+    train_features_file=f'{scratchdir}/{params.shuffle}/{params.fold}/train_features_{params.endpoint}_processed_nan.parquet'
+    valid_features_file=f'{scratchdir}/{params.shuffle}/{params.fold}/valid_features_{params.endpoint}_processed_nan.parquet'
     
     train_labels_file=f'{scratchdir}/{params.shuffle}/{params.fold}/train_labels.parquet'
     valid_labels_file=f'{scratchdir}/{params.shuffle}/{params.fold}/valid_labels.parquet'
@@ -53,7 +53,9 @@ def main():
     train_labels=pd.read_parquet(train_labels_file)[[eventcol,durationcol]]
     valid_labels=pd.read_parquet(valid_labels_file)[[eventcol,durationcol]]
     
-    train_dataframe=pd.concat([train_labels,train_features],axis=1)
+    train_dataframe=pd.concat([train_labels,train_features],axis=1) 
+    # drop non-complete samples
+    # train_dataframe = train_dataframe.loc[~train_dataframe.isna().any(axis=1)]
     valid_dataframe=pd.concat([valid_labels,valid_features],axis=1)
     trainloader = DataLoader(Dataset(train_dataframe, params.input_types_all, event_indicator_col=eventcol,event_time_col=durationcol), batch_size=params.batch_size, shuffle=True)
     validloader = DataLoader(Dataset(valid_dataframe, params.input_types_all, event_indicator_col=eventcol,event_time_col=durationcol), batch_size=128, shuffle=False)
@@ -81,10 +83,10 @@ def main():
     predict_to_tsv(model, validloader, f'{params.resultsprefix}.tsv', save_embeddings=True)
 
     # plot losses and metrics to pdf
-    # plot_results_to_pdf(f'{params.resultsprefix}.json',f'{params.resultsprefix}.pdf')
+    plot_results_to_pdf(f'{params.resultsprefix}.json',f'{params.resultsprefix}.pdf')
 
     # save model state dict
-    # model.save(f'{params.resultsprefix}.pth')
+    model.save(f'{params.resultsprefix}.pth')
 
 
 if __name__ == "__main__":

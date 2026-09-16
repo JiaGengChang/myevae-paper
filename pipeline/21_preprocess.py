@@ -31,8 +31,8 @@ def main(endpoint:str,
     valid_features_file=f'{datadir}/valid_features.parquet'
     valid_features = pd.read_parquet(valid_features_file)
 
-    train_out_features_file=f'{datadir}/train_features_{endpoint}_processed_new.parquet'
-    valid_out_features_file=f'{datadir}/valid_features_{endpoint}_processed_new.parquet'    
+    train_out_features_file=f'{datadir}/train_features_{endpoint}_processed_joint_imputation.parquet'
+    valid_out_features_file=f'{datadir}/valid_features_{endpoint}_processed_joint_imputation.parquet'    
 
     transformer_gene_exp = Pipeline([
         ('Non-zero variance', VarianceSelector(threshold=0)),
@@ -125,7 +125,14 @@ def main(endpoint:str,
 if __name__ == "__main__":
     parser = ArgumentParser(description='Select significant features and preprocess them')
     parser.add_argument('-e','--endpoint', type=str, choices=['pfs', 'os'], help='Survival endpoint to select features against (pfs or os)')
-    parser.add_argument('-d', '--datadir', type=str, help='Input directory for model training and validation data')
     args = parser.parse_args()
+
+    _pbs_array_id = int(os.getenv('PBS_ARRAY_INDEX', "-1"))
+    pbs_shuffle=_pbs_array_id%10
+    pbs_fold=_pbs_array_id//10
     
-    main(args.endpoint,args.datadir)
+    datadir = f'/scratch/users/nus/e1083772/cancer-survival-ml/data/splits/{pbs_shuffle}/{pbs_fold}'
+
+    assert os.path.exists(os.path.dirname(datadir)), f"Input folder ({datadir}) is empty."
+
+    main(args.endpoint,datadir)
