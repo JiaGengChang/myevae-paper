@@ -24,7 +24,7 @@ def main():
     the actual hyperparameters to modify are in params.py
     """
     parser = ArgumentParser(description='Train VAE model. For adjusting hyperparameters, modify params.py')
-    parser.add_argument('--endpoint', type=str, choices=['pfs', 'os'], default='pfs', help='Survival endpoint (pfs or os)')
+    parser.add_argument('--endpoint', type=str, choices=['pfs', 'os'], default='os', help='Survival endpoint (pfs or os)')
     args = parser.parse_args()
 
     # comment out these 3 lines if not using PBS
@@ -35,8 +35,8 @@ def main():
     params = specify_params_here(args.endpoint, pbs_shuffle, pbs_fold)
 
     scratchdir=os.environ.get("SPLITDATADIR")
-    train_features_file=f'{scratchdir}/{params.shuffle}/{params.fold}/train_features_{params.endpoint}_processed.parquet'
-    valid_features_file=f'{scratchdir}/{params.shuffle}/{params.fold}/valid_features_{params.endpoint}_processed.parquet'
+    train_features_file=f'{scratchdir}/{params.shuffle}/{params.fold}/train_features_{params.endpoint}_processed_joint_imputation.parquet'
+    valid_features_file=f'{scratchdir}/{params.shuffle}/{params.fold}/valid_features_{params.endpoint}_processed_joint_imputation.parquet'
     
     train_labels_file=f'{scratchdir}/{params.shuffle}/{params.fold}/train_labels.parquet'
     valid_labels_file=f'{scratchdir}/{params.shuffle}/{params.fold}/valid_labels.parquet'
