@@ -20,13 +20,13 @@ class VAEParams:
         self.lr = 1e-4
         self.epochs = 300
         self.scale_method = "std"
-        self.input_types = ['exp','cna']
-        self.layer_dims = [[256], [32]]
+        self.input_types = ['exp','cna', 'gistic', 'fish', 'sbs', 'ig']
+        self.layer_dims = [[64], [32], [8], [4], [4], [2]]
         self.input_types_subtask = ['clin']
         self.input_dims_subtask = [5]
         self.layer_dims_subtask = [8,1]
-        self.z_dim = 128
-        self.model_name = 'exp-cna-latent'
+        self.z_dim = 16
+        self.model_name = 'exp-cna-gistic-fish-sbs-ig'
         self.architecture = 'VAE'
         # do not modify these two
         self.input_types_all = self.input_types + self.input_types_subtask
