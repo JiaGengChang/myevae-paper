@@ -46,7 +46,7 @@ def main(
         raise NotImplementedError(architecture)
     
     model_name = '-'.join(param_grid['input_types'][0])
-    model_type = 'zero_impute_mask_aware'
+    model_type = 'joint-impute'
     params = Params(model_name=model_name, endpoint=endpoint, shuffle=shuffle, fold=fold, fulldata=fulldata, subset=subset, model_type=model_type)
     splitsdir=os.environ.get("SPLITDATADIR")
     if fulldata:
