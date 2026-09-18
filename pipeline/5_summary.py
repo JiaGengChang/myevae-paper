@@ -57,7 +57,7 @@ def summary_statistics_single_model(model_path):
     return model
 
 if __name__ == "__main__":
-    model_paths = glob(f"{os.environ.get('OUTPUTDIR')}/*_models/*")
+    model_paths = glob(f"{os.environ.get('OUTPUTDIR')}/*/*")
 
     scores = {model_path: summary_statistics_single_model(model_path) for model_path in model_paths}
     filtered_scores = {k: v for k, v in sorted(scores.items()) if v is not None}
