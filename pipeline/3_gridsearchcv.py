@@ -46,15 +46,15 @@ def main(
         raise NotImplementedError(architecture)
     
     model_name = '-'.join(param_grid['input_types'][0])
-
-    params = Params(model_name=model_name, endpoint=endpoint, shuffle=shuffle, fold=fold, fulldata=fulldata, subset=subset)
+    model_type = 'drop_missing'
+    params = Params(model_name=model_name, endpoint=endpoint, shuffle=shuffle, fold=fold, fulldata=fulldata, subset=subset, model_type=model_type)
     splitsdir=os.environ.get("SPLITDATADIR")
     if fulldata:
         # the model is trained on 100% of the data
         # shuffle and fold are ignored
         # the only use case is for external validation on GEO datasets
         # the validation C-index metric will be set to 0
-        train_features_file=f'{splitsdir}/full_features_{endpoint}_processed_joint_imputation.parquet'
+        train_features_file=f'{splitsdir}/full_features_{endpoint}_processed_nan.parquet'
         train_labels_file=f'{splitsdir}/full_labels.parquet'
     else:
         # the default mode
