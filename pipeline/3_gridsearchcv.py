@@ -54,7 +54,7 @@ def main(
         # shuffle and fold are ignored
         # the only use case is for external validation on GEO datasets
         # the validation C-index metric will be set to 0
-        train_features_file=f'{splitsdir}/full_features_{endpoint}_processed.parquet'
+        train_features_file=f'{splitsdir}/full_features_{endpoint}_processed_nan.parquet'
         train_labels_file=f'{splitsdir}/full_labels.parquet'
     else:
         # the default mode
