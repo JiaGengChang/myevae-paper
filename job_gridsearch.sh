@@ -1,9 +1,9 @@
 #!/bin/bash
 
-#PBS -N vae_joint_impute
+#PBS -N vae_drop_missing
 #PBS -P 11004309
 #PBS -j oe
-#PBS -o /home/users/nus/e1083772/cancer-survival-ml/.pbs/3_gridsearchcv/vae_joint_impute/
+#PBS -o /home/users/nus/e1083772/cancer-survival-ml/.pbs/3_gridsearchcv/vae_drop_missing/
 #PBS -q normal
 #PBS -l select=1:ncpus=10:mem=32G
 #PBS -l walltime=23:59:59
