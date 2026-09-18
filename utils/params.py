@@ -57,15 +57,15 @@ class VAEParams(Params):
         if self.fulldata:
             # model is trained on subset of microarray genes
             if self.subset:
-                self.resultsprefix = f'{outputdir}/vae_models/{model_type}/{self.model_name}_subset_full/{self.endpoint}_full'
+                self.resultsprefix = f'{outputdir}/vae_{model_type}/{self.model_name}_subset_full/{self.endpoint}_full'
             else:
-                self.resultsprefix = f'{outputdir}/vae_models/{model_type}/{self.model_name}_full/{self.endpoint}_full'
+                self.resultsprefix = f'{outputdir}/vae_{model_type}/{self.model_name}_full/{self.endpoint}_full'
         # model is trained on a 80-20 split
         else:
             if self.subset:
-                self.resultsprefix = f'{outputdir}/vae_models/{model_type}/{self.model_name}_subset/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
+                self.resultsprefix = f'{outputdir}/vae_{model_type}/{self.model_name}_subset/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
             else:
-                self.resultsprefix = f'{outputdir}/vae_models/{model_type}/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
+                self.resultsprefix = f'{outputdir}/vae_{model_type}/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
     
 class DeepsurvParams(Params):
     """
