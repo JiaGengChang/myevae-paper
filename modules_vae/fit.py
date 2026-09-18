@@ -46,7 +46,7 @@ def fit(model:Module, trainloader:DataLoader, validloader:DataLoader, params:dic
     results={}
     # do not save all_exp_genes and genes
     results['params'] = {k: v for k, v in vars(params).items() if not k.startswith('_') and not k.endswith('genes')}
-    # results['history'] = {}
+    results['history'] = {}
 
     def train_step(epoch:int):
         model.train()
@@ -54,6 +54,10 @@ def fit(model:Module, trainloader:DataLoader, validloader:DataLoader, params:dic
         train_reconstruction_losses = [0 for _ in range(len(model.input_types_vae))]
         train_kl_loss = 0
         train_survival_loss = 0
+
+        # seems necessary to predefine the empty sub-dict
+        results['history'][epoch] = {'train':{}, 'valid':{}}
+
         for batch_idx, data in enumerate(trainloader):
             inputs_vae = [data[f'X_{input_type}'] for input_type in model.input_types_vae]
             inputs_task = [data[f'X_{input_type}'] for input_type in model.input_types_subtask]
@@ -76,11 +80,11 @@ def fit(model:Module, trainloader:DataLoader, validloader:DataLoader, params:dic
             train_survival_loss += batch_survival_loss.data.item()
         
         # at the end of the epoch, log losses to results dictionary
-        # results['history'][epoch]['train']['kl_loss'] = train_kl_loss
-        # results['history'][epoch]['train']['reconstruction_loss'] = {
-        #     input_type: loss for input_type, loss in zip(model.input_types_vae, train_reconstruction_losses)
-        # }
-        # results['history'][epoch]['train']['survival_loss'] = train_survival_loss
+        results['history'][epoch]['train']['kl_loss'] = train_kl_loss
+        results['history'][epoch]['train']['reconstruction_loss'] = {
+            input_type: loss for input_type, loss in zip(model.input_types_vae, train_reconstruction_losses)
+        }
+        results['history'][epoch]['train']['survival_loss'] = train_survival_loss
         return train_kl_loss, train_reconstruction_losses, train_survival_loss
     
     def valid_step(epoch:int):
@@ -117,12 +121,12 @@ def fit(model:Module, trainloader:DataLoader, validloader:DataLoader, params:dic
         valid_metric = ConcordanceIndex(event_indicator, event_time, estimate)
 
         # at the end of the epoch, log losses and metrics to results dictionary
-        # results['history'][epoch]['valid']['kl_loss'] = valid_kl_loss
-        # results['history'][epoch]['valid']['reconstruction_loss'] = {
-        #     input_type: loss for input_type, loss in zip(model.input_types_vae, valid_reconstruction_losses)
-        # }
-        # results['history'][epoch]['valid']['survival_loss'] = valid_survival_loss
-        # results['history'][epoch]['valid']['metric'] = valid_metric
+        results['history'][epoch]['valid']['kl_loss'] = valid_kl_loss
+        results['history'][epoch]['valid']['reconstruction_loss'] = {
+            input_type: loss for input_type, loss in zip(model.input_types_vae, valid_reconstruction_losses)
+        }
+        results['history'][epoch]['valid']['survival_loss'] = valid_survival_loss
+        results['history'][epoch]['valid']['metric'] = valid_metric
         
         # external datasets
         # cindex_uams, cindex_hovon, cindex_emtab = score_external_datasets(model,params.endpoint)

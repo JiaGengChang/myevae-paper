@@ -1,7 +1,9 @@
 import os
+os.chdir(os.path.dirname(__file__))
 from dotenv import load_dotenv
-load_dotenv('.env')
-load_dotenv('../.env')
+assert load_dotenv('../.env')
+assert os.environ.get("OUTPUTDIR") != ''
+assert os.environ.get("MODEL_TYPE") != ''
 
 class VAEParams:
     """
@@ -26,8 +28,8 @@ class VAEParams:
         self.input_dims_subtask = [5]
         self.layer_dims_subtask = [8,1]
         self.z_dim = 16
-        self.model_name = 'exp-cna-gistic-fish-sbs-ig'
+        self.model_name = 'Unnamed-model'
         self.architecture = 'VAE'
         # do not modify these two
         self.input_types_all = self.input_types + self.input_types_subtask
-        self.resultsprefix = f'{os.environ.get("OUTPUTDIR")}/vae_joint_impute/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
+        self.resultsprefix = f'{os.environ.get("OUTPUTDIR")}/{os.environ.get("MODEL_TYPE")}/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
