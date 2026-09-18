@@ -11,13 +11,12 @@ param_grid = {
                    [[256, 64], [128, 32], [32, 8], [16, 4], [4], [2]]],
     'layer_dims_subtask' : [[4,1], [8,1], [16,1]],
     'kl_weight': [1],
-    'activation': [LeakyReLU(),ReLU(),Sigmoid()],
+    'activation': [LeakyReLU()],
     'subtask_activation': [Tanh()],
     'epochs': [300],
     'burn_in': [50],
     'patience': [20],
 }
-
 
 param_grid_exp_cna_gistic_fish_sbs_ig_chrom = {
     'z_dim': [8, 16, 32, 64],
