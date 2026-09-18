@@ -7,6 +7,20 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.base import BaseEstimator, TransformerMixin
 
+class IdentityTransform(BaseEstimator, TransformerMixin):
+    def __init__(self):
+        self.features_out = None
+    
+    def fit(self, X:pd.DataFrame, y=None):
+        self.features_out = X.columns
+        return self
+    
+    def transform(self, X:pd.DataFrame, y=None):
+        return X*1
+
+    def get_feature_names_out(self):
+        return self.features_out
+    
 class TopNSelector(TransformerMixin, BaseEstimator):
     def __init__(self, n=10):
         self.n = n 

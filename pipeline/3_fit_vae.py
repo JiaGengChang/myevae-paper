@@ -24,7 +24,7 @@ def main():
     the actual hyperparameters to modify are in params.py
     """
     parser = ArgumentParser(description='Train VAE model. For adjusting hyperparameters, modify params.py')
-    parser.add_argument('--endpoint', type=str, choices=['pfs', 'os'], default='pfs', help='Survival endpoint (pfs or os)')
+    parser.add_argument('--endpoint', type=str, choices=['pfs', 'os'], default='os', help='Survival endpoint (pfs or os)')
     args = parser.parse_args()
 
     # comment out these 3 lines if not using PBS

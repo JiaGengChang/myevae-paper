@@ -14,6 +14,20 @@ class VAEParams:
         self.endpoint = endpoint
         self.shuffle = shuffle
         self.fold = fold
-        assert os.environ.get("OUTPUTDIR") != ''
-        assert os.path.exists(os.environ.get("OUTPUTDIR"))
-        self.resultsprefix = f'{os.environ.get("OUTPUTDIR")}/joint_impute_vae_models/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
+        # modify the rest
+        self.kl_weight = 1
+        self.batch_size = 128
+        self.lr = 1e-4
+        self.epochs = 300
+        self.scale_method = "std"
+        self.input_types = ['exp','cna', 'gistic', 'fish', 'sbs', 'ig']
+        self.layer_dims = [[64], [32], [8], [4], [4], [2]]
+        self.input_types_subtask = ['clin']
+        self.input_dims_subtask = [5]
+        self.layer_dims_subtask = [8,1]
+        self.z_dim = 16
+        self.model_name = 'exp-cna-gistic-fish-sbs-ig'
+        self.architecture = 'VAE'
+        # do not modify these two
+        self.input_types_all = self.input_types + self.input_types_subtask
+        self.resultsprefix = f'{os.environ.get("OUTPUTDIR")}/vae_joint_impute/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
