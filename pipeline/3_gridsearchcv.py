@@ -9,17 +9,9 @@ from dotenv import load_dotenv
 assert load_dotenv('../.env') or load_dotenv('.env')
 import sys
 sys.path.append(os.environ.get("PROJECTDIR"))
-from modules_vae.estimator import VAE
-from modules_deepsurv.estimator import DeepSurv
-from modules_coxnet.estimator import Coxnet
-from modules_rsf.estimator import RSF
-from modules_vae.param_grid import param_grid_exp_cna_gistic_fish_sbs_ig as param_grid_vae
-from modules_deepsurv.param_grid import param_grid_exp_cna_gistic_fish_sbs_ig as param_grid_deepsurv
-from modules_coxnet.param_grid import param_grid as param_grid_coxnet
-from modules_rsf.param_grid import param_grid as param_grid_rsf
-from utils.params import VAEParams, DeepsurvParams, CoxnetParams, RSFParams
 from utils.validation import score_external_datasets
 from utils.annotate_exp_genes import annotate_exp_genes
+from utils.decorators import timer
 
 import joblib
 from dask.distributed import Client, LocalCluster
@@ -29,7 +21,8 @@ from dask.distributed import Client, LocalCluster
 # if model is exp-only, perform benchmark on external GEO datasets
 # scores on these external dataset will also be in the json file
 # select the model to be either VAE (default) or Deepsurv (benchmark)
-def main(model_name:str='default', 
+@timer
+def main(
          endpoint:str='os', 
          shuffle:int=5, 
          fold:int=10, 
@@ -38,20 +31,23 @@ def main(model_name:str='default',
          subset:bool=False) -> None:
     
     if architecture=='VAE':
-        params = VAEParams(model_name=model_name, endpoint=endpoint, shuffle=shuffle, fold=fold, fulldata=fulldata, subset=subset)
-        param_grid = param_grid_vae
+        from modules_vae.param_grid import param_grid
+        from utils.params import VAEParams as Params
     elif architecture=='Deepsurv':
-        params = DeepsurvParams(model_name=model_name,endpoint=endpoint, shuffle=shuffle, fold=fold, fulldata=fulldata, subset=subset)
-        param_grid = param_grid_deepsurv
+        from utils.params import DeepsurvParams as Params
+        from modules_deepsurv.param_grid import param_grid
     elif architecture=='Coxnet':
-        params = CoxnetParams(model_name=model_name,endpoint=endpoint, shuffle=shuffle, fold=fold, fulldata=fulldata, subset=subset)
-        param_grid = param_grid_coxnet
+        from utils.params import CoxnetParams as Params
+        from modules_coxnet.param_grid import param_grid
     elif architecture=='RSF':
-        params = RSFParams(model_name=model_name,endpoint=endpoint, shuffle=shuffle, fold=fold, fulldata=fulldata, subset=subset)
-        param_grid = param_grid_rsf
+        from utils.params import RSFParams as Params
+        from modules_rsf.param_grid import param_grid
     else:
         raise NotImplementedError(architecture)
     
+    model_name = '-'.join(param_grid['input_types'][0])
+
+    params = Params(model_name=model_name, endpoint=endpoint, shuffle=shuffle, fold=fold, fulldata=fulldata, subset=subset)
     splitsdir=os.environ.get("SPLITDATADIR")
     if fulldata:
         # the model is trained on 100% of the data
@@ -80,7 +76,17 @@ def main(model_name:str='default',
     train_dataframe=pd.concat([train_labels,train_features],axis=1).fillna(value=0)
 
     if architecture=='VAE':
+        from modules_vae.estimator import VAE
         base_estimator = VAE(eventcol=params.eventcol,durationcol=params.durationcol,subset_microarray=subset)
+    elif architecture=='Deepsurv':
+        from modules_deepsurv.estimator import DeepSurv
+        base_estimator = DeepSurv(eventcol=params.eventcol,durationcol=params.durationcol,subset_microarray=subset)
+    elif architecture=='Coxnet':
+        from modules_coxnet.estimator import Coxnet
+        base_estimator = Coxnet(eventcol=params.eventcol,durationcol=params.durationcol,subset_microarray=subset)
+    elif architecture=='RSF':
+        from modules_rsf.estimator import RSF
+        base_estimator = RSF(eventcol=params.eventcol,durationcol=params.durationcol,subset_microarray=subset)
     else:
         raise NotImplementedError(architecture)
     
@@ -88,7 +94,7 @@ def main(model_name:str='default',
 
     cluster = LocalCluster()
     client = Client(cluster)
-    with joblib.parallel_config("dask", n_jobs=10): # set n_jobs to NCPUS
+    with joblib.parallel_config("dask", n_jobs=-1): # set n_jobs to NCPUS
         grid_search.fit(train_dataframe)
 
     # update params with best params
@@ -143,7 +149,6 @@ def main(model_name:str='default',
 
 if __name__ == "__main__":
     parser = ArgumentParser(description='Tune hyperparameters of VAE model using scikit-learn GridSearchCV. For adjusting hyperparameters, modify params.py and param_grid.py')
-    parser.add_argument('-m', '--model_name', type=str, default='exp', help='An experiment name for the model')
     parser.add_argument('-e', '--endpoint', type=str, choices=['pfs','os','both'], default='both', help='Survival endpoint (pfs or os or both)')
     parser.add_argument('-a', '--architecture', type=str, choices=['VAE','Deepsurv','Coxnet','RSF'], default='VAE', help='Choice of model architecture. In-house VAE, comparator Deepsurv, or baseline models like Coxnet and random survival forests.')
     parser.add_argument('-f', '--fulldata', action='store_true', help='Whether to train with full CoMMpass dataset')
@@ -155,7 +160,7 @@ if __name__ == "__main__":
     if args.endpoint=="both":
         # useful for training the train-valid splits
         # because scheduler has a limit of 99 jobs
-        main(args.model_name, 'os', pbs_shuffle, pbs_fold, args.architecture, args.fulldata, args.subset)
-        main(args.model_name, 'pfs', pbs_shuffle, pbs_fold, args.architecture, args.fulldata, args.subset)
+        main('os', pbs_shuffle, pbs_fold, args.architecture, args.fulldata, args.subset)
+        main('pfs', pbs_shuffle, pbs_fold, args.architecture, args.fulldata, args.subset)
     else:
-        main(args.model_name, args.endpoint, pbs_shuffle, pbs_fold, args.architecture, args.fulldata, args.subset)
+        main(args.endpoint, pbs_shuffle, pbs_fold, args.architecture, args.fulldata, args.subset)
