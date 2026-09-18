@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 assert load_dotenv('../.env') or load_dotenv('.env')
 import sys
 sys.path.append(os.environ.get("PROJECTDIR"))
-from modules_vae.params import VAEParams as specify_params_here
+from utils.params import VAEParams as specify_params_here
 from modules_vae.fit import fit
 from modules_vae.model import MultiModalVAE as Model
 from modules_vae.predict import predict_to_tsv

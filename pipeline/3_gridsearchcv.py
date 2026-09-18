@@ -46,8 +46,8 @@ def main(
         raise NotImplementedError(architecture)
     
     model_name = '-'.join(param_grid['input_types'][0])
-
-    params = Params(model_name=model_name, endpoint=endpoint, shuffle=shuffle, fold=fold, fulldata=fulldata, subset=subset)
+    model_type = 'zero_impute_mask_aware'
+    params = Params(model_name=model_name, endpoint=endpoint, shuffle=shuffle, fold=fold, fulldata=fulldata, subset=subset, model_type=model_type)
     splitsdir=os.environ.get("SPLITDATADIR")
     if fulldata:
         # the model is trained on 100% of the data
