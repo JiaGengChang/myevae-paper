@@ -1,7 +1,7 @@
 import os
+os.chdir(os.path.dirname(__file__))
 from dotenv import load_dotenv
-load_dotenv('.env')
-load_dotenv('../.env')
+assert load_dotenv('../.env')
 
 class VAEParams:
     """
@@ -20,14 +20,16 @@ class VAEParams:
         self.lr = 1e-4
         self.epochs = 300
         self.scale_method = "std"
-        self.input_types = ['exp','cna']
-        self.layer_dims = [[256], [32]]
+        self.input_types = ['exp','cna', 'gistic', 'fish', 'sbs', 'ig']
+        self.layer_dims = [[64], [32], [8], [4], [4], [2]]
         self.input_types_subtask = ['clin']
         self.input_dims_subtask = [5]
         self.layer_dims_subtask = [8,1]
-        self.z_dim = 128
-        self.model_name = 'exp-cna-latent'
+        self.z_dim = 16
+        self.model_name = 'exp-cna-gistic-fish-sbs-ig'
         self.architecture = 'VAE'
         # do not modify these two
         self.input_types_all = self.input_types + self.input_types_subtask
-        self.resultsprefix = f'{os.environ.get("OUTPUTDIR")}/vae_drop_missing/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
+        assert os.environ.get("OUTPUTDIR") != ''
+        assert os.path.exists(os.environ.get("OUTPUTDIR"))
+        self.resultsprefix = f'{os.environ.get("OUTPUTDIR")}/joint_impute_vae_models/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'

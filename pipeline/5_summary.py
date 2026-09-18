@@ -1,9 +1,11 @@
 import json
 from glob import glob
 import os
-import numpy as np
+os.chdir(os.path.dirname(__file__))
 from dotenv import load_dotenv
-assert load_dotenv('.env') or load_dotenv('../.env')
+assert load_dotenv('../.env')
+import numpy as np
+from datetime import date
 
 def summary_statistics_single_model(model_path):
     """
@@ -59,6 +61,6 @@ if __name__ == "__main__":
 
     scores = {model_path: summary_statistics_single_model(model_path) for model_path in model_paths}
     filtered_scores = {k: v for k, v in sorted(scores.items()) if v is not None}
-
-    with open(f'{os.environ.get("PROJECTDIR")}/model_scores.json', 'w') as f:
+    
+    with open(f'{os.environ.get("PROJECTDIR")}/model_scores_{date.today().strftime("%d%b")}.json', 'w') as f:
         json.dump(filtered_scores, f, indent=4)

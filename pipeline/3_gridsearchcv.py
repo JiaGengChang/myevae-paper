@@ -38,6 +38,8 @@ def main(model_name:str='default',
          subset:bool=False) -> None:
     
     if architecture=='VAE':
+        from utils.params import VAEParams as Params
+        from modules_vae.param_grid import param_grid
         params = VAEParams(model_name=model_name, endpoint=endpoint, shuffle=shuffle, fold=fold, fulldata=fulldata, subset=subset)
         param_grid = param_grid_vae
     elif architecture=='Deepsurv':
