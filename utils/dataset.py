@@ -49,9 +49,9 @@ class Dataset(torch_Dataset):
     def __getitem__(self,index):
         # a payload with event_time, event_indicator, PUBLIC_ID, and a few tensors with prefix X_
         data = {
-            'event_time': self.event_time.iloc[index],
-            'event_indicator': self.event_indicator.iloc[index],
-            'PUBLIC_ID': self.PUBLIC_ID[index]
+            'event_time': torch_tensor(self.event_time.iloc[index], dtype=torch_float64),
+            'event_indicator': torch_tensor(self.event_indicator.iloc[index], dtype=torch_float64),
+            'PUBLIC_ID': self.PUBLIC_ID[index].item() if hasattr(self.PUBLIC_ID[index], 'item') else self.PUBLIC_ID[index]
         }
         for suffix in self.input_types:
             data[f'X_{suffix}'] = getattr(self, f'X_{suffix}', None)[index,:]

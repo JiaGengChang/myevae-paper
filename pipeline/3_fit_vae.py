@@ -15,9 +15,11 @@ from utils.plotlosses import plot_results_to_pdf
 from utils.subset_affy_features import subset_to_microarray_genes
 from utils.lazy_input_dims import lazy_input_dims
 from utils.annotate_exp_genes import annotate_exp_genes
+from utils.decorators import timer
 
 from torch.utils.data import DataLoader
 
+@timer
 def main():
     """
     Parse the 3 arguments which we will parallelize across. 
@@ -32,11 +34,12 @@ def main():
     _pbs_array_id = int(os.getenv('PBS_ARRAY_INDEX', "-1"))
     pbs_shuffle=_pbs_array_id%10
     pbs_fold=_pbs_array_id//10
-    params = specify_params_here(args.endpoint, pbs_shuffle, pbs_fold)
+    # params = specify_params_here(args.endpoint, pbs_shuffle, pbs_fold)
+    params = specify_params_here(args.endpoint, 4, 4)
 
     scratchdir=os.environ.get("SPLITDATADIR")
-    train_features_file=f'{scratchdir}/{params.shuffle}/{params.fold}/train_features_{params.endpoint}_processed.parquet'
-    valid_features_file=f'{scratchdir}/{params.shuffle}/{params.fold}/valid_features_{params.endpoint}_processed.parquet'
+    train_features_file=f'{scratchdir}/{params.shuffle}/{params.fold}/train_features_{params.endpoint}_processed_nan.parquet'
+    valid_features_file=f'{scratchdir}/{params.shuffle}/{params.fold}/valid_features_{params.endpoint}_processed_nan.parquet'
     
     train_labels_file=f'{scratchdir}/{params.shuffle}/{params.fold}/train_labels.parquet'
     valid_labels_file=f'{scratchdir}/{params.shuffle}/{params.fold}/valid_labels.parquet'
