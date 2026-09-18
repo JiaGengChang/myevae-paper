@@ -30,4 +30,4 @@ class VAEParams:
         self.architecture = 'VAE'
         # do not modify these two
         self.input_types_all = self.input_types + self.input_types_subtask
-        self.resultsprefix = f'/home/users/nus/e1083772/cancer-survival-ml/output_scratch/vae_zero_impute_mask_aware/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
+        self.resultsprefix = f'/scratch/users/nus/e1083772/cancer-survival-ml/output/vae_models/zero_impute_mask_aware/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
