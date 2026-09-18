@@ -28,5 +28,6 @@ def predict_to_tsv(model, loader, outputfile, save_embeddings=False):
     })
     if save_embeddings:
         mu_columns = [f'mu_{i}' for i in range(mu_list.shape[1])]
-        df[mu_columns] = pd.DataFrame(mu_list)
+        embeddings = pd.DataFrame(mu_list, columns=mu_columns)
+        df = pd.concat([df, embeddings], axis=1)
     df.to_csv(outputfile, index=False, sep='\t')
