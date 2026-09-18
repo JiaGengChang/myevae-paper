@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 assert load_dotenv('../.env') or load_dotenv('.env')
 import sys
 sys.path.append(os.environ.get("PROJECTDIR"))
-from modules_vae.params import VAEParams as specify_params_here
+from utils.params import VAEParams as specify_params_here
 from modules_vae.fit import fit
 from modules_vae.model import MultiModalVAE as Model
 from modules_vae.predict import predict_to_tsv
@@ -15,9 +15,11 @@ from utils.plotlosses import plot_results_to_pdf
 from utils.subset_affy_features import subset_to_microarray_genes
 from utils.lazy_input_dims import lazy_input_dims
 from utils.annotate_exp_genes import annotate_exp_genes
+from utils.decorators import timer
 
 from torch.utils.data import DataLoader
 
+@timer
 def main():
     """
     Parse the 3 arguments which we will parallelize across. 
@@ -53,9 +55,7 @@ def main():
     train_labels=pd.read_parquet(train_labels_file)[[eventcol,durationcol]]
     valid_labels=pd.read_parquet(valid_labels_file)[[eventcol,durationcol]]
     
-    train_dataframe=pd.concat([train_labels,train_features],axis=1) 
-    # drop non-complete samples
-    # train_dataframe = train_dataframe.loc[~train_dataframe.isna().any(axis=1)]
+    train_dataframe=pd.concat([train_labels,train_features],axis=1)
     valid_dataframe=pd.concat([valid_labels,valid_features],axis=1)
     trainloader = DataLoader(Dataset(train_dataframe, params.input_types_all, event_indicator_col=eventcol,event_time_col=durationcol), batch_size=params.batch_size, shuffle=True)
     validloader = DataLoader(Dataset(valid_dataframe, params.input_types_all, event_indicator_col=eventcol,event_time_col=durationcol), batch_size=128, shuffle=False)

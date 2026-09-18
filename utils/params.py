@@ -25,22 +25,47 @@ class VAEParams(Params):
     To hold additional parameters relevant for the multi-omics VAE model (myeVAE).
     Instantiated by pipeline/3_gridsearchcv.py when model='VAE'
     """
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self,
+                 endpoint='pfs',
+                 shuffle=0,
+                 fold=0,
+                 model_name='exp-cna-latent',
+                 fulldata=False,
+                 subset=False,
+                 model_type='undefined',
+                 ):
+        super().__init__(model_name=model_name,
+                         endpoint=endpoint,
+                         shuffle=shuffle,
+                         fold=fold,
+                         fulldata=fulldata,
+                         subset=subset)
         self.architecture = 'VAE' # DO NOT MODIFY
-        # model is trained on full data
+        self.kl_weight = 1
+        self.batch_size = 128
+        self.lr = 1e-4
+        self.epochs = 300
+        self.scale_method = 'std'
+        self.input_types = ['exp', 'cna']
+        self.layer_dims = [[256], [32]]
+        self.input_types_subtask = ['clin']
+        self.input_dims_subtask = [5]
+        self.layer_dims_subtask = [8, 1]
+        self.z_dim = 128
+        self.input_types_all = self.input_types + self.input_types_subtask
+         # model is trained on full data
         if self.fulldata:
             # model is trained on subset of microarray genes
             if self.subset:
-                self.resultsprefix = f'{outputdir}/vae_models/{self.model_name}_subset_full/{self.endpoint}_full'
+                self.resultsprefix = f'{outputdir}/vae_models/{model_type}/{self.model_name}_subset_full/{self.endpoint}_full'
             else:
-                self.resultsprefix = f'{outputdir}/vae_models/{self.model_name}_full/{self.endpoint}_full'
+                self.resultsprefix = f'{outputdir}/vae_models/{model_type}/{self.model_name}_full/{self.endpoint}_full'
         # model is trained on a 80-20 split
         else:
             if self.subset:
-                self.resultsprefix = f'{outputdir}/vae_models/{self.model_name}_subset/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
+                self.resultsprefix = f'{outputdir}/vae_models/{model_type}/{self.model_name}_subset/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
             else:
-                self.resultsprefix = f'{outputdir}/vae_models/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
+                self.resultsprefix = f'{outputdir}/vae_models/{model_type}/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
     
 class DeepsurvParams(Params):
     """
