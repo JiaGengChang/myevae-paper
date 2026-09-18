@@ -10,7 +10,7 @@ from sklearn.compose import make_column_selector, ColumnTransformer
 from sklearn.ensemble import RandomForestClassifier,RandomForestRegressor 
 import sys
 sys.path.append('/home/users/nus/e1083772/cancer-survival-ml/utils')
-from pipelinetools import *
+from pipelinetools import VarianceSelector,Log1pTransform,StandardTransform,FrequencySelector,CoxnetSelector,TopNSelector,CorrelationSelector
 
 def main(endpoint:str,
          datadir:str) -> None:
@@ -31,8 +31,8 @@ def main(endpoint:str,
     valid_features_file=f'{datadir}/valid_features.parquet'
     valid_features = pd.read_parquet(valid_features_file)
 
-    train_out_features_file=f'{datadir}/train_features_{endpoint}_processed_new.parquet'
-    valid_out_features_file=f'{datadir}/valid_features_{endpoint}_processed_new.parquet'    
+    train_out_features_file=f'{datadir}/train_features_{endpoint}_processed_nan.parquet'
+    valid_out_features_file=f'{datadir}/valid_features_{endpoint}_processed_nan.parquet'    
 
     transformer_gene_exp = Pipeline([
         ('Non-zero variance', VarianceSelector(threshold=0)),
@@ -66,13 +66,18 @@ def main(endpoint:str,
         ('Scale age', StandardTransform(cols=['Feature_clin_D_PT_age']))
     ])
 
+    transformer_igh = Pipeline([
+        ('Min Frequency', FrequencySelector(minfreq=0.05))
+    ])
+
     transformer = ColumnTransformer([
-        ('Gene expression', transformer_gene_exp, make_column_selector(pattern='Feature_exp_')),
-        ('Gene copy number', transformer_gene_cn, make_column_selector(pattern='Feature_CNA_ENSG')),
-        ('Gistic copy number', transformer_gistic, make_column_selector(pattern='Feature_CNA_(Amp|Del)')),
-        ('FISH copy number', transformer_fish, make_column_selector(pattern='Feature_fish')),
-        ('Mutation signatures', transformer_sbs, make_column_selector(pattern='Feature_SBS')),
-        ('Clinical', transformer_clin, make_column_selector(pattern='Feature_clin')),
+        ('GEXP', transformer_gene_exp, make_column_selector(pattern='Feature_exp_')),
+        ('GENECN', transformer_gene_cn, make_column_selector(pattern='Feature_CNA_ENSG')),
+        ('GISTIC_', transformer_gistic, make_column_selector(pattern='Feature_CNA_(Amp|Del)')),
+        ('FISH_', transformer_fish, make_column_selector(pattern='Feature_fish')),
+        ('SBS_', transformer_sbs, make_column_selector(pattern='Feature_SBS')),
+        ('CLIN_', transformer_clin, make_column_selector(pattern='Feature_clin')),
+        ('IGH_', transformer_igh, make_column_selector(pattern='Feature_(RNASeq|SeqWGS)')),
     ], remainder='drop').set_output(transform="pandas")
 
     tree_args = {
@@ -82,9 +87,9 @@ def main(endpoint:str,
         'n_jobs': -1,
     }
     imputer_args = {
-        'n_nearest_features':100,
-        'max_iter':50,
-        'tol': 0.001,
+        'n_nearest_features':10,
+        'max_iter':10,
+        'tol': 1e-3,
         'skip_complete':True,
     }
 
@@ -125,7 +130,14 @@ def main(endpoint:str,
 if __name__ == "__main__":
     parser = ArgumentParser(description='Select significant features and preprocess them')
     parser.add_argument('-e','--endpoint', type=str, choices=['pfs', 'os'], help='Survival endpoint to select features against (pfs or os)')
-    parser.add_argument('-d', '--datadir', type=str, help='Input directory for model training and validation data')
     args = parser.parse_args()
+
+    _pbs_array_id = int(os.getenv('PBS_ARRAY_INDEX', "-1"))
+    pbs_shuffle=_pbs_array_id%10
+    pbs_fold=_pbs_array_id//10
     
-    main(args.endpoint,args.datadir)
+    datadir = f'/scratch/users/nus/e1083772/cancer-survival-ml/data/splits/{pbs_shuffle}/{pbs_fold}'
+
+    assert os.path.exists(os.path.dirname(datadir)), f"Input folder ({datadir}) is empty."
+
+    main(args.endpoint,datadir)

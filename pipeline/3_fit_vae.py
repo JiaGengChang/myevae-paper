@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 assert load_dotenv('../.env') or load_dotenv('.env')
 import sys
 sys.path.append(os.environ.get("PROJECTDIR"))
-from modules_vae.params import VAEParams as specify_params_here
+from utils.params import VAEParams as specify_params_here
 from modules_vae.fit import fit
 from modules_vae.model import MultiModalVAE as Model
 from modules_vae.predict import predict_to_tsv
@@ -15,16 +15,18 @@ from utils.plotlosses import plot_results_to_pdf
 from utils.subset_affy_features import subset_to_microarray_genes
 from utils.lazy_input_dims import lazy_input_dims
 from utils.annotate_exp_genes import annotate_exp_genes
+from utils.decorators import timer
 
 from torch.utils.data import DataLoader
 
+@timer
 def main():
     """
     Parse the 3 arguments which we will parallelize across. 
     the actual hyperparameters to modify are in params.py
     """
     parser = ArgumentParser(description='Train VAE model. For adjusting hyperparameters, modify params.py')
-    parser.add_argument('--endpoint', type=str, choices=['pfs', 'os'], default='pfs', help='Survival endpoint (pfs or os)')
+    parser.add_argument('--endpoint', type=str, choices=['pfs', 'os'], default='os', help='Survival endpoint (pfs or os)')
     args = parser.parse_args()
 
     # comment out these 3 lines if not using PBS
@@ -35,8 +37,8 @@ def main():
     params = specify_params_here(args.endpoint, pbs_shuffle, pbs_fold)
 
     scratchdir=os.environ.get("SPLITDATADIR")
-    train_features_file=f'{scratchdir}/{params.shuffle}/{params.fold}/train_features_{params.endpoint}_processed.parquet'
-    valid_features_file=f'{scratchdir}/{params.shuffle}/{params.fold}/valid_features_{params.endpoint}_processed.parquet'
+    train_features_file=f'{scratchdir}/{params.shuffle}/{params.fold}/train_features_{params.endpoint}_processed_nan.parquet'
+    valid_features_file=f'{scratchdir}/{params.shuffle}/{params.fold}/valid_features_{params.endpoint}_processed_nan.parquet'
     
     train_labels_file=f'{scratchdir}/{params.shuffle}/{params.fold}/train_labels.parquet'
     valid_labels_file=f'{scratchdir}/{params.shuffle}/{params.fold}/valid_labels.parquet'
@@ -81,10 +83,10 @@ def main():
     predict_to_tsv(model, validloader, f'{params.resultsprefix}.tsv', save_embeddings=True)
 
     # plot losses and metrics to pdf
-    # plot_results_to_pdf(f'{params.resultsprefix}.json',f'{params.resultsprefix}.pdf')
+    plot_results_to_pdf(f'{params.resultsprefix}.json',f'{params.resultsprefix}.pdf')
 
     # save model state dict
-    # model.save(f'{params.resultsprefix}.pth')
+    model.save(f'{params.resultsprefix}.pth')
 
 
 if __name__ == "__main__":

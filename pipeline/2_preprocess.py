@@ -8,7 +8,7 @@ from sksurv.util import Surv
 from sklearn.pipeline import Pipeline
 from sklearn.compose import make_column_selector, ColumnTransformer
 from xgboost import XGBRFClassifier, XGBRFRegressor # version < 1.3.2 to allow non-encoded y
-
+os.chdir(os.path.dirname(__file__))
 from dotenv import load_dotenv
 assert load_dotenv('../.env') or load_dotenv('.env')
 import sys
