@@ -121,7 +121,7 @@ def main(
     results['params_fixed'] = {k: v for k, v in vars(params).items() if not k.startswith('_') and k != 'all_exp_genes' and k not in param_grid.keys()}
     results['params_search'] = {k: v.__str__() for k, v in param_grid.items() } # save activation as string
     results['best_epoch'] = {}
-    results['best_epoch']['params'] = {k:v.__str__() for k, v in grid_search.best_params_.items()} # save activation as string
+    results['best_epoch']['params'] = {k:v.__str__() for k, v in random_search.best_params_.items()} # save activation as string
 
     # skip if this model is for external validation
     if params.fulldata:
