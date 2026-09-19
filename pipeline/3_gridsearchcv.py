@@ -60,9 +60,9 @@ def main(
         # the default mode
         # the model is trained on 80% of the data
         # the 20% validation data is used as calculate hold out C-index metrics
-        train_features_file=f'{splitsdir}/{params.shuffle}/{params.fold}/train_features_{endpoint}_processed_joint_imputation.parquet'
+        train_features_file=f'{splitsdir}/{params.shuffle}/{params.fold}/train_features_{endpoint}_processed_nan.parquet'
         train_labels_file=f'{splitsdir}/{params.shuffle}/{params.fold}/train_labels.parquet'
-        valid_features_file=f'{splitsdir}/{params.shuffle}/{params.fold}/valid_features_{endpoint}_processed_joint_imputation.parquet'
+        valid_features_file=f'{splitsdir}/{params.shuffle}/{params.fold}/valid_features_{endpoint}_processed_nan.parquet'
         valid_labels_file=f'{splitsdir}/{params.shuffle}/{params.fold}/valid_labels.parquet'
         assert os.path.exists(valid_features_file) and os.path.exists(valid_labels_file)
         valid_features=pd.read_parquet(valid_features_file)
