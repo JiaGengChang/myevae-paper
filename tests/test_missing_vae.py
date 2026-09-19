@@ -1,6 +1,7 @@
 import pandas as pd
 import torch
-
+import sys
+sys.path.append('/home/users/nus/e1083772/cancer-survival-ml')
 from modules_vae.model import MultiModalVAE
 from utils.dataset import Dataset
 from utils.missing import masked_mse
