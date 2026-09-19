@@ -2,9 +2,9 @@ import os
 from argparse import ArgumentParser
 from json import dump as json_dump
 import pandas as pd
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import RandomizedSearchCV
 from datetime import datetime 
-os.chdir(os.path.dirname(__file__))
+os.chdir('/home/users/nus/e1083772/cancer-survival-ml')
 from dotenv import load_dotenv
 assert load_dotenv('../.env') or load_dotenv('.env')
 import sys
@@ -28,7 +28,9 @@ def main(
          fold:int=10, 
          architecture:str='VAE', 
          fulldata:bool=False, 
-         subset:bool=False) -> None:
+         subset:bool=False,
+         n_iter:int=20,
+         random_state:int=42) -> None:
     
     if architecture=='VAE':
         from modules_vae.param_grid import param_grid
@@ -90,21 +92,26 @@ def main(
     else:
         raise NotImplementedError(architecture)
     
-    grid_search = GridSearchCV(base_estimator, param_grid)
+    random_search = RandomizedSearchCV(
+        base_estimator,
+        param_distributions=param_grid,
+        n_iter=n_iter,
+        random_state=random_state,
+    )
 
     cluster = LocalCluster()
     client = Client(cluster)
     with joblib.parallel_config("dask", n_jobs=-1): # set n_jobs to NCPUS
-        grid_search.fit(train_dataframe)
+        random_search.fit(train_dataframe)
 
     # update params with best params
-    for k,v in grid_search.best_params_.items():
+    for k,v in random_search.best_params_.items():
         setattr(params,k,v)
     # update params with RNA-Seq gene names
     # this field is needed in score_external_datasets
     if subset:
         # only microarray compatible genes were used
-        setattr(params,"genes",grid_search.best_estimator_.genes)
+        setattr(params,"genes",random_search.best_estimator_.genes)
     else:
         # all genes were used, including those not found in microarray
         setattr(params,"genes",params.all_exp_genes)
@@ -114,22 +121,22 @@ def main(
     results['params_fixed'] = {k: v for k, v in vars(params).items() if not k.startswith('_') and k != 'all_exp_genes' and k not in param_grid.keys()}
     results['params_search'] = {k: v.__str__() for k, v in param_grid.items() } # save activation as string
     results['best_epoch'] = {}
-    results['best_epoch']['params'] = {k:v.__str__() for k, v in grid_search.best_params_.items()} # save activation as string
+    results['best_epoch']['params'] = {k:v.__str__() for k, v in random_search.best_params_.items()} # save activation as string
 
     # skip if this model is for external validation
     if params.fulldata:
         results['best_epoch']['valid_metric'] = 0
     else:
-        valid_metric = grid_search.score(valid_dataframe)
+        valid_metric = random_search.score(valid_dataframe)
         results['best_epoch']['valid_metric'] = valid_metric
 
     # add additional attributes to params needed for external validation (`score_external_datasets`)
-    params.input_types_all = grid_search.best_estimator_.input_types_all
-    params.scale_method = grid_search.best_estimator_.scale_method
+    params.input_types_all = random_search.best_estimator_.input_types_all
+    params.scale_method = random_search.best_estimator_.scale_method
     
     # score external datasets if using only RNASeq as input
     if params.input_types_all ==['exp','clin'] or params.input_types_all ==['exp']:        
-        cindex_uams, cindex_hovon, cindex_emtab, cindex_apex = score_external_datasets(grid_search.best_estimator_,params)
+        cindex_uams, cindex_hovon, cindex_emtab, cindex_apex = score_external_datasets(random_search.best_estimator_,params)
         results['best_epoch']['uams_metric'] = cindex_uams
         results['best_epoch']['hovon_metric'] = cindex_hovon
         results['best_epoch']['emtab_metric'] = cindex_emtab
@@ -145,14 +152,16 @@ def main(
     # save model state dict
     # either estimator class or model class should implement `save`
     # for Coxnet, `.pth` file is actually a json file with pth extension to be consistent
-    grid_search.best_estimator_.save(f'{params.resultsprefix}.pth')
+    random_search.best_estimator_.save(f'{params.resultsprefix}.pth')
 
 if __name__ == "__main__":
-    parser = ArgumentParser(description='Tune hyperparameters of VAE model using scikit-learn GridSearchCV. For adjusting hyperparameters, modify params.py and param_grid.py')
+    parser = ArgumentParser(description='Tune hyperparameters using scikit-learn RandomizedSearchCV. For adjusting hyperparameters, modify param_grid.py')
     parser.add_argument('-e', '--endpoint', type=str, choices=['pfs','os','both'], default='both', help='Survival endpoint (pfs or os or both)')
     parser.add_argument('-a', '--architecture', type=str, choices=['VAE','Deepsurv','Coxnet','RSF'], default='VAE', help='Choice of model architecture. In-house VAE, comparator Deepsurv, or baseline models like Coxnet and random survival forests.')
     parser.add_argument('-f', '--fulldata', action='store_true', help='Whether to train with full CoMMpass dataset')
     parser.add_argument('-s', '--subset', action='store_true', help='Whether to subset to ensembl genes that have matching microarray probes')
+    parser.add_argument('--n-iter', type=int, default=20, help='Number of randomly sampled hyperparameter combinations')
+    parser.add_argument('--random-state', type=int, default=42, help='Seed used to reproduce the sampled combinations')
     args = parser.parse_args()
     _pbs_array_id = int(os.getenv('PBS_ARRAY_INDEX', "-1"))
     pbs_shuffle=_pbs_array_id%10
@@ -160,7 +169,7 @@ if __name__ == "__main__":
     if args.endpoint=="both":
         # useful for training the train-valid splits
         # because scheduler has a limit of 99 jobs
-        main('os', pbs_shuffle, pbs_fold, args.architecture, args.fulldata, args.subset)
-        main('pfs', pbs_shuffle, pbs_fold, args.architecture, args.fulldata, args.subset)
+        main('os', pbs_shuffle, pbs_fold, args.architecture, args.fulldata, args.subset, args.n_iter, args.random_state)
+        main('pfs', pbs_shuffle, pbs_fold, args.architecture, args.fulldata, args.subset, args.n_iter, args.random_state)
     else:
-        main(args.endpoint, pbs_shuffle, pbs_fold, args.architecture, args.fulldata, args.subset)
+        main(args.endpoint, pbs_shuffle, pbs_fold, args.architecture, args.fulldata, args.subset, args.n_iter, args.random_state)
