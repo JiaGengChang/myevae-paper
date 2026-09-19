@@ -15,4 +15,4 @@ module load python/3.12.1-gcc11
 
 source /home/users/nus/e1083772/python3.12_venv/bin/activate
 
-python /home/users/nus/e1083772/cancer-survival-ml/pipeline/3_gridsearchcv.py --endpoint both
+python /home/users/nus/e1083772/cancer-survival-ml/pipeline/3_gridsearchcv.py --n-iter 100 --endpoint both
