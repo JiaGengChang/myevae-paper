@@ -4,7 +4,7 @@ from json import dump as json_dump
 import pandas as pd
 from sklearn.model_selection import GridSearchCV
 from datetime import datetime 
-
+os.chdir(os.path.dirname(__file__))
 from dotenv import load_dotenv
 assert load_dotenv('../.env') or load_dotenv('.env')
 import sys
