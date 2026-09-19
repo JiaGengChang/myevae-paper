@@ -92,6 +92,8 @@ However, as our main task is to improve survival loss rather than to use the lat
 
 We use 10-repetitions (or shuffles) of 5-fold cross validation to tune hyperparameters. This is effectively a parallelised version of scikit-learn's `sklearn.model_selection.RepeatedKFold`.
 
+Hyperparameter tuning uses `RandomizedSearchCV` with 20 sampled combinations by default instead of evaluating every combination in the parameter lists. Pass `--n-iter` to change the number of trials and `--random-state` to reproduce a sampling run.
+
 For early stopping, we keep track of the best validation survival loss so far (not the metric, otherwise that would defeat the purpose of a metric). The epoch at which the lowest validation survival loss is achieved is called the 'best epoch'. Once patience is exceeded, we stop training, rollback to model to the best epoch, and generate validation set predictions using the model at that 'best' epoch. 
 
 Our metric of choice is the Harrell's Concordance index (C-index), which measures the proportion of concordant pairwise estimates in right-censored survival data. 
