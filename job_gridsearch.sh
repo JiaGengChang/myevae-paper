@@ -6,7 +6,7 @@
 #PBS -o /home/users/nus/e1083772/cancer-survival-ml/.pbs/3_gridsearchcv/vae_zero_impute_naive/
 #PBS -q normal
 #PBS -l select=1:ncpus=10:mem=32G
-#PBS -l walltime=23:59:59
+#PBS -l walltime=11:59:59
 #PBS -J 0-49
 
 set -e
