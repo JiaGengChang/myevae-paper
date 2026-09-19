@@ -4,7 +4,7 @@ from json import dump as json_dump
 import pandas as pd
 from sklearn.model_selection import RandomizedSearchCV
 from datetime import datetime 
-
+os.chdir('/home/users/nus/e1083772/cancer-survival-ml')
 from dotenv import load_dotenv
 assert load_dotenv('../.env') or load_dotenv('.env')
 import sys
