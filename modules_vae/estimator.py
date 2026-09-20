@@ -44,7 +44,8 @@ class VAE(BaseEstimator):
                  kl_weight:float=None,
                  activation:str=None,
                  subtask_activation:str=None,
-                 scale_method:str=None):
+                 scale_method:str=None,
+                 modality_mask_seed:int=None):
         self.input_types = input_types
         self.subset_microarray = subset_microarray
         self.layer_dims = layer_dims 
@@ -62,6 +63,7 @@ class VAE(BaseEstimator):
         self.activation = activation
         self.subtask_activation = subtask_activation
         self.scale_method = scale_method # scale_method is accessed but not used directly
+        self.modality_mask_seed = modality_mask_seed
     
     def fit(self, X:pd.DataFrame, y=None, verbose:bool=False, SHAP:bool=False):
         """
@@ -102,7 +104,8 @@ class VAE(BaseEstimator):
                            layer_dims_subtask = self.layer_dims_subtask, 
                            z_dim = self.z_dim,
                            activation = self.activation,
-                           subtask_activation = self.subtask_activation)
+                           subtask_activation = self.subtask_activation,
+                           modality_mask_seed = self.modality_mask_seed)
         self.optimizer = Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=self.lr)
         self.survival_loss_func = CoxPHLoss()
         self.kl_loss_func = KLDivergence()
@@ -115,20 +118,24 @@ class VAE(BaseEstimator):
         for epoch in range(1,1+self.epochs):
             current_loss = 0 # survival loss summed across batches
             for batch_idx, data in enumerate(trainloader):
+                self.optimizer.zero_grad()
                 inputs_vae = [data[f'X_{input_type}'] for input_type in self.model.input_types_vae]
                 inputs_task = [data[f'X_{input_type}'] for input_type in self.model.input_types_subtask]
-                outputs, mu, logvar, riskpred = self.model.forward((inputs_vae, inputs_task))
-                assert len(inputs_vae)==len(outputs)
+                target_modality = self.model.sample_target_modality()
+                outputs, mu, logvar, riskpred = self.model.forward(
+                    (inputs_vae, inputs_task), target_modality=target_modality
+                )
+                target_index = self.model.input_types_vae.index(target_modality)
+                assert len(outputs) == 1
                 batch_kl_loss = self.kl_weight * self.kl_loss_func(mu, logvar)
                 assert not batch_kl_loss.isnan().any().item()
-                batch_reconstruction_losses = [
-                    f(output, input_vae) for f, output, input_vae in zip(self.reconstruction_loss_funcs, outputs, inputs_vae)
-                ]
-                for brl in batch_reconstruction_losses:
-                    assert not brl.isnan().any().item()
+                batch_reconstruction_loss = self.reconstruction_loss_funcs[target_index](
+                    outputs[0], inputs_vae[target_index]
+                )
+                assert not batch_reconstruction_loss.isnan().any().item()
                 batch_survival_loss = self.survival_loss_func(data['event_indicator'], data['event_time'], riskpred.flatten())
                 assert not batch_survival_loss.isnan().any().item()
-                batch_loss = batch_kl_loss + batch_survival_loss + sum(batch_reconstruction_losses)
+                batch_loss = batch_kl_loss + batch_survival_loss + batch_reconstruction_loss
                 batch_loss.backward()
                 self.optimizer.step()
                 current_loss += batch_loss.item()

@@ -27,7 +27,8 @@ class Dataset(torch_Dataset):
         for input_type in input_types:
             column_prefix = type_prefixes_dict.get(input_type, None)
             if column_prefix:
-                X_input = torch_tensor(df.filter(regex=column_prefix).values.astype(float), device=device).to(torch_float64)
+                feature_frame = df.filter(regex=column_prefix).fillna(0)
+                X_input = torch_tensor(feature_frame.values.astype(float), device=device).to(torch_float64)
                 setattr(self, f'X_{input_type}', X_input)
         
         self.event_indicator = df[event_indicator_col] # 0 or 1

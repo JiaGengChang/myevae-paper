@@ -29,7 +29,7 @@ class VAEParams(Params):
                  endpoint='pfs',
                  shuffle=0,
                  fold=0,
-                 model_name='exp-cna-latent',
+                 model_name='undefined',
                  fulldata=False,
                  subset=False,
                  model_type='undefined',
@@ -42,6 +42,7 @@ class VAEParams(Params):
                          subset=subset)
         self.architecture = 'VAE' # DO NOT MODIFY
         self.kl_weight = 1
+        self.modality_mask_seed = None
         self.batch_size = 128
         self.lr = 1e-4
         self.epochs = 300
@@ -52,7 +53,6 @@ class VAEParams(Params):
         self.input_dims_subtask = [5]
         self.layer_dims_subtask = [8, 1]
         self.z_dim = 128
-        self.input_types_all = self.input_types + self.input_types_subtask
          # model is trained on full data
         if self.fulldata:
             # model is trained on subset of microarray genes

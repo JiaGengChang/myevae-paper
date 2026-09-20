@@ -29,7 +29,8 @@ class MultiModalVAE(torch.nn.Module):
                  activation = torch.nn.LeakyReLU(),
                  # an instance of activation in torch.nn
                  # activation function for the risk network
-                 subtask_activation = torch.nn.Tanh()
+                 subtask_activation = torch.nn.Tanh(),
+                 modality_mask_seed = None
                 ):
         # super(self.__class__, self).__init__()
         super().__init__()
@@ -44,6 +45,11 @@ class MultiModalVAE(torch.nn.Module):
         self.bottleneck_layer_input_dims = []
         self.activation = activation
         self.subtask_activation = subtask_activation
+        if len(input_types) < 2:
+            raise ValueError('modality-wise masking requires at least two VAE modalities')
+        self._modality_mask_generator = torch.Generator()
+        if modality_mask_seed is not None:
+            self._modality_mask_generator.manual_seed(modality_mask_seed)
 
         for input_type, input_dim, layer_dim in zip(input_types, input_dims, layer_dims):
             setattr(self, f'encoder_{input_type}', buildNetwork([input_dim] + layer_dim, activation=self.activation))
@@ -72,17 +78,37 @@ class MultiModalVAE(torch.nn.Module):
           return mu
 
     # internal forward pass function
-    def _forward(self, xs):
+    def sample_target_modality(self):
+        """Sample one reconstruction target without changing the modality order."""
+        target_index = torch.randint(
+            len(self.input_types_vae),
+            (1,),
+            generator=self._modality_mask_generator
+        ).item()
+        return self.input_types_vae[target_index]
+
+    def set_modality_mask_seed(self, seed):
+        self._modality_mask_generator.manual_seed(seed)
+
+    def _forward(self, xs, target_modality=None):
         # xs is a tuple of two things
         # 1. a list of vae input tensors and 
         # 2. a risk predictor input tensor
         x_vae_list = xs[0]
         x_survival_list = xs[1]
+        if len(x_vae_list) != len(self.input_types_vae):
+            raise ValueError('one tensor is required for every VAE modality')
+        if target_modality is not None and target_modality not in self.input_types_vae:
+            raise ValueError(f'unsupported reconstruction target: {target_modality}')
         # check if input sizes match
         for x_task, input_dim_task in zip(x_survival_list, self.input_dims_subtask):
             assert x_task.shape[-1] == input_dim_task, 'declared input sizes in fit/forward function do not match input sizes from dataloader'
         # forward pass through peripheral encoders
-        hs = [encoder(x_vae) for encoder,x_vae in zip(self.encoders, x_vae_list)]
+        hs = []
+        for input_type, encoder, x_vae in zip(self.input_types_vae, self.encoders, x_vae_list):
+            if input_type == target_modality:
+                x_vae = torch.zeros_like(x_vae)
+            hs.append(encoder(x_vae))
         # concat peripheral encodings into input for bottleneck layer
         h_cat = torch.cat(hs, dim=1)
         assert not torch.isnan(h_cat).any().item(), 'nan values present in input to central encoder, h_cat'
@@ -100,17 +126,22 @@ class MultiModalVAE(torch.nn.Module):
         # return latent embedding, its mu and logvar, and risk predictions
         return z, mu, logvar, riskpred
     
-    def decode(self, z):
+    def decode(self, z, target_modality=None):
         h_cat = self.joint_decoder(z) # concatenated decoded input
         hs = torch.split(h_cat, self.bottleneck_layer_input_dims, dim=1) # split into separate decoded inputs
-        return [decoder(h) for decoder,h in zip(self.decoders, hs)] # decode each input separately
+        if target_modality is None:
+            return [decoder(h) for decoder,h in zip(self.decoders, hs)]
+        if target_modality not in self.input_types_vae:
+            raise ValueError(f'unsupported reconstruction target: {target_modality}')
+        target_index = self.input_types_vae.index(target_modality)
+        return [self.decoders[target_index](hs[target_index])]
     
-    def forward(self,xs):
+    def forward(self, xs, target_modality=None):
         # xs is a tuple of two things
         # first item of xs is a list of tensors, the modalities to be modelled by VAE
         # second item of xs is a tensors, the clinical+ data for survival regression
-        z, mu, logvar, riskpred = self._forward(xs)
-        recon_xs_list = self.decode(z)
+        z, mu, logvar, riskpred = self._forward(xs, target_modality=target_modality)
+        recon_xs_list = self.decode(z, target_modality=target_modality)
         return recon_xs_list, mu, logvar, riskpred
     
     def save(self, outfile):

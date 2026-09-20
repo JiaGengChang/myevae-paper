@@ -48,7 +48,7 @@ def main(
         raise NotImplementedError(architecture)
     
     model_name = '-'.join(param_grid['input_types'][0])
-    model_type = 'joint-impute'
+    model_type = 'modality_masking'
     params = Params(model_name=model_name, endpoint=endpoint, shuffle=shuffle, fold=fold, fulldata=fulldata, subset=subset, model_type=model_type)
     splitsdir=os.environ.get("SPLITDATADIR")
     if fulldata:
@@ -79,7 +79,7 @@ def main(
 
     if architecture=='VAE':
         from modules_vae.estimator import VAE
-        base_estimator = VAE(eventcol=params.eventcol,durationcol=params.durationcol,subset_microarray=subset)
+        base_estimator = VAE(eventcol=params.eventcol,durationcol=params.durationcol,subset_microarray=subset,modality_mask_seed=params.modality_mask_seed)
     elif architecture=='Deepsurv':
         from modules_deepsurv.estimator import DeepSurv
         base_estimator = DeepSurv(eventcol=params.eventcol,durationcol=params.durationcol,subset_microarray=subset)

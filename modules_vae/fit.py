@@ -39,6 +39,8 @@ def fit(model:Module, trainloader:DataLoader, validloader:DataLoader, params:dic
     5. Returns the results dictionary containing the training and validation history.
     """
     optimizer = Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=params.lr)
+    if getattr(params, 'modality_mask_seed', None) is not None:
+        model.set_modality_mask_seed(params.modality_mask_seed)
     survival_loss_func = CoxPHLoss()
     kl_loss_func = KLDivergence()
     reconstruction_loss_funcs = [MSELoss(reduction='mean') for datatype in model.input_types_vae]
@@ -50,7 +52,6 @@ def fit(model:Module, trainloader:DataLoader, validloader:DataLoader, params:dic
 
     def train_step(epoch:int):
         model.train()
-        optimizer.zero_grad()
         train_reconstruction_losses = [0 for _ in range(len(model.input_types_vae))]
         train_kl_loss = 0
         train_survival_loss = 0
@@ -59,24 +60,29 @@ def fit(model:Module, trainloader:DataLoader, validloader:DataLoader, params:dic
         results['history'][epoch] = {'train':{}, 'valid':{}}
 
         for batch_idx, data in enumerate(trainloader):
+            optimizer.zero_grad()
             inputs_vae = [data[f'X_{input_type}'] for input_type in model.input_types_vae]
             inputs_task = [data[f'X_{input_type}'] for input_type in model.input_types_subtask]
-            outputs, mu, logvar, riskpred = model.forward((inputs_vae, inputs_task))
-            assert len(inputs_vae)==len(outputs)
+            target_modality = model.sample_target_modality()
+            outputs, mu, logvar, riskpred = model.forward(
+                (inputs_vae, inputs_task), target_modality=target_modality
+            )
+            target_index = model.input_types_vae.index(target_modality)
+            assert len(outputs) == 1
             batch_kl_loss = params.kl_weight * kl_loss_func(mu, logvar)
             assert not batch_kl_loss.isnan().any().item()
-            batch_reconstruction_losses = [
-                f(output, input_vae) for f, output, input_vae in zip(reconstruction_loss_funcs, outputs, inputs_vae)
-            ]
-            for brl in batch_reconstruction_losses:
-                assert not brl.isnan().any().item()
+            batch_reconstruction_losses = [0 for _ in model.input_types_vae]
+            batch_reconstruction_losses[target_index] = reconstruction_loss_funcs[target_index](
+                outputs[0], inputs_vae[target_index]
+            )
+            assert not batch_reconstruction_losses[target_index].isnan().any().item()
             batch_survival_loss = survival_loss_func(data['event_indicator'], data['event_time'], riskpred.flatten())
             assert not batch_survival_loss.isnan().any().item()
-            batch_loss = batch_kl_loss + batch_survival_loss + sum(batch_reconstruction_losses)            
+            batch_loss = batch_kl_loss + batch_survival_loss + batch_reconstruction_losses[target_index]
             batch_loss.backward()
             optimizer.step()
             train_kl_loss += batch_kl_loss.data.item()
-            train_reconstruction_losses = [i + j.data.item() for i,j in zip(train_reconstruction_losses,batch_reconstruction_losses)]
+            train_reconstruction_losses[target_index] += batch_reconstruction_losses[target_index].data.item()
             train_survival_loss += batch_survival_loss.data.item()
         
         # at the end of the epoch, log losses to results dictionary
