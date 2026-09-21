@@ -1,6 +1,7 @@
 import os
 from argparse import ArgumentParser
 from json import dump as json_dump
+import numpy as np
 import pandas as pd
 from sklearn.model_selection import RandomizedSearchCV
 from datetime import datetime 
@@ -97,6 +98,8 @@ def main(
         param_distributions=param_grid,
         n_iter=n_iter,
         random_state=random_state,
+        error_score=np.nan,
+        refit=True,
     )
 
     cluster = LocalCluster()
