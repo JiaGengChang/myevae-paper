@@ -1,13 +1,13 @@
 #!/bin/bash
 
-#PBS -N vae_joint_impute
+#PBS -N modMask_ig
 #PBS -P 11004309
 #PBS -j oe
-#PBS -o /home/users/nus/e1083772/cancer-survival-ml/.pbs/3_gridsearchcv/vae_joint_impute/
+#PBS -o /home/users/nus/e1083772/cancer-survival-ml/.pbs/3_gridsearchcv/vae_modality_mask/
 #PBS -q normal
-#PBS -l select=1:ncpus=10:mem=32G
-#PBS -l walltime=11:59:59
-#PBS -J 0-49
+#PBS -l select=1:ncpus=1:mem=2G
+#PBS -l walltime=02:00:01
+#PBS -J 0-3
 
 set -e
 
