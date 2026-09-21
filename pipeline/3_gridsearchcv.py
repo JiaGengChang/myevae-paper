@@ -1,12 +1,13 @@
 import os
 from argparse import ArgumentParser
 from json import dump as json_dump
+import numpy as np
 import pandas as pd
 from sklearn.model_selection import RandomizedSearchCV
 from datetime import datetime 
-os.chdir('/home/users/nus/e1083772/cancer-survival-ml/pipeline/')
+os.chdir('/home/users/nus/e1083772/cancer-survival-ml')
 from dotenv import load_dotenv
-assert load_dotenv('../.env')
+assert load_dotenv('.env')
 import sys
 sys.path.append(os.environ.get("PROJECTDIR"))
 from utils.validation import score_external_datasets
@@ -97,6 +98,8 @@ def main(
         param_distributions=param_grid,
         n_iter=n_iter,
         random_state=random_state,
+        error_score=np.nan,
+        refit=True,
     )
 
     cluster = LocalCluster()
@@ -107,6 +110,7 @@ def main(
     # update params with best params
     for k,v in random_search.best_params_.items():
         setattr(params,k,v)
+    params.input_types_all = params.input_types + params.input_types_subtask
     # update params with RNA-Seq gene names
     # this field is needed in score_external_datasets
     if subset:

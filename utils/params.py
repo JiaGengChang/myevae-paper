@@ -29,7 +29,7 @@ class VAEParams(Params):
                  endpoint='pfs',
                  shuffle=0,
                  fold=0,
-                 model_name='undefined',
+                 model_name='exp-cna-latent',
                  fulldata=False,
                  subset=False,
                  model_type='undefined',
@@ -42,7 +42,6 @@ class VAEParams(Params):
                          subset=subset)
         self.architecture = 'VAE' # DO NOT MODIFY
         self.kl_weight = 1
-        self.modality_mask_seed = None
         self.batch_size = 128
         self.lr = 1e-4
         self.epochs = 300
