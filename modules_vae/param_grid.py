@@ -1,9 +1,9 @@
 from torch.nn import LeakyReLU, ReLU, Sigmoid, Tanh
 
 param_grid = {
-    'z_dim': [8, 16, 32, 64],
-    'lr': [5e-4, 1e-4, 5e-5],
-    'batch_size': [64, 128, 256],
+    'z_dim': [16, 32, 48],
+    'lr': [1e-4, 5e-5, 1e-5],
+    'batch_size': [32, 48, 64],
     'input_types': [['exp']],
     'input_types_subtask': [['clin']],
     'layer_dims': [[[64, 16]], [[128, 32]], [[256, 64]]],
