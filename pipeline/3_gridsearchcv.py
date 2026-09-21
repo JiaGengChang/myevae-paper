@@ -3,10 +3,9 @@ from argparse import ArgumentParser
 from json import dump as json_dump
 import numpy as np
 import pandas as pd
-import numpy as np
 from sklearn.model_selection import RandomizedSearchCV
 from datetime import datetime 
-
+os.chdir('/home/users/nus/e1083772/cancer-survival-ml')
 from dotenv import load_dotenv
 assert load_dotenv('../.env') or load_dotenv('.env')
 import sys
@@ -50,7 +49,7 @@ def main(
         raise NotImplementedError(architecture)
     
     model_name = '-'.join(param_grid['input_types'][0])
-    model_type = 'joint-impute'
+    model_type = 'joint_impute'
     params = Params(model_name=model_name, endpoint=endpoint, shuffle=shuffle, fold=fold, fulldata=fulldata, subset=subset, model_type=model_type)
     splitsdir=os.environ.get("SPLITDATADIR")
     if fulldata:
@@ -111,6 +110,7 @@ def main(
     # update params with best params
     for k,v in random_search.best_params_.items():
         setattr(params,k,v)
+    params.input_types_all = params.input_types + params.input_types_subtask
     # update params with RNA-Seq gene names
     # this field is needed in score_external_datasets
     if subset:
