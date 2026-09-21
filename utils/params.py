@@ -52,7 +52,6 @@ class VAEParams(Params):
         self.input_dims_subtask = [5]
         self.layer_dims_subtask = [8, 1]
         self.z_dim = 128
-        self.input_types_all = self.input_types + self.input_types_subtask
          # model is trained on full data
         if self.fulldata:
             # model is trained on subset of microarray genes

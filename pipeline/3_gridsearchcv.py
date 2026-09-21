@@ -49,7 +49,7 @@ def main(
         raise NotImplementedError(architecture)
     
     model_name = '-'.join(param_grid['input_types'][0])
-    model_type = 'zero_impute_mask_aware'
+    model_type = 'joint_impute'
     params = Params(model_name=model_name, endpoint=endpoint, shuffle=shuffle, fold=fold, fulldata=fulldata, subset=subset, model_type=model_type)
     splitsdir=os.environ.get("SPLITDATADIR")
     if fulldata:
@@ -57,15 +57,15 @@ def main(
         # shuffle and fold are ignored
         # the only use case is for external validation on GEO datasets
         # the validation C-index metric will be set to 0
-        train_features_file=f'{splitsdir}/full_features_{endpoint}_processed_nan.parquet'
+        train_features_file=f'{splitsdir}/full_features_{endpoint}_processed_joint_imputation.parquet'
         train_labels_file=f'{splitsdir}/full_labels.parquet'
     else:
         # the default mode
         # the model is trained on 80% of the data
         # the 20% validation data is used as calculate hold out C-index metrics
-        train_features_file=f'{splitsdir}/{params.shuffle}/{params.fold}/train_features_{endpoint}_processed_nan.parquet'
+        train_features_file=f'{splitsdir}/{params.shuffle}/{params.fold}/train_features_{endpoint}_processed_joint_imputation.parquet'
         train_labels_file=f'{splitsdir}/{params.shuffle}/{params.fold}/train_labels.parquet'
-        valid_features_file=f'{splitsdir}/{params.shuffle}/{params.fold}/valid_features_{endpoint}_processed_nan.parquet'
+        valid_features_file=f'{splitsdir}/{params.shuffle}/{params.fold}/valid_features_{endpoint}_processed_joint_imputation.parquet'
         valid_labels_file=f'{splitsdir}/{params.shuffle}/{params.fold}/valid_labels.parquet'
         assert os.path.exists(valid_features_file) and os.path.exists(valid_labels_file)
         valid_features=pd.read_parquet(valid_features_file)
@@ -110,6 +110,7 @@ def main(
     # update params with best params
     for k,v in random_search.best_params_.items():
         setattr(params,k,v)
+    params.input_types_all = params.input_types + params.input_types_subtask
     # update params with RNA-Seq gene names
     # this field is needed in score_external_datasets
     if subset:
@@ -138,13 +139,13 @@ def main(
     params.scale_method = random_search.best_estimator_.scale_method
     
     # score external datasets if using only RNASeq as input
-    # if params.input_types_all ==['exp','clin'] or params.input_types_all ==['exp']:        
-    #     cindex_uams, cindex_hovon, cindex_emtab, cindex_apex = score_external_datasets(random_search.best_estimator_,params)
-    #     results['best_epoch']['uams_metric'] = cindex_uams
-    #     results['best_epoch']['hovon_metric'] = cindex_hovon
-    #     results['best_epoch']['emtab_metric'] = cindex_emtab
-    #     results['best_epoch']['apex_metric'] = cindex_apex
-    #     results['best_epoch']['timestamp'] = datetime.now().__str__()
+    if params.input_types_all ==['exp','clin'] or params.input_types_all ==['exp']:        
+        cindex_uams, cindex_hovon, cindex_emtab, cindex_apex = score_external_datasets(random_search.best_estimator_,params)
+        results['best_epoch']['uams_metric'] = cindex_uams
+        results['best_epoch']['hovon_metric'] = cindex_hovon
+        results['best_epoch']['emtab_metric'] = cindex_emtab
+        results['best_epoch']['apex_metric'] = cindex_apex
+        results['best_epoch']['timestamp'] = datetime.now().__str__()
         
     os.makedirs(os.path.dirname(params.resultsprefix),exist_ok=True)
 
