@@ -100,6 +100,7 @@ def main(
     # update params with best params
     for k,v in grid_search.best_params_.items():
         setattr(params,k,v)
+    params.input_types_all = params.input_types + params.input_types_subtask
     # update params with RNA-Seq gene names
     # this field is needed in score_external_datasets
     if subset:
