@@ -44,7 +44,9 @@ class VAE(BaseEstimator):
                  kl_weight:float=None,
                  activation:str=None,
                  subtask_activation:str=None,
-                 scale_method:str=None):
+                 scale_method:str=None,
+                 masking_proportions:dict=None,
+                 random_state:int=None):
         self.input_types = input_types
         self.subset_microarray = subset_microarray
         self.layer_dims = layer_dims 
@@ -61,7 +63,9 @@ class VAE(BaseEstimator):
         self.kl_weight = kl_weight
         self.activation = activation
         self.subtask_activation = subtask_activation
-        self.scale_method = scale_method # scale_method is accessed but not used directly
+        self.scale_method = scale_method
+        self.masking_proportions = masking_proportions
+        self.random_state = random_state
     
     def fit(self, X:pd.DataFrame, y=None, verbose:bool=False, SHAP:bool=False):
         """
@@ -102,7 +106,9 @@ class VAE(BaseEstimator):
                            layer_dims_subtask = self.layer_dims_subtask, 
                            z_dim = self.z_dim,
                            activation = self.activation,
-                           subtask_activation = self.subtask_activation)
+                           subtask_activation = self.subtask_activation,
+                           masking_proportions = self.masking_proportions,
+                           random_state = self.random_state)
         self.optimizer = Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=self.lr)
         self.survival_loss_func = CoxPHLoss()
         self.kl_loss_func = KLDivergence()
