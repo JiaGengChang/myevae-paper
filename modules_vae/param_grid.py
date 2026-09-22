@@ -2,12 +2,20 @@ from torch.nn import LeakyReLU, ReLU, Sigmoid, Tanh
 
 param_grid = {
     'z_dim': [16, 32, 48],
-    'lr': [1e-4, 5e-5, 1e-5],
-    'batch_size': [32, 48, 64],
+    'lr': [5e-5, 1e-4, 2e-4, 3e-4], 
+    'batch_size': [16, 32, 48, 64],
     'input_types': [['exp']],
     'input_types_subtask': [['clin']],
-    'layer_dims': [[[64, 16]], [[128, 32]], [[256, 64]]],
-    'layer_dims_subtask' : [[4,1], [8,1], [16,1]],
+    'layer_dims': [
+        [[64, 16]],
+        [[128, 32]],
+        [[128, 16]],
+        [[256, 64]],
+        [[256, 32]],
+        [[512, 64]],
+        [[512, 32]]
+    ],
+    'layer_dims_subtask': [[4,1], [8,1], [16,1], [32, 1]],
     'kl_weight': [1],
     'activation': [LeakyReLU(negative_slope=0.01)],
     'subtask_activation': [Tanh()],
