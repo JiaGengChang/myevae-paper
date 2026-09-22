@@ -1,15 +1,18 @@
 from torch.nn import LeakyReLU, ReLU, Sigmoid, Tanh
 
 param_grid = {
-    'z_dim': [96, 128, 144],
-    'lr': [1e-4],
-    'batch_size': [64, 96, 128],
+    'z_dim': [64],
+    'lr': [1e-4], 
+    'batch_size': [128],
     'input_types': [['exp','cna', 'gistic', 'fish', 'sbs', 'ig']],
     'input_types_subtask': [['clin']],
-    'layer_dims': [[[128, 32], [64, 16], [16, 8], [16, 4], [4], [2]], 
-                   [[256, 64], [128, 32], [32, 8], [16, 4], [4], [2]],
-                   [[512, 128], [128, 32], [32, 8], [16, 4], [4], [2]]],
-    'layer_dims_subtask' : [[4,1], [8,1], [16,1]],
+    'layer_dims': [
+        [[256, 64], [128, 32], [32, 8], [16, 4], [4], [2]], # original
+        [[256, 32], [64, 16], [16, 4], [8, 2], [4, 1], [1]], # light
+        [[256, 64, 8], [128, 32, 4], [32, 8, 4], [16, 4, 1], [4, 1], [4, 1]], # deep
+        [[512, 32], [128, 16], [32, 4], [16, 4], [2], [2]], # wide to narrow
+    ],
+    'layer_dims_subtask' : [[4,1], [8,1], [16,1], [16, 4, 1], [32, 4, 1]],
     'kl_weight': [1],
     'activation': [LeakyReLU()],
     'subtask_activation': [Tanh()],
