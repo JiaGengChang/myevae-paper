@@ -6,16 +6,23 @@ from modules_vae.model import MultiModalVAE
 
 def make_vae(masking_proportions=None):
     return MultiModalVAE(
-        input_types=['exp', 'cna'],
-        input_dims=[4, 3],
-        layer_dims=[[2], [2]],
+        input_types=['exp', 'cna', 'fish', 'sbs', 'gistic', 'ig'],
+        input_dims=[4, 3, 2, 2, 2, 2],
+        layer_dims=[[2], [2], [2], [2], [2], [2]],
         input_types_subtask=['clin'],
         input_dims_subtask=[1],
         layer_dims_subtask=[2, 1],
         z_dim=3,
         activation=torch.nn.ReLU(),
         subtask_activation=torch.nn.Tanh(),
-        masking_proportions=masking_proportions or {'exp': 0.25, 'cna': 0.5},
+        masking_proportions=masking_proportions or {
+            'exp': 0.25,
+            'cna': 0.5,
+            'fish': 0.5,
+            'sbs': 0.5,
+            'gistic': 0.5,
+            'ig': 0.5,
+        },
         random_state=7,
     )
 
@@ -51,17 +58,38 @@ def test_masked_batch_keeps_targets_and_zeroes_masked_features():
     vae = make_vae()
     x_exp = torch.tensor([[1.0, 2.0, 3.0, 4.0], [5.0, 6.0, 7.0, 8.0]], dtype=torch.float64)
     x_cna = torch.tensor([[0.2, 0.4, 0.6], [1.2, 1.4, 1.6]], dtype=torch.float64)
+    x_fish = torch.tensor([[0.1, 0.2], [0.3, 0.4]], dtype=torch.float64)
+    x_sbs = torch.tensor([[0.5, 0.6], [0.7, 0.8]], dtype=torch.float64)
+    x_gistic = torch.tensor([[0.9, 1.0], [1.1, 1.2]], dtype=torch.float64)
+    x_ig = torch.tensor([[1.3, 1.4], [1.5, 1.6]], dtype=torch.float64)
+    inputs = [x_exp, x_cna, x_fish, x_sbs, x_gistic, x_ig]
+    proportions = {
+        'exp': 0.25,
+        'cna': 0.5,
+        'fish': 0.5,
+        'sbs': 0.5,
+        'gistic': 0.5,
+        'ig': 0.5,
+    }
 
-    masked, targets, masks, stats = vae.apply_mask_to_batch([x_exp, x_cna], {'exp': 0.25, 'cna': 0.5})
+    masked, targets, masks, stats = vae.apply_mask_to_batch(inputs, proportions)
 
     assert targets[0].shape == x_exp.shape
     assert torch.equal(targets[0], x_exp)
-    assert masks[0].shape == x_exp.shape
-    assert masks[1].shape == x_cna.shape
-    assert torch.all(masked[0] == x_exp * (1.0 - masks[0]))
-    assert torch.all(masked[1] == x_cna * (1.0 - masks[1]))
+    assert len(masked) == len(inputs)
+    assert len(targets) == len(inputs)
+    assert len(masks) == len(inputs)
+    assert all(mask.shape == input_tensor.shape for mask, input_tensor in zip(masks, inputs))
+    assert all(
+        torch.all(masked_input == input_tensor * (1.0 - mask))
+        for masked_input, input_tensor, mask in zip(masked, inputs, masks)
+    )
     assert stats['exp']['mask_rate'] >= 0.0
     assert stats['cna']['mask_rate'] >= 0.0
+    assert stats['fish']['mask_rate'] >= 0.0
+    assert stats['sbs']['mask_rate'] >= 0.0
+    assert stats['gistic']['mask_rate'] >= 0.0
+    assert stats['ig']['mask_rate'] >= 0.0
 
 
 def test_masked_reconstruction_loss_uses_only_selected_features():
