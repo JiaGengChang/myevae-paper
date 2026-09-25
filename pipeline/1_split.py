@@ -10,8 +10,8 @@ def main(REDO:bool,shuffle:int,fold:int) -> None:
 
     # begin writing split data
     splitsdir=os.environ.get("SPLITDATADIR")
-    train_features_file=f'{splitsdir}/{shuffle}/{fold}/train_features.parquet'
-    valid_features_file=f'{splitsdir}/{shuffle}/{fold}/valid_features.parquet'
+    train_features_file=f'{splitsdir}/{shuffle}/{fold}/train_features_mut.parquet'
+    valid_features_file=f'{splitsdir}/{shuffle}/{fold}/valid_features_mut.parquet'
 
     train_labels_file=f'{splitsdir}/{shuffle}/{fold}/train_labels.parquet'
     valid_labels_file=f'{splitsdir}/{shuffle}/{fold}/valid_labels.parquet'

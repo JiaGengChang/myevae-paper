@@ -9,8 +9,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.compose import make_column_selector, ColumnTransformer
 from sklearn.ensemble import RandomForestClassifier,RandomForestRegressor 
 import sys
-sys.path.append('/home/users/nus/e1083772/cancer-survival-ml/utils')
-from pipelinetools import VarianceSelector,Log1pTransform,StandardTransform,IdentityTransform,CoxnetSelector,TopNSelector,CorrelationSelector
+sys.path.append('/home/users/nus/e1083772/cancer-survival-ml')
+from utils.pipelinetools import VarianceSelector,Log1pTransform,StandardTransform,CoxnetSelector,TopNSelector,CorrelationSelector,FrequencySelector,IdentityTransform
 
 def main(endpoint:str,
          datadir:str) -> None:
@@ -31,8 +31,8 @@ def main(endpoint:str,
     valid_features_file=f'{datadir}/valid_features.parquet'
     valid_features = pd.read_parquet(valid_features_file)
 
-    train_out_features_file=f'{datadir}/train_features_{endpoint}_processed_joint_imputation.parquet'
-    valid_out_features_file=f'{datadir}/valid_features_{endpoint}_processed_joint_imputation.parquet'    
+    train_out_features_file=f'{datadir}/train_features_{endpoint}_processed_nan.parquet'
+    valid_out_features_file=f'{datadir}/valid_features_{endpoint}_processed_nan.parquet'    
 
     transformer_gene_exp = Pipeline([
         ('Non-zero variance', VarianceSelector(threshold=0)),
@@ -70,6 +70,10 @@ def main(endpoint:str,
         ('Identity', IdentityTransform())
     ])
 
+    transformer_mut = Pipeline([
+        ('Frequency filter', FrequencySelector(threshold=0.05))
+    ])
+
     transformer = ColumnTransformer([
         ('GEXP', transformer_gene_exp, make_column_selector(pattern='Feature_exp_')),
         ('GENECN', transformer_gene_cn, make_column_selector(pattern='Feature_CNA_ENSG')),
@@ -78,33 +82,9 @@ def main(endpoint:str,
         ('SBS_', transformer_sbs, make_column_selector(pattern='Feature_SBS')),
         ('CLIN_', transformer_clin, make_column_selector(pattern='Feature_clin')),
         ('IGH_', transformer_igh, make_column_selector(pattern='Feature_(RNASeq|SeqWGS)')),
+        ('MUT_', transformer_mut, make_column_selector(pattern='Feature_mut')),
     ], remainder='drop').set_output(transform="pandas")
 
-    tree_args = {
-        'n_estimators': 100,
-        'max_depth': 20,
-        'min_samples_split': 5,
-        'n_jobs': -1,
-    }
-    imputer_args = {
-        'n_nearest_features':20,
-        'max_iter':100,
-        'tol': 5e-3,
-        'skip_complete':True,
-    }
-
-    ContinuousImputer = IterativeImputer(estimator=RandomForestRegressor(**tree_args), initial_strategy='mean', **imputer_args)
-    CategoricalImputer = IterativeImputer(estimator=RandomForestClassifier(**tree_args), initial_strategy='most_frequent', **imputer_args)
-
-    imputer = ColumnTransformer([
-        ('Continuous variables', ContinuousImputer, make_column_selector(pattern='Feature_(exp|clin_D_PT_age|SBS)')),
-        ('Categorical variables', CategoricalImputer, make_column_selector(pattern='Feature_(?!exp|clin_D_PT_age|SBS)'))
-    ], remainder='drop').set_output(transform="pandas")
-    pipeline = Pipeline([
-        ('Feature selection', transformer),
-        ('Joint imputation', imputer),
-    ])
-    
     # need to shift start date because some OS is negative
     event = train_surv.survflag
     time = train_surv.survtime
@@ -112,10 +92,10 @@ def main(endpoint:str,
     time += offset
     train_y = Surv.from_arrays(event,time)
     
-    out = pipeline.fit_transform(features, train_y)
+    out = transformer.fit_transform(features, train_y)
     out.to_parquet(train_out_features_file)
 
-    outv = pipeline.transform(valid_features)
+    outv = transformer.transform(valid_features)
     outv.to_parquet(valid_out_features_file)
         
     print(f'# significant features remaining:')
@@ -124,20 +104,14 @@ def main(endpoint:str,
     print(f'CN Gistic:\t{out.filter(regex="Feature_CNA_(Amp|Del)").shape[1]} \t out of \t {features.filter(regex="Feature_CNA_(Amp|Del)").shape[1]}')
     print(f'FISH:\t\t{out.filter(regex="Feature_fish").shape[1]} \t out of \t {features.filter(regex="Feature_fish").shape[1]}')
     print(f'SBS:\t\t{out.filter(regex="Feature_SBS").shape[1]} \t out of \t {features.filter(regex="Feature_SBS").shape[1]}')
+    print(f'MUT:\t\t{out.filter(regex="Feature_mut").shape[1]} \t out of \t {features.filter(regex="Feature_mut").shape[1]}')
     print(f'IGH trans:\t{out.filter(regex="Feature_SeqWGS").shape[1]} \t out of \t {features.filter(regex="Feature_SeqWGS").shape[1]}')
     print(f'Clinical:\t{out.filter(regex="Feature_clin").shape[1]} \t out of \t {features.filter(regex="Feature_clin").shape[1]}')
     
 if __name__ == "__main__":
     parser = ArgumentParser(description='Select significant features and preprocess them')
     parser.add_argument('-e','--endpoint', type=str, choices=['pfs', 'os'], help='Survival endpoint to select features against (pfs or os)')
+    parser.add_argument('-d', '--datadir', type=str, help='Input directory for model training and validation data')
     args = parser.parse_args()
-
-    _pbs_array_id = int(os.getenv('PBS_ARRAY_INDEX', "-1"))
-    pbs_shuffle=_pbs_array_id%10
-    pbs_fold=_pbs_array_id//10
     
-    datadir = f'/scratch/users/nus/e1083772/cancer-survival-ml/data/splits/{pbs_shuffle}/{pbs_fold}'
-
-    assert os.path.exists(os.path.dirname(datadir)), f"Input folder ({datadir}) is empty."
-
-    main(args.endpoint,datadir)
+    main(args.endpoint,args.datadir)
