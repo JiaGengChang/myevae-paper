@@ -5,6 +5,11 @@ param_grid = {
     'lr': [5e-5], 
     'batch_size': [128, 256, 512],
     'input_types': [['exp','cna', 'gistic', 'fish', 'sbs', 'ig']],
+    'masking_proportions': [
+        [{'exp': 0.1,'cna': 0.1,'gistic': 0.1,'fish': 0.1,'sbs': 0.1,'ig': 0.125,}], # 10% or Ig 1/8
+        [{'exp': 0.2,'cna': 0.2,'gistic': 0.2,'fish': 0.2,'sbs': 0.2,'ig': 0.25,}], # 20% or Ig 2/8
+        [{'exp': 0.3,'cna': 0.3,'gistic': 0.3,'fish': 0.3,'sbs': 0.3,'ig': 0.375,}] # 30% or Ig 3/8
+    ],
     'input_types_subtask': [['clin']],
     'layer_dims': [[[64, 16], [16, 8], [16, 4], [16, 4], [4], [2]], 
                    [[128, 32], [64, 16], [16, 8], [16, 4], [4], [2]], 
