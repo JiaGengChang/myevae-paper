@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#PBS -N partialMask_exp_cna_gistic
+#PBS -N partialMask_expOnly
 #PBS -P 11004309
 #PBS -j oe
 #PBS -o /home/users/nus/e1083772/cancer-survival-ml/.pbs/3_gridsearchcv/vae_partial_mask/
