@@ -2,7 +2,7 @@ import math
 import torch
 import sys
 sys.path.append('/home/users/nus/e1083772/cancer-survival-ml/')
-from utils.buildnetwork import buildNetwork 
+from utils.buildnetwork import buildNetwork, MaskAwareNetwork
 
 class MultiModalVAE(torch.nn.Module):
     def __init__(self,
@@ -53,7 +53,7 @@ class MultiModalVAE(torch.nn.Module):
             self.mask_generator.manual_seed(int(random_state))
 
         for input_type, input_dim, layer_dim in zip(input_types, input_dims, layer_dims):
-            setattr(self, f'encoder_{input_type}', buildNetwork([input_dim] + layer_dim, activation=self.activation))
+            setattr(self, f'encoder_{input_type}', MaskAwareNetwork(input_dim, layer_dim, activation=self.activation))
             setattr(self, f'decoder_{input_type}', buildNetwork(layer_dim[::-1] + [input_dim], activation=self.activation))
             self.bottleneck_layer_input_dims.append(layer_dim[-1])
 
