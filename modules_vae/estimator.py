@@ -191,16 +191,16 @@ class VAE(BaseEstimator):
     def __call__(self, X:torch_tensor)->tuple:
         return self.model.__call__(X)
 
-# class ShapVAE(VAE, BaseEstimator):
-#     def __init__(self, **kwargs):
-#         super().__init__(**kwargs)
+class ShapVAE(VAE, BaseEstimator):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
     
-#     def __call__(self, X:torch_tensor)->torch_tensor:
-#         """
-#         the call function for SHAP VAE takes in a tensor rather than a pd.DataFrame
-#         this tensor is shaped as per the VAE model's requirements
-#         which is a tuple of (a list of tensors main VAE network, a list of tensors for subtask network)
-#         the forward function returns only the risk preds rather than a tple
-#         """
-#         _, _, _, riskpred = self.model(X)
-#         return riskpred
+    def __call__(self, X:torch_tensor)->torch_tensor:
+        """
+        the call function for SHAP VAE takes in a tensor rather than a pd.DataFrame
+        this tensor is shaped as per the VAE model's requirements
+        which is a tuple of (a list of tensors main VAE network, a list of tensors for subtask network)
+        the forward function returns only the risk preds rather than a tple
+        """
+        _, _, _, riskpred = self.model(X)
+        return riskpred
