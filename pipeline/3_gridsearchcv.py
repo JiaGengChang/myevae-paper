@@ -2,9 +2,12 @@ import os
 from argparse import ArgumentParser
 from json import dump as json_dump
 import numpy as np
+import numpy as np
 import pandas as pd
 from sklearn.model_selection import RandomizedSearchCV
+from sklearn.model_selection import RandomizedSearchCV
 from datetime import datetime 
+os.chdir('/home/users/nus/e1083772/cancer-survival-ml')
 os.chdir('/home/users/nus/e1083772/cancer-survival-ml')
 from dotenv import load_dotenv
 assert load_dotenv('.env')
@@ -73,7 +76,7 @@ def main(
         valid_dataframe=pd.concat([valid_labels,valid_features],axis=1)
 
     assert os.path.exists(train_features_file) and os.path.exists(train_labels_file)
-    train_features=pd.read_parquet(train_features_file)
+    train_features=pd.read_parquet(train_features_file).fillna(0)
     train_labels=pd.read_parquet(train_labels_file)[[params.eventcol,params.durationcol]]
     params = annotate_exp_genes(train_features, params)
     train_dataframe=pd.concat([train_labels,train_features],axis=1).fillna(0)
