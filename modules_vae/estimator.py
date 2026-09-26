@@ -71,7 +71,11 @@ class VAE(BaseEstimator):
         """
         assert isinstance(X, pd.DataFrame)
         # Check that X has correct shape, set n_features_in_, etc.
-        X = pd.DataFrame(validate_data(self, X, y), index=X.index, columns=X.columns)
+        X = pd.DataFrame(
+            validate_data(self, X, y, ensure_all_finite='allow-nan'),
+            index=X.index,
+            columns=X.columns,
+        )
         if self.subset_microarray:
             X, genes_keep = subset_to_microarray_genes(X)
             self.genes = genes_keep
@@ -157,7 +161,11 @@ class VAE(BaseEstimator):
         # check if fit has been called
         check_is_fitted(self)
         # input validation
-        X = pd.DataFrame(validate_data(self, X, reset=False), index=X.index, columns=X.columns)
+        X = pd.DataFrame(
+            validate_data(self, X, reset=False, ensure_all_finite='allow-nan'),
+            index=X.index,
+            columns=X.columns,
+        )
 
         # remove non-microarray genes if necessary
         if self.subset_microarray:
@@ -177,7 +185,11 @@ class VAE(BaseEstimator):
 
     def score(self, X:pd.DataFrame, y=None)->float:
         assert isinstance(X, pd.DataFrame)
-        X = pd.DataFrame(validate_data(self, X, reset=False),index=X.index,columns=X.columns)
+        X = pd.DataFrame(
+            validate_data(self, X, reset=False, ensure_all_finite='allow-nan'),
+            index=X.index,
+            columns=X.columns,
+        )
         estimates = self.predict(X)
         event = X[self.eventcol].values.astype(bool)
         duration = X[self.durationcol].values
