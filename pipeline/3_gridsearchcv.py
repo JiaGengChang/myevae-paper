@@ -1,6 +1,7 @@
 import os
 from argparse import ArgumentParser
 from json import dump as json_dump
+import numpy as np
 import pandas as pd
 from sklearn.model_selection import RandomizedSearchCV
 from datetime import datetime 
@@ -72,7 +73,7 @@ def main(
         valid_dataframe=pd.concat([valid_labels,valid_features],axis=1)
 
     assert os.path.exists(train_features_file) and os.path.exists(train_labels_file)
-    train_features=pd.read_parquet(train_features_file)
+    train_features=pd.read_parquet(train_features_file).fillna(0)
     train_labels=pd.read_parquet(train_labels_file)[[params.eventcol,params.durationcol]]
     params = annotate_exp_genes(train_features, params)
     train_dataframe=pd.concat([train_labels,train_features],axis=1).fillna(value=0)
@@ -97,6 +98,8 @@ def main(
         param_distributions=param_grid,
         n_iter=n_iter,
         random_state=random_state,
+        error_score=np.nan,
+        refit=True,
     )
 
     cluster = LocalCluster()
@@ -107,6 +110,7 @@ def main(
     # update params with best params
     for k,v in random_search.best_params_.items():
         setattr(params,k,v)
+    params.input_types_all = params.input_types + params.input_types_subtask
     # update params with RNA-Seq gene names
     # this field is needed in score_external_datasets
     if subset:
@@ -135,13 +139,13 @@ def main(
     params.scale_method = random_search.best_estimator_.scale_method
     
     # score external datasets if using only RNASeq as input
-    # if params.input_types_all ==['exp','clin'] or params.input_types_all ==['exp']:        
-    #     cindex_uams, cindex_hovon, cindex_emtab, cindex_apex = score_external_datasets(random_search.best_estimator_,params)
-    #     results['best_epoch']['uams_metric'] = cindex_uams
-    #     results['best_epoch']['hovon_metric'] = cindex_hovon
-    #     results['best_epoch']['emtab_metric'] = cindex_emtab
-    #     results['best_epoch']['apex_metric'] = cindex_apex
-    #     results['best_epoch']['timestamp'] = datetime.now().__str__()
+    if params.input_types_all ==['exp','clin'] or params.input_types_all ==['exp']:        
+        cindex_uams, cindex_hovon, cindex_emtab, cindex_apex = score_external_datasets(random_search.best_estimator_,params)
+        results['best_epoch']['uams_metric'] = cindex_uams
+        results['best_epoch']['hovon_metric'] = cindex_hovon
+        results['best_epoch']['emtab_metric'] = cindex_emtab
+        results['best_epoch']['apex_metric'] = cindex_apex
+        results['best_epoch']['timestamp'] = datetime.now().__str__()
         
     os.makedirs(os.path.dirname(params.resultsprefix),exist_ok=True)
 

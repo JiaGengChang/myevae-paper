@@ -10,7 +10,7 @@ from sklearn.compose import make_column_selector, ColumnTransformer
 from sklearn.ensemble import RandomForestClassifier,RandomForestRegressor 
 import sys
 sys.path.append('/home/users/nus/e1083772/cancer-survival-ml/utils')
-from pipelinetools import VarianceSelector,Log1pTransform,StandardTransform,FrequencySelector,CoxnetSelector,TopNSelector,CorrelationSelector
+from pipelinetools import VarianceSelector,Log1pTransform,StandardTransform,IdentityTransform,CoxnetSelector,TopNSelector,CorrelationSelector
 
 def main(endpoint:str,
          datadir:str) -> None:
@@ -67,7 +67,7 @@ def main(endpoint:str,
     ])
 
     transformer_igh = Pipeline([
-        ('Min Frequency', FrequencySelector(minfreq=0.05))
+        ('Identity', IdentityTransform())
     ])
 
     transformer = ColumnTransformer([
@@ -87,9 +87,9 @@ def main(endpoint:str,
         'n_jobs': -1,
     }
     imputer_args = {
-        'n_nearest_features':10,
-        'max_iter':10,
-        'tol': 1e-3,
+        'n_nearest_features':20,
+        'max_iter':100,
+        'tol': 5e-3,
         'skip_complete':True,
     }
 

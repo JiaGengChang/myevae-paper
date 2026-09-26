@@ -5,7 +5,6 @@ import warnings
 warnings.formatwarning = lambda msg, *args, **kwargs: f'{msg}\n'
 from torch.utils.data import DataLoader
 from torch import no_grad, cat as torch_cat, tensor as torch_tensor, save as torch_save
-from torch.nn import MSELoss
 from torch.optim import Adam
 from sklearn.base import BaseEstimator
 from sklearn.utils.validation import validate_data, check_is_fitted
@@ -106,47 +105,104 @@ class VAE(BaseEstimator):
         self.optimizer = Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=self.lr)
         self.survival_loss_func = CoxPHLoss()
         self.kl_loss_func = KLDivergence()
-        self.reconstruction_loss_funcs = [MSELoss(reduction='mean') for _ in self.model.input_types_vae]
         self.model.train()
-        self.optimizer.zero_grad()
+        results = {
+            'history': {},
+            'best_epoch': {
+                'loss': float('inf'),
+                'epoch': None,
+            },
+        }
         best_loss = np.inf
         epochs_since_best = 0
         trainloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
         for epoch in range(1,1+self.epochs):
             current_loss = 0 # survival loss summed across batches
+            train_kl_loss = 0
+            train_reconstruction_losses = [0 for _ in self.model.input_types_vae]
+            train_survival_loss = 0
+            train_mask_stats = {}
+            results['history'][epoch] = {
+                'train': {},
+                'valid': {
+                    'masking_stats': {},
+                },
+            }
             for batch_idx, data in enumerate(trainloader):
                 inputs_vae = [data[f'X_{input_type}'] for input_type in self.model.input_types_vae]
                 inputs_task = [data[f'X_{input_type}'] for input_type in self.model.input_types_subtask]
-                outputs, mu, logvar, riskpred = self.model.forward((inputs_vae, inputs_task))
-                assert len(inputs_vae)==len(outputs)
+                masked_inputs, original_inputs, masks, mask_stats = self.model.apply_mask_to_batch(inputs_vae)
+                outputs, mu, logvar, riskpred = self.model.forward((masked_inputs, inputs_task))
+                assert len(masked_inputs)==len(outputs)
                 batch_kl_loss = self.kl_weight * self.kl_loss_func(mu, logvar)
                 assert not batch_kl_loss.isnan().any().item()
                 batch_reconstruction_losses = [
-                    f(output, input_vae) for f, output, input_vae in zip(self.reconstruction_loss_funcs, outputs, inputs_vae)
+                    self.model.reconstruction_loss(output, target, mask)
+                    for output, target, mask in zip(outputs, original_inputs, masks)
                 ]
                 for brl in batch_reconstruction_losses:
                     assert not brl.isnan().any().item()
                 batch_survival_loss = self.survival_loss_func(data['event_indicator'], data['event_time'], riskpred.flatten())
                 assert not batch_survival_loss.isnan().any().item()
                 batch_loss = batch_kl_loss + batch_survival_loss + sum(batch_reconstruction_losses)
+                self.optimizer.zero_grad()
                 batch_loss.backward()
                 self.optimizer.step()
                 current_loss += batch_loss.item()
+                train_kl_loss += batch_kl_loss.item()
+                train_reconstruction_losses = [
+                    total + loss.item()
+                    for total, loss in zip(train_reconstruction_losses, batch_reconstruction_losses)
+                ]
+                train_survival_loss += batch_survival_loss.item()
+                for modality, stats in mask_stats.items():
+                    accumulated = train_mask_stats.setdefault(modality, {
+                        'count': 0,
+                        'total_features': 0,
+                        'proportion': stats['proportion'],
+                    })
+                    accumulated['count'] += stats['count']
+                    accumulated['total_features'] += stats['total_features']
+
+            results['history'][epoch]['train'] = {
+                'loss': current_loss,
+                'kl_loss': train_kl_loss,
+                'reconstruction_loss': {
+                    input_type: loss
+                    for input_type, loss in zip(self.model.input_types_vae, train_reconstruction_losses)
+                },
+                'survival_loss': train_survival_loss,
+                'masking_stats': {
+                    modality: {
+                        'count': stats['count'],
+                        'total_features': stats['total_features'],
+                        'mask_rate': stats['count'] / max(1, stats['total_features']),
+                        'proportion': stats['proportion'],
+                    }
+                    for modality, stats in train_mask_stats.items()
+                },
+            }
             
             if epoch <= int(self.burn_in):
                 pass
             elif current_loss < best_loss:
                 epochs_since_best = 0
                 best_loss = current_loss
+                results['best_epoch'] = {
+                    'loss': best_loss,
+                    'epoch': epoch,
+                }
                 if verbose:
                     print(f'Epoch {epoch}: {current_loss}')
             elif epochs_since_best == int(self.patience):
                 print(f'Early stopping at epoch {epoch - self.patience - 1}')
+                self.results_ = results
                 return self
             else:
                 epochs_since_best += 1
                 
         warnings.warn(f'Early stopping not triggered. patience: {self.patience}, best_loss: {best_loss}, epochs_since_best: {epochs_since_best}')
+        self.results_ = results
         return self
     
     def eval(self)->None:
