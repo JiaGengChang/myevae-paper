@@ -1,4 +1,6 @@
 import os
+from dotenv import load_dotenv
+assert load_dotenv('/home/users/nus/e1083772/cancer-survival-ml/.env')
 from argparse import ArgumentParser
 import pandas as pd # requires pyararow, fastparquet
 import numpy as np
@@ -13,7 +15,8 @@ sys.path.append('/home/users/nus/e1083772/cancer-survival-ml')
 from utils.pipelinetools import VarianceSelector,Log1pTransform,StandardTransform,CoxnetSelector,TopNSelector,CorrelationSelector,FrequencySelector,IdentityTransform
 
 def main(endpoint:str,
-         datadir:str) -> None:
+         shuffle:int,
+         fold:int) -> None:
 
     # oscdy is the time to overall survival
     # censos is the event flag for overall survival
@@ -21,18 +24,20 @@ def main(endpoint:str,
     # censpfs is the event flag for progression-free survival
     survcols = [f'{endpoint}cdy',f'cens{endpoint}']
 
-    features_file=f'{datadir}/train_features.parquet'
+    datadir=f"{os.environ.get('SPLITDATADIR')}/{shuffle}/{fold}"
+
+    features_file=f'{datadir}/train_features_mut.parquet'
     features = pd.read_parquet(features_file)
 
-    train_surv_file=f'{datadir}/train_labels.parquet'
+    train_surv_file=f'{datadir}/train_labels_mut.parquet'
     train_surv = pd.read_parquet(train_surv_file,columns=survcols)
     train_surv.rename(columns={f'{endpoint}cdy':'survtime',f'cens{endpoint}':'survflag'},inplace=True)
 
-    valid_features_file=f'{datadir}/valid_features.parquet'
+    valid_features_file=f'{datadir}/valid_features_mut.parquet'
     valid_features = pd.read_parquet(valid_features_file)
 
-    train_out_features_file=f'{datadir}/train_features_{endpoint}_processed_nan.parquet'
-    valid_out_features_file=f'{datadir}/valid_features_{endpoint}_processed_nan.parquet'    
+    train_out_features_file=f'{datadir}/train_features_{endpoint}_processed_mut_nan.parquet'
+    valid_out_features_file=f'{datadir}/valid_features_{endpoint}_processed_mut_nan.parquet'
 
     transformer_gene_exp = Pipeline([
         ('Non-zero variance', VarianceSelector(threshold=0)),
@@ -71,7 +76,7 @@ def main(endpoint:str,
     ])
 
     transformer_mut = Pipeline([
-        ('Frequency filter', FrequencySelector(threshold=0.05))
+        ('Frequency filter', FrequencySelector(minfreq=0.05))
     ])
 
     transformer = ColumnTransformer([
@@ -111,7 +116,10 @@ def main(endpoint:str,
 if __name__ == "__main__":
     parser = ArgumentParser(description='Select significant features and preprocess them')
     parser.add_argument('-e','--endpoint', type=str, choices=['pfs', 'os'], help='Survival endpoint to select features against (pfs or os)')
-    parser.add_argument('-d', '--datadir', type=str, help='Input directory for model training and validation data')
     args = parser.parse_args()
+
+    _pbs_array_id = int(os.getenv('PBS_ARRAY_INDEX', "-1"))
+    pbs_shuffle=_pbs_array_id%10
+    pbs_fold=_pbs_array_id//10
     
-    main(args.endpoint,args.datadir)
+    main(args.endpoint,pbs_shuffle,pbs_fold)
