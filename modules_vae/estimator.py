@@ -106,13 +106,13 @@ class VAE(BaseEstimator):
         self.survival_loss_func = CoxPHLoss()
         self.kl_loss_func = KLDivergence()
         self.model.train()
-        self.optimizer.zero_grad()
         best_loss = np.inf
         epochs_since_best = 0
         trainloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
         for epoch in range(1,1+self.epochs):
             current_loss = 0 # survival loss summed across batches
             for batch_idx, data in enumerate(trainloader):
+                self.optimizer.zero_grad()
                 inputs_vae = [data[f'X_{input_type}_imputed'] for input_type in self.model.input_types_vae]
                 targets_vae = [data[f'X_{input_type}'] for input_type in self.model.input_types_vae]
                 masks_vae = [data[f'X_{input_type}_mask'] for input_type in self.model.input_types_vae]
