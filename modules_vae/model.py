@@ -99,6 +99,16 @@ class MultiModalVAE(torch.nn.Module):
         assert not torch.isnan(riskpred).any().item(), 'nan values present in log p hazards'
         # return latent embedding, its mu and logvar, and risk predictions
         return z, mu, logvar, riskpred
+
+    @staticmethod
+    def reconstruction_loss(output, target, observed_mask):
+        target_without_missing = torch.where(observed_mask.bool(), target, torch.zeros_like(target))
+        squared_error = torch.where(
+            observed_mask.bool(),
+            (output - target_without_missing).pow(2),
+            torch.zeros_like(output),
+        )
+        return squared_error.sum() / observed_mask.sum().clamp_min(1.0)
     
     def decode(self, z):
         h_cat = self.joint_decoder(z) # concatenated decoded input

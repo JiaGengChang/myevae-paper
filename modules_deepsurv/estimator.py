@@ -94,7 +94,7 @@ class DeepSurv(BaseEstimator):
         for epoch in range(1,1+self.epochs):
             current_loss = 0 # CoxPH loss summed across batches
             for batch_idx, data in enumerate(dataloader):
-                inputs = torch_cat([data[f'X_{input_type}'] for input_type in self.input_types_all],axis=-1)
+                inputs = torch_cat([data[f'X_{input_type}_imputed'] for input_type in self.input_types_all],axis=-1)
                 riskpred = self.model.net.forward((inputs))
                 assert len(inputs)==len(riskpred)
                 batch_loss = self.model.loss(riskpred.flatten(), data['event_time'], data['event_indicator'])
@@ -139,7 +139,7 @@ class DeepSurv(BaseEstimator):
         dataloader = DataLoader(Dataset(X, self.input_types_all, event_indicator_col=self.eventcol,event_time_col=self.durationcol), batch_size=1024, shuffle=False)
         estimates = []
         for _, data in enumerate(dataloader):
-            inputs = torch_cat([data[f'X_{input_type}'] for input_type in self.input_types_all],axis=-1)
+            inputs = torch_cat([data[f'X_{input_type}_imputed'] for input_type in self.input_types_all],axis=-1)
             with no_grad():
                 riskpred = self.model.net.forward((inputs))
                 estimates.append(riskpred.flatten())
