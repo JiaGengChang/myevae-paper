@@ -28,6 +28,11 @@ class Dataset(torch_Dataset):
             column_prefix = type_prefixes_dict.get(input_type, None)
             if column_prefix:
                 feature_values = df.filter(regex=column_prefix).values.astype(float)
+                if feature_values.shape[1] == 0:
+                    raise ValueError(
+                        f"Input X_{input_type} has width 0: no dataframe columns match "
+                        f"the expected pattern {column_prefix!r}."
+                    )
                 X_input = torch_tensor(feature_values, device=device).to(torch_float64)
                 X_imputed = torch_tensor(pd.DataFrame(feature_values).fillna(0.0).values, device=device).to(torch_float64)
                 X_mask = torch_tensor((~pd.isna(feature_values)).astype(float), device=device).to(torch_float64)
