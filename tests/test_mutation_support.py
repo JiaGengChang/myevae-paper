@@ -75,7 +75,7 @@ def test_real_mutation_training_parquet_rejects_missing_mutation_columns():
 def test_mutation_modality_is_supported_by_model_and_grid():
     model = MultiModalVAE(
         input_types=['exp', 'cna', 'gistic', 'fish', 'sbs', 'ig', 'mut'],
-        input_dims=[1, 1, 1, 1, 1, 1, 23],
+        input_dims=[720, 220, 80, 40, 20, 8, 23],
         layer_dims=[[1], [1], [1], [1], [1], [1], [4]],
         input_types_subtask=['clin'],
         input_dims_subtask=[0],
@@ -90,15 +90,15 @@ def test_mutation_modality_is_supported_by_model_and_grid():
 def test_shap_model_accepts_all_vae_modalities_including_mutation():
     model = ShapMultiModalVAE(
         input_types=['exp', 'cna', 'gistic', 'fish', 'sbs', 'ig', 'mut'],
-        input_dims=[1, 1, 1, 1, 1, 1, 23],
+        input_dims=[720, 220, 80, 40, 20, 8, 23],
         layer_dims=[[1], [1], [1], [1], [1], [1], [4]],
         input_types_subtask=['clin'],
-        input_dims_subtask=[0],
-        layer_dims_subtask=[1],
+        input_dims_subtask=[4],
+        layer_dims_subtask=[4,1],
     )
     shap_inputs = [
         torch.randn(2, input_dim, dtype=torch.float64)
-        for input_dim in [1, 1, 1, 1, 1, 1, 23, 0]
+        for input_dim in [720, 220, 80, 40, 20, 8, 23, 4]
     ]
 
     riskpred = model(shap_inputs)
