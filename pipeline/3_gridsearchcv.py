@@ -5,10 +5,10 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import RandomizedSearchCV
 from datetime import datetime 
-os.chdir('/home/users/nus/e1083772/cancer-survival-ml')
-from dotenv import load_dotenv
-assert load_dotenv('../.env') or load_dotenv('.env')
 import sys
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+from dotenv import load_dotenv
+assert load_dotenv('../.env')
 sys.path.append(os.environ.get("PROJECTDIR"))
 from utils.validation import score_external_datasets
 from utils.annotate_exp_genes import annotate_exp_genes
@@ -57,15 +57,15 @@ def main(
         # shuffle and fold are ignored
         # the only use case is for external validation on GEO datasets
         # the validation C-index metric will be set to 0
-        train_features_file=f'{splitsdir}/full_features_{endpoint}_processed_nan.parquet'
+        train_features_file=f'{splitsdir}/full_features_{endpoint}_processed_mut_nan.parquet'
         train_labels_file=f'{splitsdir}/full_labels.parquet'
     else:
         # the default mode
         # the model is trained on 80% of the data
         # the 20% validation data is used as calculate hold out C-index metrics
-        train_features_file=f'{splitsdir}/{params.shuffle}/{params.fold}/train_features_{endpoint}_processed_nan.parquet'
+        train_features_file=f'{splitsdir}/{params.shuffle}/{params.fold}/train_features_{endpoint}_processed_mut_nan.parquet'
         train_labels_file=f'{splitsdir}/{params.shuffle}/{params.fold}/train_labels.parquet'
-        valid_features_file=f'{splitsdir}/{params.shuffle}/{params.fold}/valid_features_{endpoint}_processed_nan.parquet'
+        valid_features_file=f'{splitsdir}/{params.shuffle}/{params.fold}/valid_features_{endpoint}_processed_mut_nan.parquet'
         valid_labels_file=f'{splitsdir}/{params.shuffle}/{params.fold}/valid_labels.parquet'
         assert os.path.exists(valid_features_file) and os.path.exists(valid_labels_file)
         valid_features=pd.read_parquet(valid_features_file)
@@ -168,8 +168,8 @@ if __name__ == "__main__":
     parser.add_argument('--random-state', type=int, default=42, help='Seed used to reproduce the sampled combinations')
     args = parser.parse_args()
     _pbs_array_id = int(os.getenv('PBS_ARRAY_INDEX', "-1"))
-    pbs_shuffle=_pbs_array_id%10
-    pbs_fold=_pbs_array_id//10
+    pbs_shuffle=0#_pbs_array_id%10
+    pbs_fold=0#_pbs_array_id//10
     if args.endpoint=="both":
         # useful for training the train-valid splits
         # because scheduler has a limit of 99 jobs
