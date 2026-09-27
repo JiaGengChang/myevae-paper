@@ -27,8 +27,13 @@ class Dataset(torch_Dataset):
         for input_type in input_types:
             column_prefix = type_prefixes_dict.get(input_type, None)
             if column_prefix:
-                X_input = torch_tensor(df.filter(regex=column_prefix).values.astype(float), device=device).to(torch_float64)
+                feature_values = df.filter(regex=column_prefix).values.astype(float)
+                X_input = torch_tensor(feature_values, device=device).to(torch_float64)
+                X_imputed = torch_tensor(pd.DataFrame(feature_values).fillna(0.0).values, device=device).to(torch_float64)
+                X_mask = torch_tensor((~pd.isna(feature_values)).astype(float), device=device).to(torch_float64)
                 setattr(self, f'X_{input_type}', X_input)
+                setattr(self, f'X_{input_type}_imputed', X_imputed)
+                setattr(self, f'X_{input_type}_mask', X_mask)
         
         self.event_indicator = df[event_indicator_col] # 0 or 1
         if offset_duration:
@@ -40,12 +45,14 @@ class Dataset(torch_Dataset):
     def __getitem__(self,index):
         # a payload with event_time, event_indicator, PUBLIC_ID, and a few tensors with prefix X_
         data = {
-            'event_time': self.event_time.iloc[index],
-            'event_indicator': self.event_indicator.iloc[index],
+            'event_time': float(self.event_time.iloc[index]),
+            'event_indicator': float(self.event_indicator.iloc[index]),
             'PUBLIC_ID': self.PUBLIC_ID[index]
         }
         for suffix in self.input_types:
             data[f'X_{suffix}'] = getattr(self, f'X_{suffix}', None)[index,:]
+            data[f'X_{suffix}_imputed'] = getattr(self, f'X_{suffix}_imputed', None)[index,:]
+            data[f'X_{suffix}_mask'] = getattr(self, f'X_{suffix}_mask', None)[index,:]
         
         return data
     

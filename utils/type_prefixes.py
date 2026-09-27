@@ -13,5 +13,6 @@ type_prefixes_dict = {
     'uams70': 'Feature_UAMS70', # gene expression signature
     'ifm15': 'Feature_IFM15', # gene expression signature
     'mrcix6': 'Feature_MRC_IX_6', # gene expression signature
-    'exp_pca': 'Feature_exp_PC' # PCs of RNA-Seq genes
+    'exp_pca': 'Feature_exp_PC', # PCs of RNA-Seq genes
+    'mut': 'Feature_mut'
 }
