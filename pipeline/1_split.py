@@ -1,4 +1,5 @@
 import os
+os.chdir(os.path.dirname(__file__))
 from dotenv import load_dotenv
 assert load_dotenv('../.env') or load_dotenv('.env')
 import sys
