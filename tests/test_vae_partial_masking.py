@@ -1,7 +1,15 @@
+from pathlib import Path
+
+import pandas as pd
 import torch
 import pytest
 
 from modules_vae.model import MultiModalVAE
+from utils.dataset import Dataset
+
+
+ACTUAL_FEATURES = Path(__file__).parents[1] / 'data/splits/0/0/valid_features_os_processed_mut_nan.parquet'
+ACTUAL_MODALITIES = ['exp', 'cna', 'fish', 'sbs', 'gistic', 'ig']
 
 
 def make_vae(masking_proportions=None):
@@ -23,6 +31,30 @@ def make_vae(masking_proportions=None):
             'gistic': 0.5,
             'ig': 0.5,
         },
+        random_state=7,
+    )
+
+
+def make_actual_dataset():
+    dataframe = pd.read_parquet(ACTUAL_FEATURES).iloc[:8].copy()
+    dataframe['survflag'] = 0
+    dataframe['survtime'] = 1.0
+    return Dataset(dataframe, ACTUAL_MODALITIES + ['clin'])
+
+
+def make_actual_vae(dataset):
+    input_dims = [getattr(dataset, f'X_{modality}').shape[1] for modality in ACTUAL_MODALITIES]
+    return MultiModalVAE(
+        input_types=ACTUAL_MODALITIES,
+        input_dims=input_dims,
+        layer_dims=[[4] for _ in ACTUAL_MODALITIES],
+        input_types_subtask=['clin'],
+        input_dims_subtask=[dataset.X_clin.shape[1]],
+        layer_dims_subtask=[2, 1],
+        z_dim=3,
+        activation=torch.nn.ReLU(),
+        subtask_activation=torch.nn.Tanh(),
+        masking_proportions={modality: 0.5 for modality in ACTUAL_MODALITIES},
         random_state=7,
     )
 
@@ -101,3 +133,44 @@ def test_masked_reconstruction_loss_uses_only_selected_features():
     expected = ((output - target) ** 2 * mask).sum() / mask.sum().clamp_min(1.0)
 
     assert torch.allclose(loss, expected)
+
+
+def test_actual_dataframe_inputs_are_masked_per_modality():
+    dataset = make_actual_dataset()
+    vae = make_actual_vae(dataset)
+    inputs = [getattr(dataset, f'X_{modality}') for modality in ACTUAL_MODALITIES]
+
+    masked, targets, masks, stats = vae.apply_mask_to_batch(inputs)
+
+    assert [tensor.shape[1] for tensor in targets] == [713, 216, 36, 10, 64, 8]
+    for input_tensor, masked_tensor, target, mask, modality in zip(
+        inputs, masked, targets, masks, ACTUAL_MODALITIES
+    ):
+        expected_target = torch.nan_to_num(input_tensor, nan=0.0, posinf=0.0, neginf=0.0)
+        assert torch.equal(target, expected_target)
+        assert torch.equal(masked_tensor, target * (1.0 - mask))
+        assert torch.all((mask == 0) | (mask == 1))
+        assert stats[modality]['count'] == int(mask.sum().item())
+        assert stats[modality]['total_features'] == mask.numel()
+        assert stats[modality]['count'] > 0
+
+
+def test_actual_dataframe_reconstruction_loss_ignores_unobserved_positions():
+    dataset = make_actual_dataset()
+    vae = make_actual_vae(dataset)
+    inputs = [getattr(dataset, f'X_{modality}') for modality in ACTUAL_MODALITIES]
+    _, targets, masks, _ = vae.apply_mask_to_batch(inputs)
+
+    target = targets[0]
+    mask = masks[0]
+    output = target.clone()
+    output[mask == 1] += 2.0
+    loss = vae.reconstruction_loss(output, target, mask)
+
+    changed_outside_mask = output.clone()
+    changed_outside_mask[mask == 0] += 1000.0
+    assert torch.allclose(
+        loss,
+        vae.reconstruction_loss(changed_outside_mask, target, mask),
+    )
+    assert loss > 0
