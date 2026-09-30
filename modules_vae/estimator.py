@@ -152,10 +152,8 @@ class VAE(BaseEstimator):
                 current_loss += batch_loss.item()
                 train_kl_loss += batch_kl_loss.item()
                 train_reconstruction_losses = [
-                    total + loss.item() if input_idx == target_index else total
-                    for input_idx, (total, loss) in enumerate(
-                        zip(train_reconstruction_losses, batch_reconstruction_loss)
-                    )
+                    total + batch_reconstruction_loss.item() if input_idx == target_index else total
+                    for input_idx, total in enumerate(train_reconstruction_losses)
                 ]
                 train_survival_loss += batch_survival_loss.item()
 
