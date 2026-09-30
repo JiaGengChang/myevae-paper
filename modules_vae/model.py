@@ -1,4 +1,3 @@
-import math
 import torch
 import sys
 sys.path.append('/home/users/nus/e1083772/cancer-survival-ml/')
@@ -7,10 +6,10 @@ from utils.buildnetwork import buildNetwork
 class MultiModalVAE(torch.nn.Module):
     def __init__(self,
                  # data modalities for VAE
-                 input_types=['exp','cna','gistic','sbs','fish','ig'],
+                 input_types = ['exp','cna','gistic','sbs','fish','ig'],
                  # number of input features for each data modality, for VAE
                  # e.g. [ 996,  166, 42,  10,  24,  8]
-                 input_dims=[None, None, None, None, None, None],
+                 input_dims = [None, None, None, None, None, None],
                  # hidden layer dimensions for VAE
                  # e.g. [[64], [16], [4], [2], [2],[1]]
                  layer_dims=[[64], [16], [4], [2], [2],[1]],
@@ -34,10 +33,10 @@ class MultiModalVAE(torch.nn.Module):
                  modality_mask_seed = None
                 ):
         super().__init__()
-
-        assert all([f in ['exp','cna','gistic','sbs','fish','ig','apobec','cth'] for f in input_types])
-        assert all([f in ['gistic','sbs','fish','ig','apobec','cth','clin'] for f in input_types_subtask])
-
+        
+        assert all([f in ['exp','cna','gistic','sbs','fish','ig','apobec','cth','mut'] for f in input_types]) # these predictors go into the VAE
+        assert all([f in ['gistic','sbs','fish','ig','apobec','cth','clin'] for f in input_types_subtask]) # these predictors may skip the VAE
+        
         self.input_dims = input_dims
         self.input_dims_subtask = input_dims_subtask
         self.input_types_vae = input_types
@@ -63,7 +62,9 @@ class MultiModalVAE(torch.nn.Module):
         self.joint_encoder_mu = buildNetwork([self.joint_encoders_dim,z_dim*2,z_dim],activation=self.activation)
         self.joint_encoder_log_sigma = buildNetwork([self.joint_encoders_dim,z_dim*2,z_dim],activation=self.activation)
         self.joint_decoder = buildNetwork([z_dim, self.joint_encoders_dim], activation=self.activation)
-
+        
+        # sub-task e.g. survival modelling
+        # the last layer activation is always Tanh so that risk output is between -1 and 1
         self.risk_predictor = buildNetwork([z_dim + sum(input_dims_subtask)] + layer_dims_subtask, activation=self.subtask_activation)
 
     @staticmethod
@@ -207,8 +208,10 @@ class MultiModalVAE(torch.nn.Module):
         # concat peripheral encodings into input for bottleneck layer
         h_cat = torch.cat(hs, dim=1)
         assert not torch.isnan(h_cat).any().item(), 'nan values present in input to central encoder, h_cat'
+        # pass through bottleneck layer. 1 for mean, 1 for log(variance)
         mu = self.joint_encoder_mu(h_cat)
         logvar = self.joint_encoder_log_sigma(h_cat)
+        # reparameterize to get latent embedding
         z = self._reparameterize(mu, logvar)
         assert not torch.isnan(z).any().item(), 'nan values present in z-embedding'
         risk_input = mu
