@@ -16,6 +16,7 @@ param_grid = {
     'epochs': [300],
     'burn_in': [50],
     'patience': [20],
+    'modality_mask_seed': [24, 42]
 }
 
 param_grid_exp_cna_gistic_fish_sbs_ig_chrom = {
