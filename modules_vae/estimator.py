@@ -124,12 +124,9 @@ class VAE(BaseEstimator):
             train_kl_loss = 0
             train_reconstruction_losses = [0 for _ in self.model.input_types_vae]
             train_survival_loss = 0
-            train_mask_stats = {}
             results['history'][epoch] = {
                 'train': {},
-                'valid': {
-                    'masking_stats': {},
-                },
+                'valid': {}
             }
             for batch_idx, data in enumerate(trainloader):
                 self.optimizer.zero_grad()
@@ -143,30 +140,24 @@ class VAE(BaseEstimator):
                 assert len(outputs) == 1
                 batch_kl_loss = self.kl_weight * self.kl_loss_func(mu, logvar)
                 assert not batch_kl_loss.isnan().any().item()
-                batch_reconstruction_loss = self.reconstruction_loss_funcs[target_index](
-                    outputs[0], inputs_vae[target_index]
-                )
+                # there is only one modality being reconstructed. This is a scalar.
+                batch_reconstruction_loss = self.model.reconstruction_loss(outputs[0], inputs_vae[target_index])
                 assert not batch_reconstruction_loss.isnan().any().item()
                 batch_survival_loss = self.survival_loss_func(data['event_indicator'], data['event_time'], riskpred.flatten())
                 assert not batch_survival_loss.isnan().any().item()
+                # no need to sum(batch_reconstruction_losses)
                 batch_loss = batch_kl_loss + batch_survival_loss + batch_reconstruction_loss
                 batch_loss.backward()
                 self.optimizer.step()
                 current_loss += batch_loss.item()
                 train_kl_loss += batch_kl_loss.item()
                 train_reconstruction_losses = [
-                    total + loss.item()
-                    for total, loss in zip(train_reconstruction_losses, batch_reconstruction_losses)
+                    total + loss.item() if input_idx == target_index else total
+                    for input_idx, (total, loss) in enumerate(
+                        zip(train_reconstruction_losses, batch_reconstruction_loss)
+                    )
                 ]
                 train_survival_loss += batch_survival_loss.item()
-                for modality, stats in mask_stats.items():
-                    accumulated = train_mask_stats.setdefault(modality, {
-                        'count': 0,
-                        'total_features': 0,
-                        'proportion': stats['proportion'],
-                    })
-                    accumulated['count'] += stats['count']
-                    accumulated['total_features'] += stats['total_features']
 
             results['history'][epoch]['train'] = {
                 'loss': current_loss,
@@ -176,15 +167,6 @@ class VAE(BaseEstimator):
                     for input_type, loss in zip(self.model.input_types_vae, train_reconstruction_losses)
                 },
                 'survival_loss': train_survival_loss,
-                'masking_stats': {
-                    modality: {
-                        'count': stats['count'],
-                        'total_features': stats['total_features'],
-                        'mask_rate': stats['count'] / max(1, stats['total_features']),
-                        'proportion': stats['proportion'],
-                    }
-                    for modality, stats in train_mask_stats.items()
-                },
             }
             
             if epoch <= int(self.burn_in):
@@ -250,16 +232,16 @@ class VAE(BaseEstimator):
     def __call__(self, X:torch_tensor)->tuple:
         return self.model.__call__(X)
 
-# class ShapVAE(VAE, BaseEstimator):
-#     def __init__(self, **kwargs):
-#         super().__init__(**kwargs)
+class ShapVAE(VAE, BaseEstimator):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
     
-#     def __call__(self, X:torch_tensor)->torch_tensor:
-#         """
-#         the call function for SHAP VAE takes in a tensor rather than a pd.DataFrame
-#         this tensor is shaped as per the VAE model's requirements
-#         which is a tuple of (a list of tensors main VAE network, a list of tensors for subtask network)
-#         the forward function returns only the risk preds rather than a tple
-#         """
-#         _, _, _, riskpred = self.model(X)
-#         return riskpred
+    def __call__(self, X:torch_tensor)->torch_tensor:
+        """
+        the call function for SHAP VAE takes in a tensor rather than a pd.DataFrame
+        this tensor is shaped as per the VAE model's requirements
+        which is a tuple of (a list of tensors main VAE network, a list of tensors for subtask network)
+        the forward function returns only the risk preds rather than a tple
+        """
+        _, _, _, riskpred = self.model(X)
+        return riskpred
