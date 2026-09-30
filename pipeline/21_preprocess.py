@@ -29,7 +29,7 @@ def main(endpoint:str,
     features_file=f'{datadir}/train_features_mut.parquet'
     features = pd.read_parquet(features_file)
 
-    train_surv_file=f'{datadir}/train_labels_mut.parquet'
+    train_surv_file=f'{datadir}/train_labels.parquet'
     train_surv = pd.read_parquet(train_surv_file,columns=survcols)
     train_surv.rename(columns={f'{endpoint}cdy':'survtime',f'cens{endpoint}':'survflag'},inplace=True)
 

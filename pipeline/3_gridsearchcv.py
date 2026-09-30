@@ -168,8 +168,8 @@ if __name__ == "__main__":
     parser.add_argument('--random-state', type=int, default=42, help='Seed used to reproduce the sampled combinations')
     args = parser.parse_args()
     _pbs_array_id = int(os.getenv('PBS_ARRAY_INDEX', "-1"))
-    pbs_shuffle=0#_pbs_array_id%10
-    pbs_fold=0#_pbs_array_id//10
+    pbs_shuffle=_pbs_array_id%10
+    pbs_fold=_pbs_array_id//10
     if args.endpoint=="both":
         # useful for training the train-valid splits
         # because scheduler has a limit of 99 jobs

@@ -5,7 +5,6 @@ import warnings
 warnings.formatwarning = lambda msg, *args, **kwargs: f'{msg}\n'
 from torch.utils.data import DataLoader
 from torch import no_grad, cat as torch_cat, tensor as torch_tensor, save as torch_save
-from torch.nn import MSELoss
 from torch.optim import Adam
 from sklearn.base import BaseEstimator
 from sklearn.utils.validation import validate_data, check_is_fitted
@@ -110,7 +109,6 @@ class VAE(BaseEstimator):
         self.optimizer = Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=self.lr)
         self.survival_loss_func = CoxPHLoss()
         self.kl_loss_func = KLDivergence()
-        self.reconstruction_loss_funcs = [MSELoss(reduction='mean') for _ in self.model.input_types_vae]
         self.model.train()
         best_loss = np.inf
         epochs_since_best = 0
