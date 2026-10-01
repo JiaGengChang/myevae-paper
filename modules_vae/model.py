@@ -101,14 +101,17 @@ class MultiModalVAE(torch.nn.Module):
         return z, mu, logvar, riskpred
 
     @staticmethod
-    def reconstruction_loss(output, target, observed_mask):
+    def reconstruction_loss(output, target, observed_mask=None):
+        if observed_mask is None:
+            return (output - target).pow(2).mean()
+
         target_without_missing = torch.where(observed_mask.bool(), target, torch.zeros_like(target))
         squared_error = torch.where(
             observed_mask.bool(),
             (output - target_without_missing).pow(2),
             torch.zeros_like(output),
         )
-        return squared_error.sum() / observed_mask.sum().clamp_min(1.0)
+        return (squared_error.sum() / observed_mask.sum().clamp_min(1.0)).mean()
     
     def decode(self, z):
         h_cat = self.joint_decoder(z) # concatenated decoded input
