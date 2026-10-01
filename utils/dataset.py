@@ -5,6 +5,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv(os.environ.get("PROJECTDIR"))
 from utils.type_prefixes import type_prefixes_dict
+import warnings
 
 # dataset is a dataframe with columns as features (prefix Feature_) and rows as observations
 # it must be a pd.Dataframe because we need its .filter method
@@ -42,7 +43,9 @@ class Dataset(torch_Dataset):
             df[mutation_columns].fillna(0).ne(0).sum(axis=0)
             .sort_values(ascending=False, kind='stable')
         )
-        selected = list(frequencies.head(topKgenes).index)
+        if len(frequencies) < topKgenes:
+            warnings.warn(f"Requested top {topKgenes} mutation features, but only {len(frequencies)} available in this split.")
+        selected = list(frequencies.head(min(topKgenes, len(frequencies))).index)
         selected_set = set(selected)
         columns_to_keep = [
             column for column in df.columns
