@@ -1,4 +1,6 @@
 import os
+from dotenv import load_dotenv
+assert load_dotenv('/home/users/nus/e1083772/cancer-survival-ml/.env')
 from argparse import ArgumentParser
 import pandas as pd # requires pyararow, fastparquet
 import numpy as np
@@ -9,8 +11,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.compose import make_column_selector, ColumnTransformer
 from sklearn.ensemble import RandomForestClassifier,RandomForestRegressor 
 import sys
-sys.path.append('/home/users/nus/e1083772/cancer-survival-ml/utils')
-from pipelinetools import VarianceSelector,Log1pTransform,StandardTransform,IdentityTransform,CoxnetSelector,TopNSelector,CorrelationSelector
+sys.path.append('/home/users/nus/e1083772/cancer-survival-ml')
+from utils.pipelinetools import VarianceSelector,Log1pTransform,StandardTransform,CoxnetSelector,TopNSelector,CorrelationSelector,IdentityTransform
 
 def main(endpoint:str,
          datadir:str) -> None:
@@ -80,31 +82,6 @@ def main(endpoint:str,
         ('IGH_', transformer_igh, make_column_selector(pattern='Feature_(RNASeq|SeqWGS)')),
     ], remainder='drop').set_output(transform="pandas")
 
-    tree_args = {
-        'n_estimators': 100,
-        'max_depth': 20,
-        'min_samples_split': 5,
-        'n_jobs': -1,
-    }
-    imputer_args = {
-        'n_nearest_features':20,
-        'max_iter':100,
-        'tol': 5e-3,
-        'skip_complete':True,
-    }
-
-    ContinuousImputer = IterativeImputer(estimator=RandomForestRegressor(**tree_args), initial_strategy='mean', **imputer_args)
-    CategoricalImputer = IterativeImputer(estimator=RandomForestClassifier(**tree_args), initial_strategy='most_frequent', **imputer_args)
-
-    imputer = ColumnTransformer([
-        ('Continuous variables', ContinuousImputer, make_column_selector(pattern='Feature_(exp|clin_D_PT_age|SBS)')),
-        ('Categorical variables', CategoricalImputer, make_column_selector(pattern='Feature_(?!exp|clin_D_PT_age|SBS)'))
-    ], remainder='drop').set_output(transform="pandas")
-    pipeline = Pipeline([
-        ('Feature selection', transformer),
-        ('Joint imputation', imputer),
-    ])
-    
     # need to shift start date because some OS is negative
     event = train_surv.survflag
     time = train_surv.survtime
@@ -112,10 +89,10 @@ def main(endpoint:str,
     time += offset
     train_y = Surv.from_arrays(event,time)
     
-    out = pipeline.fit_transform(features, train_y)
+    out = transformer.fit_transform(features, train_y)
     out.to_parquet(train_out_features_file)
 
-    outv = pipeline.transform(valid_features)
+    outv = transformer.transform(valid_features)
     outv.to_parquet(valid_out_features_file)
         
     print(f'# significant features remaining:')
