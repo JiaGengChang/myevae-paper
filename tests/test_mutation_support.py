@@ -40,6 +40,37 @@ def test_dataset_emits_mutation_matrix():
     assert batch['X_mut'].dtype == torch.float64
 
 
+def test_dataset_selects_top_mutations_by_training_frequency():
+    dataframe = pd.DataFrame({
+        'survflag': [0, 1, 0],
+        'survtime': [1, 2, 3],
+        'Feature_mut_rare': [1.0, 0.0, 0.0],
+        'Feature_mut_common': [1.0, 1.0, 0.0],
+        'Feature_mut_middle': [1.0, 1.0, 1.0],
+    })
+
+    selected_dataframe, selected = Dataset.subset_mutation_features(
+        dataframe, topKgenes=2
+    )
+
+    assert selected == ['Feature_mut_middle', 'Feature_mut_common']
+    assert set(selected_dataframe.filter(regex='Feature_mut').columns) == set(selected)
+
+
+def test_dataset_reuses_training_mutation_selection_for_inference():
+    training = make_dataframe(mutation_features=3)
+    inference = training.copy()
+    selected = ['Feature_mut_gene_1']
+
+    dataset = Dataset(
+        inference,
+        ['mut'],
+        mutation_feature_columns=selected,
+    )
+
+    assert list(dataset.X_mut.shape) == [2, 1]
+
+
 def test_dataset_without_mutation_input_preserves_existing_modalities():
     dataset = Dataset(make_dataframe(mutation_features=0), ['exp'])
 

@@ -2,6 +2,7 @@ from torch.nn import LeakyReLU, ReLU, Sigmoid, Tanh
 
 param_grid = {
     'z_dim': [16, 32, 64],
+    'topKgenes': [5, 10],
     'lr': [1e-5, 5e-5], 
     'batch_size': [128,256],
     'input_types': [['exp','cna', 'gistic', 'fish', 'sbs', 'ig', 'mut']],

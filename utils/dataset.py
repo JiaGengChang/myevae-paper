@@ -12,16 +12,62 @@ from utils.type_prefixes import type_prefixes_dict
 # survflag and survtime are targets for survival modelling
 # input types is a combination of ['exp','cna','gistic','sbs','fish','ig','cth','clin']
 class Dataset(torch_Dataset):
+    @staticmethod
+    def filter_mutation_features(df: pd.DataFrame, mutation_feature_columns):
+        """Apply mutation columns selected on a training dataframe."""
+        if mutation_feature_columns is None:
+            return df
+        mutation_columns = list(df.filter(regex='Feature_mut').columns)
+        selected_set = set(mutation_feature_columns)
+        columns_to_keep = [
+            column for column in df.columns
+            if column not in mutation_columns or column in selected_set
+        ]
+        return df.loc[:, columns_to_keep]
+
+    @staticmethod
+    def subset_mutation_features(df: pd.DataFrame, topKgenes=None):
+        """Keep the most frequent mutation features and return their names."""
+        if topKgenes is None:
+            return df, None
+        if not isinstance(topKgenes, int) or topKgenes < 1:
+            raise ValueError("topKgenes must be a positive integer or None")
+
+        mutation_columns = list(df.filter(regex='Feature_mut').columns)
+        if not mutation_columns:
+            return df, []
+
+        # Mutation frequency is the number of non-zero, non-missing samples.
+        frequencies = (
+            df[mutation_columns].fillna(0).ne(0).sum(axis=0)
+            .sort_values(ascending=False, kind='stable')
+        )
+        selected = list(frequencies.head(topKgenes).index)
+        selected_set = set(selected)
+        columns_to_keep = [
+            column for column in df.columns
+            if column not in mutation_columns or column in selected_set
+        ]
+        return df.loc[:, columns_to_keep], selected
+
     def __init__(self,
                 df:pd.DataFrame,
                 input_types:list[str],
                 event_indicator_col='survflag',
                 event_time_col='survtime',
                 device=torch_device("cpu"),
-                offset_duration=False):
+                offset_duration=False,
+                topKgenes=None,
+                mutation_feature_columns=None):
         """
         offset_duration: whether to adjust event times to non-negative numbers by min-value adjustment
         """
+        if mutation_feature_columns is not None:
+            df = self.filter_mutation_features(df, mutation_feature_columns)
+        else:
+            df, mutation_feature_columns = self.subset_mutation_features(df, topKgenes)
+
+        self.mutation_feature_columns = mutation_feature_columns
         self.PUBLIC_ID = df.index
         self.input_types=input_types
         for input_type in input_types:

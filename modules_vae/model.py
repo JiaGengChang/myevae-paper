@@ -25,6 +25,8 @@ class MultiModalVAE(torch.nn.Module):
                  # bottleneck layer dimensions
                  # e.g. 16
                  z_dim = 16, 
+                 # number of mutation features to retain; selection is performed by Dataset
+                 topKgenes = None,
                  # an instance of activation in torch.nn
                  activation = torch.nn.LeakyReLU(),
                  # an instance of activation in torch.nn
@@ -38,6 +40,7 @@ class MultiModalVAE(torch.nn.Module):
         assert all([f in ['gistic','sbs','fish','ig','apobec','cth','clin'] for f in input_types_subtask]) # these predictors may skip the VAE
         
         self.input_dims = input_dims
+        self.topKgenes = topKgenes
         self.input_dims_subtask = input_dims_subtask
         self.input_types_vae = input_types
         self.input_types_subtask = input_types_subtask

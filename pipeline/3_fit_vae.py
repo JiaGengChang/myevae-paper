@@ -57,8 +57,36 @@ def main():
     
     train_dataframe=pd.concat([train_labels,train_features],axis=1)
     valid_dataframe=pd.concat([valid_labels,valid_features],axis=1)
-    trainloader = DataLoader(Dataset(train_dataframe, params.input_types_all, event_indicator_col=eventcol,event_time_col=durationcol), batch_size=params.batch_size, shuffle=True)
-    validloader = DataLoader(Dataset(valid_dataframe, params.input_types_all, event_indicator_col=eventcol,event_time_col=durationcol), batch_size=128, shuffle=False)
+
+    train_dataframe, mutation_feature_columns = Dataset.subset_mutation_features(
+        train_dataframe, params.topKgenes
+    )
+    valid_dataframe = Dataset.filter_mutation_features(
+        valid_dataframe, mutation_feature_columns
+    )
+
+    trainloader = DataLoader(
+        Dataset(
+            train_dataframe,
+            params.input_types_all,
+            event_indicator_col=eventcol,
+            event_time_col=durationcol,
+            mutation_feature_columns=mutation_feature_columns,
+        ),
+        batch_size=params.batch_size,
+        shuffle=True,
+    )
+    validloader = DataLoader(
+        Dataset(
+            valid_dataframe,
+            params.input_types_all,
+            event_indicator_col=eventcol,
+            event_time_col=durationcol,
+            mutation_feature_columns=mutation_feature_columns,
+        ),
+        batch_size=128,
+        shuffle=False,
+    )
     
     params = lazy_input_dims(train_dataframe, params) # determine input dimensions
     params = annotate_exp_genes(train_dataframe, params) # determine RNA genes used for training
@@ -71,7 +99,8 @@ def main():
                   input_types_subtask=params.input_types_subtask,
                   input_dims_subtask=params.input_dims_subtask,
                   layer_dims_subtask=params.layer_dims_subtask,
-                  z_dim=params.z_dim)
+                  z_dim=params.z_dim,
+                  topKgenes=params.topKgenes)
     
     # create output directory
     os.makedirs(os.path.dirname(params.resultsprefix),exist_ok=True)
