@@ -1,6 +1,7 @@
 import os
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 from dotenv import load_dotenv
-assert load_dotenv('/home/users/nus/e1083772/cancer-survival-ml/.env')
+assert load_dotenv('../.env')
 from argparse import ArgumentParser
 import pandas as pd # requires pyararow, fastparquet
 import numpy as np
@@ -11,11 +12,12 @@ from sklearn.pipeline import Pipeline
 from sklearn.compose import make_column_selector, ColumnTransformer
 from sklearn.ensemble import RandomForestClassifier,RandomForestRegressor 
 import sys
-sys.path.append('/home/users/nus/e1083772/cancer-survival-ml')
-from utils.pipelinetools import VarianceSelector,Log1pTransform,StandardTransform,CoxnetSelector,TopNSelector,CorrelationSelector,IdentityTransform
+sys.path.append('../')
+from utils.pipelinetools import VarianceSelector,Log1pTransform,StandardTransform,CoxnetSelector,TopNSelector,CorrelationSelector,FrequencySelector,IdentityTransform
 
 def main(endpoint:str,
-         datadir:str) -> None:
+         shuffle:int,
+         fold:int) -> None:
 
     # oscdy is the time to overall survival
     # censos is the event flag for overall survival
@@ -23,18 +25,20 @@ def main(endpoint:str,
     # censpfs is the event flag for progression-free survival
     survcols = [f'{endpoint}cdy',f'cens{endpoint}']
 
-    features_file=f'{datadir}/train_features.parquet'
+    datadir=f"{os.environ.get('SPLITDATADIR')}/{shuffle}/{fold}"
+
+    features_file=f'{datadir}/train_features_mut.parquet'
     features = pd.read_parquet(features_file)
 
     train_surv_file=f'{datadir}/train_labels.parquet'
     train_surv = pd.read_parquet(train_surv_file,columns=survcols)
     train_surv.rename(columns={f'{endpoint}cdy':'survtime',f'cens{endpoint}':'survflag'},inplace=True)
 
-    valid_features_file=f'{datadir}/valid_features.parquet'
+    valid_features_file=f'{datadir}/valid_features_mut.parquet'
     valid_features = pd.read_parquet(valid_features_file)
 
-    train_out_features_file=f'{datadir}/train_features_{endpoint}_processed_joint_imputation.parquet'
-    valid_out_features_file=f'{datadir}/valid_features_{endpoint}_processed_joint_imputation.parquet'    
+    train_out_features_file=f'{datadir}/train_features_{endpoint}_processed_mut_nan.parquet'
+    valid_out_features_file=f'{datadir}/valid_features_{endpoint}_processed_mut_nan.parquet'
 
     transformer_gene_exp = Pipeline([
         ('Non-zero variance', VarianceSelector(threshold=0)),
@@ -45,6 +49,7 @@ def main(endpoint:str,
 
     transformer_sbs = Pipeline([
         ('Top N selector', TopNSelector(n=10)),
+        ('Standard scaling', StandardTransform()),
     ])
 
     transformer_gene_cn = Pipeline([
@@ -72,6 +77,10 @@ def main(endpoint:str,
         ('Identity', IdentityTransform())
     ])
 
+    transformer_mut = Pipeline([
+        ('Frequency filter', FrequencySelector(minfreq=0.05))
+    ])
+
     transformer = ColumnTransformer([
         ('GEXP', transformer_gene_exp, make_column_selector(pattern='Feature_exp_')),
         ('GENECN', transformer_gene_cn, make_column_selector(pattern='Feature_CNA_ENSG')),
@@ -80,6 +89,7 @@ def main(endpoint:str,
         ('SBS_', transformer_sbs, make_column_selector(pattern='Feature_SBS')),
         ('CLIN_', transformer_clin, make_column_selector(pattern='Feature_clin')),
         ('IGH_', transformer_igh, make_column_selector(pattern='Feature_(RNASeq|SeqWGS)')),
+        ('MUT_', transformer_mut, make_column_selector(pattern='Feature_mut')),
     ], remainder='drop').set_output(transform="pandas")
 
     # need to shift start date because some OS is negative
@@ -101,6 +111,7 @@ def main(endpoint:str,
     print(f'CN Gistic:\t{out.filter(regex="Feature_CNA_(Amp|Del)").shape[1]} \t out of \t {features.filter(regex="Feature_CNA_(Amp|Del)").shape[1]}')
     print(f'FISH:\t\t{out.filter(regex="Feature_fish").shape[1]} \t out of \t {features.filter(regex="Feature_fish").shape[1]}')
     print(f'SBS:\t\t{out.filter(regex="Feature_SBS").shape[1]} \t out of \t {features.filter(regex="Feature_SBS").shape[1]}')
+    print(f'MUT:\t\t{out.filter(regex="Feature_mut").shape[1]} \t out of \t {features.filter(regex="Feature_mut").shape[1]}')
     print(f'IGH trans:\t{out.filter(regex="Feature_SeqWGS").shape[1]} \t out of \t {features.filter(regex="Feature_SeqWGS").shape[1]}')
     print(f'Clinical:\t{out.filter(regex="Feature_clin").shape[1]} \t out of \t {features.filter(regex="Feature_clin").shape[1]}')
     
@@ -113,8 +124,4 @@ if __name__ == "__main__":
     pbs_shuffle=_pbs_array_id%10
     pbs_fold=_pbs_array_id//10
     
-    datadir = f'/scratch/users/nus/e1083772/cancer-survival-ml/data/splits/{pbs_shuffle}/{pbs_fold}'
-
-    assert os.path.exists(os.path.dirname(datadir)), f"Input folder ({datadir}) is empty."
-
-    main(args.endpoint,datadir)
+    main(args.endpoint,pbs_shuffle,pbs_fold)
