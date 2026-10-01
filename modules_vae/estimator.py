@@ -43,7 +43,8 @@ class VAE(BaseEstimator):
                  kl_weight:float=None,
                  activation:str=None,
                  subtask_activation:str=None,
-                 scale_method:str=None):
+                 scale_method:str=None,
+                 topKgenes:int=None):
         self.input_types = input_types
         self.subset_microarray = subset_microarray
         self.layer_dims = layer_dims 
@@ -61,6 +62,7 @@ class VAE(BaseEstimator):
         self.activation = activation
         self.subtask_activation = subtask_activation
         self.scale_method = scale_method # scale_method is accessed but not used directly
+        self.topKgenes = topKgenes
     
     def fit(self, X:pd.DataFrame, y=None, verbose:bool=False, SHAP:bool=False):
         """
@@ -81,12 +83,21 @@ class VAE(BaseEstimator):
             self.genes = genes_keep
         else:
             self.genes = None
+        X, self.mutation_feature_columns = Dataset.subset_mutation_features(
+            X, self.topKgenes
+        )
         self.X_ = X
         self.y_ = y
         # assign non-parameter attributes to estimator
         self.input_types_all = self.input_types + self.input_types_subtask
         # convert X into a multi omics dataset
-        dataset = Dataset(X,self.input_types_all,event_indicator_col=self.eventcol,event_time_col=self.durationcol)
+        dataset = Dataset(
+            X,
+            self.input_types_all,
+            event_indicator_col=self.eventcol,
+            event_time_col=self.durationcol,
+            mutation_feature_columns=self.mutation_feature_columns,
+        )
         # determine input dims lazily
         self.input_dims = [getattr(dataset, f"X_{input_type}").shape[1] for input_type in self.input_types]
         # determine subtask input dims lazily
@@ -104,6 +115,7 @@ class VAE(BaseEstimator):
                            input_dims_subtask = self.input_dims_subtask, 
                            layer_dims_subtask = self.layer_dims_subtask, 
                            z_dim = self.z_dim,
+                           topKgenes = self.topKgenes,
                            activation = self.activation,
                            subtask_activation = self.subtask_activation)
         self.optimizer = Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=self.lr)
@@ -209,9 +221,21 @@ class VAE(BaseEstimator):
         # remove non-microarray genes if necessary
         if self.subset_microarray:
             X, _ = subset_to_microarray_genes(X)
+
+        X = Dataset.filter_mutation_features(X, self.mutation_feature_columns)
         
         self.model.eval()
-        dataloader = DataLoader(Dataset(X, self.input_types_all, event_indicator_col=self.eventcol,event_time_col=self.durationcol), batch_size=1024, shuffle=False)
+        dataloader = DataLoader(
+            Dataset(
+                X,
+                self.input_types_all,
+                event_indicator_col=self.eventcol,
+                event_time_col=self.durationcol,
+                mutation_feature_columns=self.mutation_feature_columns,
+            ),
+            batch_size=1024,
+            shuffle=False,
+        )
         estimates = []
         for _, data in enumerate(dataloader):
             with no_grad():

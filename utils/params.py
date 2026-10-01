@@ -56,8 +56,7 @@ class VAEParams(Params):
         self.input_dims_subtask = [5]
         self.layer_dims_subtask = [16,1]
         self.z_dim = 128
-        self.activation = LeakyReLU()
-        self.subtask_activation = Tanh()
+        self.topKgenes = None
          # model is trained on full data
         if self.fulldata:
             # model is trained on subset of microarray genes
