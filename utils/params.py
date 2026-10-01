@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 assert load_dotenv('.env') or load_dotenv('../.env')
 outputdir = os.environ.get("OUTPUTDIR")
+from torch.nn import LeakyReLU, Tanh
 
 class Params():
     """
@@ -45,13 +46,18 @@ class VAEParams(Params):
         self.batch_size = 128
         self.lr = 1e-4
         self.epochs = 300
+        self.burn_in = 50
+        self.patience = 20
+        self.kl_weight = 1
         self.scale_method = 'std'
-        self.input_types = ['exp', 'cna']
-        self.layer_dims = [[256], [32]]
+        self.input_types = ['exp','cna', 'gistic', 'fish', 'sbs', 'ig']
+        self.layer_dims = [[256, 64], [128, 32], [32, 8], [16, 4], [4], [2]]
         self.input_types_subtask = ['clin']
         self.input_dims_subtask = [5]
-        self.layer_dims_subtask = [8, 1]
+        self.layer_dims_subtask = [16,1]
         self.z_dim = 128
+        self.activation = LeakyReLU()
+        self.subtask_activation = Tanh()
          # model is trained on full data
         if self.fulldata:
             # model is trained on subset of microarray genes
