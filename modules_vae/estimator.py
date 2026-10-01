@@ -110,11 +110,25 @@ class VAE(BaseEstimator):
         self.survival_loss_func = CoxPHLoss()
         self.kl_loss_func = KLDivergence()
         self.model.train()
+        self.results = {
+            'history': {},
+            'best_epoch': {
+                'loss': float('inf'),
+                'epoch': None,
+            },
+        }
         best_loss = np.inf
         epochs_since_best = 0
         trainloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
         for epoch in range(1,1+self.epochs):
             current_loss = 0 # survival loss summed across batches
+            train_kl_loss = 0
+            train_reconstruction_losses = [0 for _ in self.model.input_types_vae]
+            train_survival_loss = 0
+            self.results['history'][epoch] = {
+                'train': {},
+                'valid': {}
+            }
             for batch_idx, data in enumerate(trainloader):
                 self.optimizer.zero_grad()
                 inputs_vae = [data[f'X_{input_type}_imputed'] for input_type in self.model.input_types_vae]
@@ -137,6 +151,31 @@ class VAE(BaseEstimator):
                 batch_loss.backward()
                 self.optimizer.step()
                 current_loss += batch_loss.item()
+                train_kl_loss += batch_kl_loss.item()
+                train_reconstruction_losses = [
+                    total + loss.item()
+                    for total, loss in zip(train_reconstruction_losses, batch_reconstruction_losses)
+                ]
+                train_survival_loss += batch_survival_loss.item()
+
+            self.results['history'][epoch]['train'] = {
+                'loss': current_loss,
+                'kl_loss': train_kl_loss,
+                'reconstruction_loss': {
+                    input_type: loss
+                    for input_type, loss in zip(self.model.input_types_vae, train_reconstruction_losses)
+                },
+                'survival_loss': train_survival_loss,
+            }
+            self.results['history'][epoch]['valid'] = {
+                'loss': None,
+                'kl_loss': None,
+                'reconstruction_loss': {
+                    input_type: None for input_type in self.model.input_types_vae
+                },
+                'survival_loss': None,
+                'metric': None
+            }
             
             if epoch <= int(self.burn_in):
                 pass

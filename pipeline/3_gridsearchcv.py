@@ -126,6 +126,7 @@ def main(
     results['params_search'] = {k: v.__str__() for k, v in param_grid.items() } # save activation as string
     results['best_epoch'] = {}
     results['best_epoch']['params'] = {k:v.__str__() for k, v in random_search.best_params_.items()} # save activation as string
+    results['history'] = random_search.best_estimator_.results['history']
 
     # skip if this model is for external validation
     if params.fulldata:
