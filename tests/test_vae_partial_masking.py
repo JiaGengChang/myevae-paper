@@ -1,9 +1,17 @@
 import torch
 import pandas as pd
+from pathlib import Path
 
 from modules_vae.model import MultiModalVAE
 from torch.utils.data import DataLoader
 from utils.dataset import Dataset
+from utils.type_prefixes import type_prefixes_dict
+
+
+REAL_FEATURES_PATH = (
+    Path(__file__).parents[1]
+    / 'data/splits/0/0/train_features_pfs_processed_mut_nan.parquet'
+)
 
 
 def make_vae():
@@ -57,3 +65,50 @@ def test_reconstruction_loss_uses_only_observed_positions():
     expected = ((output[0, 0] - target[0, 0]) ** 2 + (output[1, 1] - target[1, 1]) ** 2) / 2
 
     assert torch.allclose(loss, expected)
+
+
+def test_reconstruction_loss_uses_all_positions_without_mask():
+    output = torch.tensor([[1.0, 5.0], [7.0, 4.0]], dtype=torch.float64)
+    target = torch.tensor([[1.0, 1.0], [5.0, 4.0]], dtype=torch.float64)
+
+    loss = MultiModalVAE.reconstruction_loss(output, target, None)
+    expected = ((output - target) ** 2).mean()
+
+    assert torch.allclose(loss, expected)
+
+
+def test_real_features_emit_masks_and_masked_reconstruction_loss():
+    dataframe = pd.read_parquet(REAL_FEATURES_PATH).copy()
+    dataframe['survflag'] = 1
+    dataframe['survtime'] = 2.0
+    sbs_columns = dataframe.filter(regex=type_prefixes_dict['sbs']).columns
+
+    dataset = Dataset(dataframe, ['sbs'])
+    batch = next(iter(DataLoader(dataset, batch_size=len(dataset))))
+    expected_mask = torch.tensor(
+        (~dataframe.loc[:, sbs_columns].isna()).to_numpy(),
+        dtype=torch.float64,
+    )
+
+    assert torch.equal(batch['X_sbs_mask'], expected_mask)
+    assert torch.equal(
+        batch['X_sbs_imputed'],
+        torch.tensor(
+            dataframe.loc[:, sbs_columns].fillna(0.0).to_numpy(),
+            dtype=torch.float64,
+        ),
+    )
+
+    output = torch.where(
+        expected_mask.bool(),
+        batch['X_sbs'],
+        torch.full_like(batch['X_sbs'], 1000.0),
+    )
+    loss = MultiModalVAE.reconstruction_loss(
+        output,
+        batch['X_sbs'],
+        batch['X_sbs_mask'],
+    )
+    print(f'reconstruction loss: {loss.item()}')
+
+    assert torch.allclose(loss, torch.tensor(0.0, dtype=torch.float64))
