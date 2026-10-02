@@ -1,3 +1,4 @@
+import copy
 import torch
 
 def buildNetwork(layers, activation, add_batchNorm=False, dropout=0):
@@ -10,7 +11,7 @@ def buildNetwork(layers, activation, add_batchNorm=False, dropout=0):
             net.append(torch.nn.Dropout(dropout))
         # add nonlinearity
         # pass a child class of torch.nn
-        net.append(activation)
+        net.append(copy.deepcopy(activation))
     outnetwork=torch.nn.Sequential(*net)
     return outnetwork.to(torch.float64)
 
