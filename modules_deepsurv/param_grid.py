@@ -1,9 +1,9 @@
 from torch.nn import *
 
 param_grid = {
-    'input_types_all':[['mut','clin']],
+    'input_types_all':[['exp','cna','gistic','fish','sbs','ig','clin']],
     'lr': [1e-3, 5e-4, 1e-4, 5e-5],
-    'layer_dims': [[8, 4, 1], [16, 8, 1]],
+    'layer_dims': [[64, 16, 1], [128, 32, 1], [256, 64, 8, 1], [512, 128, 16, 1], [512, 256, 64, 32, 1]],
     'batch_size': [128, 256, 512],
     'dropout': [0, 0.05, 0.1],
     'activation': [Sigmoid(), Tanh()],

@@ -51,11 +51,10 @@ def main(
     
     if architecture=='VAE':
         model_name = '-'.join(param_grid['input_types'][0])
-        model_type = 'zero_impute_naive'
     else:
         model_name = '-'.join([m for m in param_grid['input_types_all'][0] if m != 'clin'])
-        model_type = None
     
+    model_type = 'zero_impute_naive'
     params = Params(model_name=model_name, endpoint=endpoint, shuffle=shuffle, fold=fold, fulldata=fulldata, subset=subset, model_type=model_type)
 
     splitsdir=os.environ.get("SPLITDATADIR")
