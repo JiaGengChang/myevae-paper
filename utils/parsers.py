@@ -145,3 +145,13 @@ def parse_gistic_pc():
 def parse_fish_pc():
     df =  pd.read_csv(os.environ.get("PCFISHFILE"),sep='\t')
     return df
+
+def parse_gene_reference():
+    gene_reference = (
+        pd.read_csv(os.environ.get("GENE_REFERENCE"), sep='\t',
+                    usecols=['Gene stable ID', 'Gene name'])
+        .dropna(subset=['Gene stable ID', 'Gene name'])
+    )
+    gene_reference = gene_reference[gene_reference['Gene name'].str.strip().ne('')]
+    gene_reference = gene_reference.drop_duplicates('Gene stable ID').set_index('Gene stable ID')['Gene name']
+    return gene_reference
