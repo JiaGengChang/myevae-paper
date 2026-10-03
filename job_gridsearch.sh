@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#PBS -N Deepsurv_C+M_Both
+#PBS -N Deepsurv_C+E+N+G+F+T+S_Both
 #PBS -P 11004309
 #PBS -j oe
 #PBS -o /home/users/nus/e1083772/cancer-survival-ml/.pbs/3_gridsearchcv/deepsurv/
