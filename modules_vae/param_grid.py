@@ -2,9 +2,9 @@ from torch.nn import LeakyReLU, ReLU, Sigmoid, Tanh
 
 param_grid = {
     'z_dim': [16, 32, 64],
-    'topKgenes': [5, 10],
-    'lr': [1e-5, 5e-5], 
-    'batch_size': [128,256],
+    'topKgenes': [20],
+    'lr': [1e-5, 5e-5, 1e-4], 
+    'batch_size': [128,256, 512],
     'input_types': [['exp','cna', 'gistic', 'fish', 'sbs', 'ig', 'mut']],
     'input_types_subtask': [['clin']],
     'layer_dims': [[[64, 16], [16, 8], [16, 4], [16, 4], [4], [2], [4]],
@@ -12,7 +12,7 @@ param_grid = {
                    [[256, 64], [128, 32], [32, 8], [16, 4], [4], [2], [4]]],
     'layer_dims_subtask' : [[4,1], [8,1], [16,1]],
     'kl_weight': [1],
-    'activation': [LeakyReLU(),ReLU(),Sigmoid()],
+    'activation': [LeakyReLU()],
     'subtask_activation': [Tanh()],
     'epochs': [300],
     'burn_in': [50],

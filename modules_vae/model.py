@@ -114,7 +114,7 @@ class MultiModalVAE(torch.nn.Module):
             (output - target_without_missing).pow(2),
             torch.zeros_like(output),
         )
-        return (squared_error.sum() / observed_mask.sum().clamp_min(1.0)).mean()
+        return squared_error.sum() / observed_mask.sum().clamp_min(1.0)
     
     def decode(self, z):
         h_cat = self.joint_decoder(z) # concatenated decoded input
