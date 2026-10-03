@@ -125,24 +125,23 @@ def fit(model:Module, trainloader:DataLoader, validloader:DataLoader, params:dic
         results['history'][epoch]['valid']['metric'] = valid_metric
         
         # external datasets
-        cindex_uams, cindex_hovon, cindex_emtab = score_external_datasets(model,params.endpoint)
-        results['history'][epoch]['valid']['uams_metric'] = cindex_uams
-        results['history'][epoch]['valid']['hovon_metric'] = cindex_hovon
-        results['history'][epoch]['valid']['emtab_metric'] = cindex_emtab
+        if params.input_types==['exp']:
+            cindex_uams, cindex_hovon, cindex_emtab = score_external_datasets(model,params.endpoint)
+            results['history'][epoch]['valid']['uams_metric'] = cindex_uams
+            results['history'][epoch]['valid']['hovon_metric'] = cindex_hovon
+            results['history'][epoch]['valid']['emtab_metric'] = cindex_emtab
                 
         return valid_kl_loss, valid_reconstruction_losses, valid_survival_loss, valid_metric
 
     # best epoch based on validation survival loss
     results['best_epoch'] = {
-        'valid_survival_loss':float('inf'),
-        'valid_metric': float('inf'),
-        'epoch': float('inf')
+        'valid_survival_loss':float('inf'), # lower is better
+        'valid_metric': 0, # higher is better
+        'epoch': 0
     }
     # initialize early stopping variables
-    patience = 20
     epochs_no_improve = 0
     best_model_state = None
-    burn_in_epoch = 50 # ignore starting fluctuations in validation loss
     
     for epoch in range(params.epochs):
         if epoch not in results['history']:
@@ -150,11 +149,12 @@ def fit(model:Module, trainloader:DataLoader, validloader:DataLoader, params:dic
         train_step(epoch)
         _, _, valid_survival_loss, valid_metric = valid_step(epoch)
         
-        if epoch < burn_in_epoch:
+        if epoch < params.burn_in:
             continue
         
         # Handle early stopping
-        if valid_survival_loss < results['best_epoch']['valid_survival_loss']:
+        # switch from validation surv loss to validation metric
+        if valid_metric > results['best_epoch']['valid_metric']:
             results['best_epoch']['valid_survival_loss'] = valid_survival_loss
             results['best_epoch']['valid_metric'] = valid_metric
             results['best_epoch']['epoch'] = epoch
@@ -163,7 +163,7 @@ def fit(model:Module, trainloader:DataLoader, validloader:DataLoader, params:dic
         else:
             epochs_no_improve += 1
         
-        if epochs_no_improve >= patience:
+        if epochs_no_improve >= params.patience:
             print('Early stopping at epoch', epoch)
             results['params']['epochs'] = epoch + 1 # record the number of epochs trained
             break
