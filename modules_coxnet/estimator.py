@@ -71,7 +71,11 @@ class Coxnet(BaseEstimator):
         )
         assert isinstance(X, pd.DataFrame)
         # input validation
-        X = pd.DataFrame(validate_data(self, X, y), index=X.index, columns=X.columns)
+        X = pd.DataFrame(
+            validate_data(self, X, y, ensure_all_finite='allow-nan'),
+            index=X.index,
+            columns=X.columns,
+        )
         # remove non-microarray genes if necessary
         if self.subset_microarray:
             X, genes_keep = subset_to_microarray_genes(X)
@@ -80,7 +84,7 @@ class Coxnet(BaseEstimator):
             self.genes = None
         dataset = Dataset(X,self.input_types_all,event_indicator_col=self.eventcol,event_time_col=self.durationcol,offset_duration=True)
         # X_ is a torch tensor
-        self.X_ = torch_cat([getattr(dataset,f"X_{t}") for t in self.input_types_all],axis=-1)
+        self.X_ = torch_cat([getattr(dataset,f"X_{t}_imputed") for t in self.input_types_all],axis=-1)
         self.y_ = Surv.from_arrays(dataset.event_indicator,dataset.event_time)
         
         self.model.fit(self.X_, self.y_)
@@ -93,12 +97,16 @@ class Coxnet(BaseEstimator):
         """
         check_is_fitted(self)
         assert isinstance(X, pd.DataFrame)
-        X = pd.DataFrame(validate_data(self, X, reset=False), index=X.index, columns=X.columns)
+        X = pd.DataFrame(
+            validate_data(self, X, reset=False, ensure_all_finite='allow-nan'),
+            index=X.index,
+            columns=X.columns,
+        )
                 # remove non-microarray genes if necessary
         if self.subset_microarray:
             X, _ = subset_to_microarray_genes(X)
         dataset = Dataset(X,self.input_types_all,event_indicator_col=self.eventcol,event_time_col=self.durationcol,offset_duration=True)
-        X_ = torch_cat([getattr(dataset,f"X_{t}") for t in self.input_types_all],axis=-1)
+        X_ = torch_cat([getattr(dataset,f"X_{t}_imputed") for t in self.input_types_all],axis=-1)
         estimate = torch_tensor(self.model.predict(X_))
         return estimate
 
