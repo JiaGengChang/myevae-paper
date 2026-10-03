@@ -5,14 +5,15 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import RandomizedSearchCV
 from datetime import datetime 
-os.chdir('/home/users/nus/e1083772/cancer-survival-ml')
-from dotenv import load_dotenv
-assert load_dotenv('../.env') or load_dotenv('.env')
 import sys
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+from dotenv import load_dotenv
+assert load_dotenv('../.env')
 sys.path.append(os.environ.get("PROJECTDIR"))
 from utils.validation import score_external_datasets
 from utils.annotate_exp_genes import annotate_exp_genes
 from utils.decorators import timer
+from utils.plotlosses import plot_results_to_pdf
 
 import joblib
 from dask.distributed import Client, LocalCluster
@@ -126,6 +127,7 @@ def main(
     results['params_search'] = {k: v.__str__() for k, v in param_grid.items() } # save activation as string
     results['best_epoch'] = {}
     results['best_epoch']['params'] = {k:v.__str__() for k, v in random_search.best_params_.items()} # save activation as string
+    results['history'] = random_search.best_estimator_.results['history']
 
     # skip if this model is for external validation
     if params.fulldata:
@@ -157,6 +159,8 @@ def main(
     # either estimator class or model class should implement `save`
     # for Coxnet, `.pth` file is actually a json file with pth extension to be consistent
     random_search.best_estimator_.save(f'{params.resultsprefix}.pth')
+
+    plot_results_to_pdf(f'{params.resultsprefix}.json', f'{params.resultsprefix}_losses.pdf')    
 
 if __name__ == "__main__":
     parser = ArgumentParser(description='Tune hyperparameters using scikit-learn RandomizedSearchCV. For adjusting hyperparameters, modify param_grid.py')

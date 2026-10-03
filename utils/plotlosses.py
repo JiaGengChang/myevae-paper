@@ -30,7 +30,7 @@ def plot_results_to_pdf(resultsfile='../output/vae_models/dev.json',
     valid_metric = []
 
     # Extract the values for each epoch
-    for epoch in range(data['params']['epochs']):
+    for epoch in range(1, len(data['history'])):
         epochs.append(int(epoch))
         epoch = str(epoch)
         

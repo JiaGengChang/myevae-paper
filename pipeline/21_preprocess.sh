@@ -1,0 +1,13 @@
+#PBS -N preprocess_split
+#PBS -P 11004309
+#PBS -j oe
+#PBS -o /home/users/nus/e1083772/cancer-survival-ml/.pbs/2_preprocess/mut/pfs/
+#PBS -q normal
+#PBS -l select=1:ncpus=4:mem=32G
+#PBS -l walltime=00:10:00
+#PBS -J 0-49
+
+set -e
+module load python/3.12.1-gcc11
+source /home/users/nus/e1083772/python3.12_venv/bin/activate
+python /home/users/nus/e1083772/cancer-survival-ml/pipeline/21_preprocess.py --endpoint pfs

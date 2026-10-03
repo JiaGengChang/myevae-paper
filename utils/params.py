@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 assert load_dotenv('.env') or load_dotenv('../.env')
 outputdir = os.environ.get("OUTPUTDIR")
+from torch.nn import LeakyReLU, Tanh
 
 class Params():
     """
@@ -33,6 +34,20 @@ class VAEParams(Params):
                  fulldata=False,
                  subset=False,
                  model_type='undefined',
+                 kl_weight=1,
+                 batch_size=128,
+                 lr=1e-4,
+                 epochs=300,
+                 burn_in=50,
+                 patience=20,
+                 scale_method='std',
+                 input_types=None,
+                 layer_dims=None,
+                 input_types_subtask=None,
+                 input_dims_subtask=None,
+                 layer_dims_subtask=None,
+                 z_dim=128,
+                 topKgenes=None,
                  ):
         super().__init__(model_name=model_name,
                          endpoint=endpoint,
@@ -41,17 +56,20 @@ class VAEParams(Params):
                          fulldata=fulldata,
                          subset=subset)
         self.architecture = 'VAE' # DO NOT MODIFY
-        self.kl_weight = 1
-        self.batch_size = 128
-        self.lr = 1e-4
-        self.epochs = 300
-        self.scale_method = 'std'
-        self.input_types = ['exp', 'cna']
-        self.layer_dims = [[256], [32]]
-        self.input_types_subtask = ['clin']
-        self.input_dims_subtask = [5]
-        self.layer_dims_subtask = [8, 1]
-        self.z_dim = 128
+        self.kl_weight = kl_weight
+        self.batch_size = batch_size
+        self.lr = lr
+        self.epochs = epochs
+        self.burn_in = burn_in
+        self.patience = patience
+        self.scale_method = scale_method
+        self.input_types = ['exp', 'cna', 'gistic', 'fish', 'sbs', 'ig', 'mut'] if input_types is None else input_types
+        self.layer_dims = [[256, 64], [128, 32], [32, 8], [16, 4], [4], [2], [4]] if layer_dims is None else layer_dims
+        self.input_types_subtask = ['clin'] if input_types_subtask is None else input_types_subtask
+        self.input_dims_subtask = [5] if input_dims_subtask is None else input_dims_subtask
+        self.layer_dims_subtask = [16, 1] if layer_dims_subtask is None else layer_dims_subtask
+        self.z_dim = z_dim
+        self.topKgenes = topKgenes
          # model is trained on full data
         if self.fulldata:
             # model is trained on subset of microarray genes

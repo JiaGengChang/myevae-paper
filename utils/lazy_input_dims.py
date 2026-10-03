@@ -13,7 +13,8 @@ def lazy_input_dims(df:pd.DataFrame, params:dict):
                    'ig': 'Feature_(RNASeq|SeqWGS)',
                    'gistic': 'Feature_CNA_(Amp|Del)',
                    'fish': 'Feature_fish',
-                   'cna': 'Feature_CNA_ENSG'}
+                   'cna': 'Feature_CNA_ENSG',
+                   'mut': 'Feature_mut'}
     # lazy determination of input dimensions
     # works only for main VAE inputs like exp, fish, etc.
     # does not work for clinical, which is always 5 anyway

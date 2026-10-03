@@ -5,7 +5,6 @@ import warnings
 warnings.formatwarning = lambda msg, *args, **kwargs: f'{msg}\n'
 from torch.utils.data import DataLoader
 from torch import no_grad, cat as torch_cat, tensor as torch_tensor, save as torch_save
-from torch.nn import MSELoss
 from torch.optim import Adam
 from sklearn.base import BaseEstimator
 from sklearn.utils.validation import validate_data, check_is_fitted
@@ -44,7 +43,8 @@ class VAE(BaseEstimator):
                  kl_weight:float=None,
                  activation:str=None,
                  subtask_activation:str=None,
-                 scale_method:str=None):
+                 scale_method:str=None,
+                 topKgenes:int=None):
         self.input_types = input_types
         self.subset_microarray = subset_microarray
         self.layer_dims = layer_dims 
@@ -62,6 +62,7 @@ class VAE(BaseEstimator):
         self.activation = activation
         self.subtask_activation = subtask_activation
         self.scale_method = scale_method # scale_method is accessed but not used directly
+        self.topKgenes = topKgenes
     
     def fit(self, X:pd.DataFrame, y=None, verbose:bool=False, SHAP:bool=False):
         """
@@ -72,18 +73,31 @@ class VAE(BaseEstimator):
         """
         assert isinstance(X, pd.DataFrame)
         # Check that X has correct shape, set n_features_in_, etc.
-        X = pd.DataFrame(validate_data(self, X, y), index=X.index, columns=X.columns)
+        X = pd.DataFrame(
+            validate_data(self, X, y, ensure_all_finite='allow-nan'),
+            index=X.index,
+            columns=X.columns,
+        )
         if self.subset_microarray:
             X, genes_keep = subset_to_microarray_genes(X)
             self.genes = genes_keep
         else:
             self.genes = None
+        X, self.mutation_feature_columns = Dataset.subset_mutation_features(
+            X, self.topKgenes
+        )
         self.X_ = X
         self.y_ = y
         # assign non-parameter attributes to estimator
         self.input_types_all = self.input_types + self.input_types_subtask
         # convert X into a multi omics dataset
-        dataset = Dataset(X,self.input_types_all,event_indicator_col=self.eventcol,event_time_col=self.durationcol)
+        dataset = Dataset(
+            X,
+            self.input_types_all,
+            event_indicator_col=self.eventcol,
+            event_time_col=self.durationcol,
+            mutation_feature_columns=self.mutation_feature_columns,
+        )
         # determine input dims lazily
         self.input_dims = [getattr(dataset, f"X_{input_type}").shape[1] for input_type in self.input_types]
         # determine subtask input dims lazily
@@ -101,28 +115,45 @@ class VAE(BaseEstimator):
                            input_dims_subtask = self.input_dims_subtask, 
                            layer_dims_subtask = self.layer_dims_subtask, 
                            z_dim = self.z_dim,
+                           topKgenes = self.topKgenes,
                            activation = self.activation,
                            subtask_activation = self.subtask_activation)
         self.optimizer = Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=self.lr)
         self.survival_loss_func = CoxPHLoss()
         self.kl_loss_func = KLDivergence()
-        self.reconstruction_loss_funcs = [MSELoss(reduction='mean') for _ in self.model.input_types_vae]
         self.model.train()
-        self.optimizer.zero_grad()
+        self.results = {
+            'history': {},
+            'best_epoch': {
+                'loss': float('inf'),
+                'epoch': None,
+            },
+        }
         best_loss = np.inf
         epochs_since_best = 0
         trainloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
         for epoch in range(1,1+self.epochs):
             current_loss = 0 # survival loss summed across batches
+            train_kl_loss = 0
+            train_reconstruction_losses = [0 for _ in self.model.input_types_vae]
+            train_survival_loss = 0
+            self.results['history'][epoch] = {
+                'train': {},
+                'valid': {}
+            }
             for batch_idx, data in enumerate(trainloader):
-                inputs_vae = [data[f'X_{input_type}'] for input_type in self.model.input_types_vae]
-                inputs_task = [data[f'X_{input_type}'] for input_type in self.model.input_types_subtask]
+                self.optimizer.zero_grad()
+                inputs_vae = [data[f'X_{input_type}_imputed'] for input_type in self.model.input_types_vae]
+                targets_vae = [data[f'X_{input_type}'] for input_type in self.model.input_types_vae]
+                masks_vae = [data[f'X_{input_type}_mask'] for input_type in self.model.input_types_vae]
+                inputs_task = [data[f'X_{input_type}_imputed'] for input_type in self.model.input_types_subtask]
                 outputs, mu, logvar, riskpred = self.model.forward((inputs_vae, inputs_task))
                 assert len(inputs_vae)==len(outputs)
                 batch_kl_loss = self.kl_weight * self.kl_loss_func(mu, logvar)
                 assert not batch_kl_loss.isnan().any().item()
                 batch_reconstruction_losses = [
-                    f(output, input_vae) for f, output, input_vae in zip(self.reconstruction_loss_funcs, outputs, inputs_vae)
+                    self.model.reconstruction_loss(output, target, observed_mask)
+                    for output, target, observed_mask in zip(outputs, targets_vae, masks_vae)
                 ]
                 for brl in batch_reconstruction_losses:
                     assert not brl.isnan().any().item()
@@ -132,6 +163,31 @@ class VAE(BaseEstimator):
                 batch_loss.backward()
                 self.optimizer.step()
                 current_loss += batch_loss.item()
+                train_kl_loss += batch_kl_loss.item()
+                train_reconstruction_losses = [
+                    total + loss.item()
+                    for total, loss in zip(train_reconstruction_losses, batch_reconstruction_losses)
+                ]
+                train_survival_loss += batch_survival_loss.item()
+
+            self.results['history'][epoch]['train'] = {
+                'loss': current_loss,
+                'kl_loss': train_kl_loss,
+                'reconstruction_loss': {
+                    input_type: loss
+                    for input_type, loss in zip(self.model.input_types_vae, train_reconstruction_losses)
+                },
+                'survival_loss': train_survival_loss,
+            }
+            self.results['history'][epoch]['valid'] = {
+                'loss': None,
+                'kl_loss': None,
+                'reconstruction_loss': {
+                    input_type: None for input_type in self.model.input_types_vae
+                },
+                'survival_loss': None,
+                'metric': None
+            }
             
             if epoch <= int(self.burn_in):
                 pass
@@ -156,19 +212,35 @@ class VAE(BaseEstimator):
         # check if fit has been called
         check_is_fitted(self)
         # input validation
-        X = pd.DataFrame(validate_data(self, X, reset=False), index=X.index, columns=X.columns)
+        X = pd.DataFrame(
+            validate_data(self, X, reset=False, ensure_all_finite='allow-nan'),
+            index=X.index,
+            columns=X.columns,
+        )
 
         # remove non-microarray genes if necessary
         if self.subset_microarray:
             X, _ = subset_to_microarray_genes(X)
+
+        X = Dataset.filter_mutation_features(X, self.mutation_feature_columns)
         
         self.model.eval()
-        dataloader = DataLoader(Dataset(X, self.input_types_all, event_indicator_col=self.eventcol,event_time_col=self.durationcol), batch_size=1024, shuffle=False)
+        dataloader = DataLoader(
+            Dataset(
+                X,
+                self.input_types_all,
+                event_indicator_col=self.eventcol,
+                event_time_col=self.durationcol,
+                mutation_feature_columns=self.mutation_feature_columns,
+            ),
+            batch_size=1024,
+            shuffle=False,
+        )
         estimates = []
         for _, data in enumerate(dataloader):
             with no_grad():
-                inputs_vae = [data[f'X_{input_type}'] for input_type in self.model.input_types_vae]
-                inputs_task = [data[f'X_{input_type}'] for input_type in self.model.input_types_subtask]
+                inputs_vae = [data[f'X_{input_type}_imputed'] for input_type in self.model.input_types_vae]
+                inputs_task = [data[f'X_{input_type}_imputed'] for input_type in self.model.input_types_subtask]
                 _, _, _, riskpred = self.model.forward((inputs_vae, inputs_task))
                 estimates.append(riskpred.flatten())
         estimates = torch_cat(estimates)
@@ -176,7 +248,11 @@ class VAE(BaseEstimator):
 
     def score(self, X:pd.DataFrame, y=None)->float:
         assert isinstance(X, pd.DataFrame)
-        X = pd.DataFrame(validate_data(self, X, reset=False),index=X.index,columns=X.columns)
+        X = pd.DataFrame(
+            validate_data(self, X, reset=False, ensure_all_finite='allow-nan'),
+            index=X.index,
+            columns=X.columns,
+        )
         estimates = self.predict(X)
         event = X[self.eventcol].values.astype(bool)
         duration = X[self.durationcol].values
@@ -190,16 +266,16 @@ class VAE(BaseEstimator):
     def __call__(self, X:torch_tensor)->tuple:
         return self.model.__call__(X)
 
-# class ShapVAE(VAE, BaseEstimator):
-#     def __init__(self, **kwargs):
-#         super().__init__(**kwargs)
+class ShapVAE(VAE, BaseEstimator):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
     
-#     def __call__(self, X:torch_tensor)->torch_tensor:
-#         """
-#         the call function for SHAP VAE takes in a tensor rather than a pd.DataFrame
-#         this tensor is shaped as per the VAE model's requirements
-#         which is a tuple of (a list of tensors main VAE network, a list of tensors for subtask network)
-#         the forward function returns only the risk preds rather than a tple
-#         """
-#         _, _, _, riskpred = self.model(X)
-#         return riskpred
+    def __call__(self, X:torch_tensor)->torch_tensor:
+        """
+        the call function for SHAP VAE takes in a tensor rather than a pd.DataFrame
+        this tensor is shaped as per the VAE model's requirements
+        which is a tuple of (a list of tensors main VAE network, a list of tensors for subtask network)
+        the forward function returns only the risk preds rather than a tple
+        """
+        _, _, _, riskpred = self.model(X)
+        return riskpred

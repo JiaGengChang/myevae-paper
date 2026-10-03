@@ -86,9 +86,19 @@ def parse_sbs():
         sbs = sbs.groupby('PUBLIC_ID').head(n=1)
     return sbs
 
+def parse_mutmatrix():
+    mutmatrix = pd.read_csv(os.environ.get("MUTMATRIXFILE"), sep='\t')
+    mutmatrix = mutmatrix[mutmatrix['SAMPLE'].str.contains("_1_BM_CD138pos")]
+    mutmatrix = mutmatrix.drop(columns=['SAMPLE'])
+    mutmatrix = mutmatrix.rename(columns={
+        gid: f'Feature_mut_{gid}' 
+            for gid in mutmatrix.filter(regex='ENSG').columns}
+    )
+    return mutmatrix
+
 def parse_all():
     dfall=parse_surv()
-    for parse in [parse_clin,parse_sbs,parse_cna,parse_fish,parse_rna,parse_gistic,parse_sv,parse_chromoth,parse_apobec]:
+    for parse in [parse_clin,parse_sbs,parse_cna,parse_fish,parse_rna,parse_gistic,parse_sv,parse_chromoth,parse_apobec,parse_mutmatrix]:
         dfnext = parse()
         if 'PUBLIC_ID' not in dfnext.columns:
             dfnext.reset_index(names='PUBLIC_ID',inplace=True)
@@ -135,3 +145,13 @@ def parse_gistic_pc():
 def parse_fish_pc():
     df =  pd.read_csv(os.environ.get("PCFISHFILE"),sep='\t')
     return df
+
+def parse_gene_reference():
+    gene_reference = (
+        pd.read_csv(os.environ.get("GENE_REFERENCE"), sep='\t',
+                    usecols=['Gene stable ID', 'Gene name'])
+        .dropna(subset=['Gene stable ID', 'Gene name'])
+    )
+    gene_reference = gene_reference[gene_reference['Gene name'].str.strip().ne('')]
+    gene_reference = gene_reference.drop_duplicates('Gene stable ID').set_index('Gene stable ID')['Gene name']
+    return gene_reference
