@@ -96,15 +96,15 @@ class DeepsurvParams(Params):
         # model is trained on full data
         if self.fulldata:
             if self.subset:
-                self.resultsprefix = f'{outputdir}/deepsurv_models/{self.model_name}_subset_full/{self.endpoint}_full'
+                self.resultsprefix = f'{outputdir}/deepsurv_models/{self.model_type}/{self.model_name}_subset_full/{self.endpoint}_full'
             else:
-                self.resultsprefix = f'{outputdir}/deepsurv_models/{self.model_name}_full/{self.endpoint}_full'
+                self.resultsprefix = f'{outputdir}/deepsurv_models/{self.model_type}/{self.model_name}_full/{self.endpoint}_full'
         # model is trained on a 80-20 split
         else:
             if self.subset:
-                self.resultsprefix = f'{outputdir}/deepsurv_models/{self.model_name}_subset/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
+                self.resultsprefix = f'{outputdir}/deepsurv_models/{self.model_type}/{self.model_name}_subset/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
             else:
-                self.resultsprefix = f'{outputdir}/deepsurv_models/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
+                self.resultsprefix = f'{outputdir}/deepsurv_models/{self.model_type}/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
 
 class CoxnetParams(Params):
     """
