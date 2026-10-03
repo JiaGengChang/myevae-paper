@@ -49,24 +49,30 @@ def main(
     else:
         raise NotImplementedError(architecture)
     
-    model_name = '-'.join(param_grid['input_types'][0])
-    model_type = 'joint_impute'
+    if architecture=='VAE':
+        model_name = '-'.join(param_grid['input_types'][0])
+        model_type = 'zero_impute_naive'
+    else:
+        model_name = '-'.join([m for m in param_grid['input_types_all'][0] if m != 'clin'])
+        model_type = None
+    
     params = Params(model_name=model_name, endpoint=endpoint, shuffle=shuffle, fold=fold, fulldata=fulldata, subset=subset, model_type=model_type)
+
     splitsdir=os.environ.get("SPLITDATADIR")
     if fulldata:
         # the model is trained on 100% of the data
         # shuffle and fold are ignored
         # the only use case is for external validation on GEO datasets
         # the validation C-index metric will be set to 0
-        train_features_file=f'{splitsdir}/full_features_{endpoint}_processed_joint_imputation.parquet'
+        train_features_file=f'{splitsdir}/full_features_{endpoint}_processed_mut_nan.parquet'
         train_labels_file=f'{splitsdir}/full_labels.parquet'
     else:
         # the default mode
         # the model is trained on 80% of the data
         # the 20% validation data is used as calculate hold out C-index metrics
-        train_features_file=f'{splitsdir}/{params.shuffle}/{params.fold}/train_features_{endpoint}_processed_joint_imputation.parquet'
+        train_features_file=f'{splitsdir}/{params.shuffle}/{params.fold}/train_features_{endpoint}_processed_mut_nan.parquet'
         train_labels_file=f'{splitsdir}/{params.shuffle}/{params.fold}/train_labels.parquet'
-        valid_features_file=f'{splitsdir}/{params.shuffle}/{params.fold}/valid_features_{endpoint}_processed_joint_imputation.parquet'
+        valid_features_file=f'{splitsdir}/{params.shuffle}/{params.fold}/valid_features_{endpoint}_processed_mut_nan.parquet'
         valid_labels_file=f'{splitsdir}/{params.shuffle}/{params.fold}/valid_labels.parquet'
         assert os.path.exists(valid_features_file) and os.path.exists(valid_labels_file)
         valid_features=pd.read_parquet(valid_features_file)
@@ -111,7 +117,10 @@ def main(
     # update params with best params
     for k,v in random_search.best_params_.items():
         setattr(params,k,v)
-    params.input_types_all = params.input_types + params.input_types_subtask
+    if architecture=='VAE':
+        params.input_types_all = params.input_types + params.input_types_subtask
+    else:
+        params.input_types_all = param_grid['input_types_all'][0]
     # update params with RNA-Seq gene names
     # this field is needed in score_external_datasets
     if subset:
@@ -127,7 +136,8 @@ def main(
     results['params_search'] = {k: v.__str__() for k, v in param_grid.items() } # save activation as string
     results['best_epoch'] = {}
     results['best_epoch']['params'] = {k:v.__str__() for k, v in random_search.best_params_.items()} # save activation as string
-    results['history'] = random_search.best_estimator_.results['history']
+    if params.architecture=='VAE':
+        results['history'] = random_search.best_estimator_.results['history']
 
     # skip if this model is for external validation
     if params.fulldata:
@@ -141,7 +151,7 @@ def main(
     params.scale_method = random_search.best_estimator_.scale_method
     
     # score external datasets if using only RNASeq as input
-    if params.input_types_all ==['exp','clin'] or params.input_types_all ==['exp']:        
+    if params.input_types_all ==['exp','clin'] or params.input_types_all==['exp']:        
         cindex_uams, cindex_hovon, cindex_emtab, cindex_apex = score_external_datasets(random_search.best_estimator_,params)
         results['best_epoch']['uams_metric'] = cindex_uams
         results['best_epoch']['hovon_metric'] = cindex_hovon
@@ -160,7 +170,8 @@ def main(
     # for Coxnet, `.pth` file is actually a json file with pth extension to be consistent
     random_search.best_estimator_.save(f'{params.resultsprefix}.pth')
 
-    plot_results_to_pdf(f'{params.resultsprefix}.json', f'{params.resultsprefix}_losses.pdf')    
+    if architecture=='VAE':
+        plot_results_to_pdf(f'{params.resultsprefix}.json', f'{params.resultsprefix}_losses.pdf')    
 
 if __name__ == "__main__":
     parser = ArgumentParser(description='Tune hyperparameters using scikit-learn RandomizedSearchCV. For adjusting hyperparameters, modify param_grid.py')
