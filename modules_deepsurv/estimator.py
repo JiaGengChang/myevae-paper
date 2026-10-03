@@ -65,7 +65,11 @@ class DeepSurv(BaseEstimator):
         assert isinstance(X,pd.DataFrame)
         assert self.layer_dims[-1] == 1 # scalar hazard output
         # input validation
-        X = pd.DataFrame(validate_data(self, X, y), index=X.index, columns=X.columns)
+        X = pd.DataFrame(
+            validate_data(self, X, y, ensure_all_finite='allow-nan'),
+            index=X.index,
+            columns=X.columns,
+        )
         # remove non-microarray genes if necessary
         if self.subset_microarray:
             X, genes_keep = subset_to_microarray_genes(X)
@@ -88,12 +92,12 @@ class DeepSurv(BaseEstimator):
         adam_optimizer = Adam(filter(lambda p: p.requires_grad, _net.parameters()), lr=self.lr)
         self.model = CoxPH(_net, adam_optimizer)
         self.model.net.train()
-        self.model.optimizer.zero_grad()
         best_loss = np.inf
         epochs_since_best = 0
         for epoch in range(1,1+self.epochs):
             current_loss = 0 # CoxPH loss summed across batches
             for batch_idx, data in enumerate(dataloader):
+                self.model.optimizer.zero_grad()
                 inputs = torch_cat([data[f'X_{input_type}_imputed'] for input_type in self.input_types_all],axis=-1)
                 riskpred = self.model.net.forward((inputs))
                 assert len(inputs)==len(riskpred)
@@ -102,7 +106,7 @@ class DeepSurv(BaseEstimator):
                 batch_loss.backward()
                 self.model.optimizer.step()
                 current_loss += batch_loss.item()
-            
+
             if epoch <= self.burn_in:
                 continue
             elif current_loss <= best_loss:
@@ -129,7 +133,11 @@ class DeepSurv(BaseEstimator):
         # check if fit has been called
         check_is_fitted(self)
         # input validation
-        X = pd.DataFrame(validate_data(self, X, reset=False), index=X.index, columns=X.columns)
+        X = pd.DataFrame(
+            validate_data(self, X, reset=False, ensure_all_finite='allow-nan'),
+            index=X.index,
+            columns=X.columns,
+        )
         
         # remove non-microarray genes if necessary
         if self.subset_microarray:
@@ -151,7 +159,11 @@ class DeepSurv(BaseEstimator):
         loss: whether to use Cox PH loss as the metric. Default is to use C-index
         """
         assert isinstance(X, pd.DataFrame)
-        X = pd.DataFrame(validate_data(self, X, reset=False),index=X.index,columns=X.columns)
+        X = pd.DataFrame(
+            validate_data(self, X, reset=False, ensure_all_finite='allow-nan'),
+            index=X.index,
+            columns=X.columns,
+        )
         estimate = self.predict(X)
         if loss:
             # negative of the loss is our score
