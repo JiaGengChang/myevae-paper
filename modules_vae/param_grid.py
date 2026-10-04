@@ -1,27 +1,42 @@
 from torch.nn import LeakyReLU, ReLU, Sigmoid, Tanh
 
 param_grid = {
-    'z_dim': [16, 32],
-    'lr': [5e-5], 
+    'z_dim': [32, 64, 128],
+    'lr': [1e-4], 
     'batch_size': [256],
-    'input_types': [['exp']],
+    'input_types': [['exp','cna']],
     'masking_proportions': [
-        {'exp': 0.0}, # 30% or Ig 3/8
-        {'exp': 0.05}, # 30% or Ig 3/8
-        {'exp': 0.1}, # 10% or Ig 1/8
-        {'exp': 0.2}, # 20% or Ig 2/8
-        {'exp': 0.3}, # 30% or Ig 3/8
+        {'exp': 0.0, 'cna':0.0}, # 30% or Ig 3/8
+        {'exp': 0.05, 'cna':0.05}, # 30% or Ig 3/8
+        {'exp': 0.1, 'cna':0.1}, # 10% or Ig 1/8
+        {'exp': 0.2, 'cna':0.2}, # 20% or Ig 2/8
+        {'exp': 0.3, 'cna':0.3}, # 30% or Ig 3/8
     ],
     'input_types_subtask': [['clin']],
-    'layer_dims': [[[128, 32]]],
-    'layer_dims_subtask' : [[8,1]],
+    'layer_dims': [[[256, 64], [128, 32]]],
+    'layer_dims_subtask' : [[8,1], [16,1]],
     'kl_weight': [1],
     'activation': [LeakyReLU()],
     'subtask_activation': [Tanh()],
     'epochs': [300],
     'burn_in': [50],
     'patience': [20],
-    'scale_method': ['std']
+}
+
+param_grid_exp_cna = {
+    'z_dim': [8, 16, 32],
+    'lr': [5e-4, 1e-4, 5e-5], 
+    'batch_size': [128, 256, 512],
+    'input_types': [['exp','cna']],
+    'input_types_subtask': [['clin']],
+    'layer_dims': [[[64, 16], [16, 8]], [[128, 32], [64, 16]], [[256, 64], [128, 32]]],
+    'layer_dims_subtask' : [[4,1], [8,1], [16,1]],
+    'kl_weight': [1],
+    'activation': [LeakyReLU(),ReLU(),Sigmoid()],
+    'subtask_activation': [Tanh(), Sigmoid()],
+    'epochs': [300],
+    'burn_in': [50],
+    'patience': [20],
 }
 
 param_grid_exp_cna_gistic_fish_sbs_ig_chrom = {
