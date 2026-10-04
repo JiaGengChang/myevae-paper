@@ -117,15 +117,15 @@ class CoxnetParams(Params):
         # model is trained on full data
         if self.fulldata:
             if self.subset:
-                self.resultsprefix = f'{outputdir}/coxnet_models/{self.model_name}_subset_full/{self.endpoint}_full'
+                self.resultsprefix = f'{outputdir}/coxnet_models/{self.model_type}/{self.model_name}_subset_full/{self.endpoint}_full'
             else:
-                self.resultsprefix = f'{outputdir}/coxnet_models/{self.model_name}_full/{self.endpoint}_full'
+                self.resultsprefix = f'{outputdir}/coxnet_models/{self.model_type}/{self.model_name}_full/{self.endpoint}_full'
         # model is trained on a 80-20 split
         else:
             if self.subset:
-                self.resultsprefix = f'{outputdir}/coxnet_models/{self.model_name}_subset/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
+                self.resultsprefix = f'{outputdir}/coxnet_models/{self.model_type}/{self.model_name}_subset/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
             else:
-                self.resultsprefix = f'{outputdir}/coxnet_models/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
+                self.resultsprefix = f'{outputdir}/coxnet_models/{self.model_type}/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
                 
 class RSFParams(Params):
     """
@@ -138,15 +138,15 @@ class RSFParams(Params):
         # model is trained on full data
         if self.fulldata:
             if self.subset:
-                self.resultsprefix = f'{outputdir}/rsf_models/{self.model_name}_subset_full/{self.endpoint}_full'
+                self.resultsprefix = f'{outputdir}/rsf_models/{self.model_type}/{self.model_name}_subset_full/{self.endpoint}_full'
             else:
-                self.resultsprefix = f'{outputdir}/rsf_models/{self.model_name}_full/{self.endpoint}_full'
+                self.resultsprefix = f'{outputdir}/rsf_models/{self.model_type}/{self.model_name}_full/{self.endpoint}_full'
         # model is trained on a 80-20 split
         else:
             if self.subset:
-                self.resultsprefix = f'{outputdir}/rsf_models/{self.model_name}_subset/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
+                self.resultsprefix = f'{outputdir}/rsf_models/{self.model_type}/{self.model_name}_subset/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
             else:
-                self.resultsprefix = f'{outputdir}/rsf_models/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
+                self.resultsprefix = f'{outputdir}/rsf_models/{self.model_type}/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
                 
 class CoxPHParams(Params):
     """
@@ -159,7 +159,7 @@ class CoxPHParams(Params):
         self.architecture = 'CoxPH' # DO NOT MODIFY
         # model is trained on full data
         if self.fulldata:
-            self.resultsprefix = f'{outputdir}/coxph_models/{self.model_name}_full/{self.endpoint}_full'
+            self.resultsprefix = f'{outputdir}/coxph_models/{self.model_type}/{self.model_name}_full/{self.endpoint}_full'
         # model is trained on a 80-20 split
         else:
-            self.resultsprefix = f'{outputdir}/coxph_models/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
+            self.resultsprefix = f'{outputdir}/coxph_models/{self.model_type}/{self.model_name}/{self.endpoint}_shuffle{self.shuffle}_fold{self.fold}'
