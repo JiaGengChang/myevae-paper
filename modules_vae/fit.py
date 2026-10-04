@@ -126,10 +126,11 @@ def fit(model:Module, trainloader:DataLoader, validloader:DataLoader, params:dic
         
         # external datasets
         if params.input_types==['exp']:
-            cindex_uams, cindex_hovon, cindex_emtab = score_external_datasets(model,params.endpoint)
+            cindex_uams, cindex_hovon, cindex_emtab, cindex_apex = score_external_datasets(model,params)
             results['history'][epoch]['valid']['uams_metric'] = cindex_uams
             results['history'][epoch]['valid']['hovon_metric'] = cindex_hovon
             results['history'][epoch]['valid']['emtab_metric'] = cindex_emtab
+            results['history'][epoch]['valid']['apex_metric'] = cindex_apex
                 
         return valid_kl_loss, valid_reconstruction_losses, valid_survival_loss, valid_metric
 
