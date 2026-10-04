@@ -100,7 +100,7 @@ def parse_exp_helper(dotenvfilename,genes,level):
         affychip = "affy_hugene_1_0_st_v1" if "EMTAB" in dotenvfilename else "affy_hg_u133_plus_2"
         df.index.name=affychip
         train_ref = ref[ref.ensembl_gene_id.isin(genes)][['ensembl_gene_id',affychip]].drop_duplicates()
-        df_ensg = df.merge(train_ref,on=affychip).drop_duplicates().drop(columns=[affychip])
+        df_ensg = df.join(train_ref.set_index(affychip), how='inner').drop_duplicates()
         public_ids = df_ensg.filter(regex='^(?!ensembl_gene_id)').columns
         df_ensg = df_ensg.groupby('ensembl_gene_id')[public_ids].agg(geo_mean)
         df_ensg = df_ensg.transpose()
@@ -150,7 +150,7 @@ def parse_exp_apex(genes,level):
     affychip = "affy_hg_u133_plus_2"
     df.index.name=affychip
     train_ref = ref[ref.ensembl_gene_id.isin(genes)][['ensembl_gene_id',affychip]].drop_duplicates()
-    df_ensg = df.merge(train_ref,on=affychip).drop_duplicates().drop(columns=[affychip])
+    df_ensg = df.join(train_ref.set_index(affychip), how='inner').drop_duplicates()
     public_ids = df_ensg.filter(regex='^(?!ensembl_gene_id)').columns
     df_ensg = df_ensg.groupby('ensembl_gene_id')[public_ids].agg(geo_mean)
     df_ensg = df_ensg.transpose()
