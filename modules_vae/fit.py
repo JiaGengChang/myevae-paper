@@ -125,12 +125,12 @@ def fit(model:Module, trainloader:DataLoader, validloader:DataLoader, params:dic
         results['history'][epoch]['valid']['metric'] = valid_metric
         
         # external datasets
-        if params.input_types==['exp']:
-            cindex_uams, cindex_hovon, cindex_emtab, cindex_apex = score_external_datasets(model,params)
-            results['history'][epoch]['valid']['uams_metric'] = cindex_uams
-            results['history'][epoch]['valid']['hovon_metric'] = cindex_hovon
-            results['history'][epoch]['valid']['emtab_metric'] = cindex_emtab
-            results['history'][epoch]['valid']['apex_metric'] = cindex_apex
+        # if params.input_types==['exp']:
+        #     cindex_uams, cindex_hovon, cindex_emtab, cindex_apex = score_external_datasets(model,params)
+        #     results['history'][epoch]['valid']['uams_metric'] = cindex_uams
+        #     results['history'][epoch]['valid']['hovon_metric'] = cindex_hovon
+        #     results['history'][epoch]['valid']['emtab_metric'] = cindex_emtab
+        #     results['history'][epoch]['valid']['apex_metric'] = cindex_apex
                 
         return valid_kl_loss, valid_reconstruction_losses, valid_survival_loss, valid_metric
 
@@ -179,7 +179,6 @@ def fit(model:Module, trainloader:DataLoader, validloader:DataLoader, params:dic
             params.exp_genes # genes seen by the model. Not necessarily all input genes.
         except AttributeError:
             params.exp_genes=None
-        # cindex_uams, cindex_hovon, cindex_emtab = score_external_datasets(model,params.endpoint,params.shuffle,params.fold,genes=params.exp_genes)
         cindex_uams, cindex_hovon, cindex_emtab, cindex_apex = score_external_datasets(model,params)
         results['best_epoch']['uams_metric'] = cindex_uams
         results['best_epoch']['hovon_metric'] = cindex_hovon

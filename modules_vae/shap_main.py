@@ -10,9 +10,10 @@ import pandas as pd
 from modules_vae.fit import fit
 from modules_vae.model import MultiModalVAE
 from modules_vae.predict import predict_to_tsv
+from utils.params import VAEParams
+from utils.annotate_exp_genes import annotate_exp_genes
 from utils.dataset import Dataset
 from utils.plotlosses import plot_results_to_pdf
-from utils.params import VAEParams
 from utils.lazy_input_dims import lazy_input_dims
 
 from torch.utils.data import DataLoader
@@ -41,15 +42,15 @@ def main():
         burn_in=100,
         patience=50,
         # input_types=['exp', 'cna', 'gistic', 'fish', 'sbs', 'ig', 'mut'],
-        input_types=['mut'],
+        input_types=['exp'],
         # layer_dims=[[256, 64], [128, 32], [32, 8], [16, 4], [4], [2], [4]],
-        layer_dims=[[8,4]],
+        layer_dims=[[128,32]],
         input_types_subtask=['clin'],
         input_dims_subtask=[5],
         layer_dims_subtask=[4, 1],
         z_dim=128,
         topKgenes=10,
-        model_name='zero_impute_naive/mut10',
+        model_name='zero_impute_naive/exp',
         model_type='shap'
     )
 
@@ -100,6 +101,8 @@ def main():
     params = lazy_input_dims(train_dataframe, params)
     # for exp-only models, this is required by utils/validation.py
     params.input_types_all = params.input_types + params.input_types_subtask
+    # set genes which is required for score_external_dataset
+    params = annotate_exp_genes(train_features, params, fieldname='genes')
 
     model = MultiModalVAE(input_types = params.input_types,
                         input_dims = params.input_dims,
