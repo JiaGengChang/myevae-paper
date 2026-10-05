@@ -70,11 +70,12 @@ def plot_results_to_pdf(resultsfile='../output/vae_models/dev.json',
         plt.figure(figsize=(8.27, 11.69))  # A4 size in inches
         
         # Plot validation metric first
-        ax1 = plt.subplot(num_rows, num_cols, 1)
-        ax1.plot(epochs, valid_metric, 'g-', label='Valid Metric')
-        ax1.set_xlabel('Epoch')
-        ax1.set_ylabel('Metric')
-        ax1.set_title('Validation C-index')
+        ax = plt.subplot(num_rows, num_cols, 1)
+        ax.plot(epochs, valid_metric, 'g-', label='Validation')
+        ax.set_xlabel('Epoch')
+        ax.set_ylabel('C-index')
+        ax.set_title('Validation Metric')
+        ax.legend(loc='best')
 
         # then plot the train and valid loss curves
         for i, (label, train_loss, valid_loss) in enumerate(losses):
@@ -85,7 +86,7 @@ def plot_results_to_pdf(resultsfile='../output/vae_models/dev.json',
             ax1.set_title(label)
             
             ax2 = ax1.twinx()
-            ax2.plot(epochs, valid_loss, 'r-', label=f'Valid')
+            ax2.plot(epochs, valid_loss, 'r-', label=f'Validation')
             ax2.set_ylabel('Valid Loss')
 
             # axes 1 and 2 should share the legend, after both plots are created
