@@ -74,7 +74,7 @@ def plot_results_to_pdf(resultsfile='../output/vae_models/dev.json',
         ax1.plot(epochs, valid_metric, 'g-', label='Valid Metric')
         ax1.set_xlabel('Epoch')
         ax1.set_ylabel('Metric')
-        ax1.set_title('Validation Metric')
+        ax1.set_title('Validation C-index')
 
         # then plot the train and valid loss curves
         for i, (label, train_loss, valid_loss) in enumerate(losses):
