@@ -4,13 +4,13 @@ param_grid = {
     'z_dim': [32, 64, 128],
     'lr': [1e-4], 
     'batch_size': [256],
-    'input_types': [['exp', 'cna', 'gistic', 'fish',]],
+    'input_types': [['exp', 'cna', 'gistic', 'fish', 'sbs']],
     'masking_proportions': [
-        {'exp': 0.0, 'cna':0.0, 'gistic':0.0, 'fish':0.0}, # 30% or Ig 3/8
-        {'exp': 0.05, 'cna':0.05, 'gistic':0.05, 'fish':0.05}, # 30% or Ig 3/8
-        {'exp': 0.1, 'cna':0.1, 'gistic':0.1, 'fish':0.1}, # 10% or Ig 1/8
-        {'exp': 0.2, 'cna':0.2, 'gistic':0.2, 'fish':0.2}, # 20% or Ig 2/8
-        {'exp': 0.3, 'cna':0.3, 'gistic':0.3, 'fish':0.3}, # 30% or Ig 3/8
+        {'exp': 0.0, 'cna':0.0, 'gistic':0.0, 'fish':0.0, 'sbs':0.0}, # 30% or Ig 3/8
+        {'exp': 0.05, 'cna':0.05, 'gistic':0.05, 'fish':0.05, 'sbs':0.05}, # 30% or Ig 3/8
+        {'exp': 0.1, 'cna':0.1, 'gistic':0.1, 'fish':0.1, 'sbs':0.1}, # 10% or Ig 1/8
+        {'exp': 0.2, 'cna':0.2, 'gistic':0.2, 'fish':0.2, 'sbs':0.2}, # 20% or Ig 2/8
+        {'exp': 0.3, 'cna':0.3, 'gistic':0.3, 'fish':0.3, 'sbs':0.3}, # 30% or Ig 3/8
     ],
     'input_types_subtask': [['clin']],
     'layer_dims': [[[256, 64], [128, 32], [32, 8], [16, 4], [4]]],
