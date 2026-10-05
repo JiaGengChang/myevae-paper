@@ -1,12 +1,12 @@
 #!/bin/bash
 
-#PBS -N Coxnet_C+M_Both
+#PBS -N Coxnet_C+E_Both
 #PBS -P 11004309
 #PBS -j oe
 #PBS -o /home/users/nus/e1083772/cancer-survival-ml/.pbs/3_gridsearchcv/coxnet/
 #PBS -q normal
 #PBS -l select=1:ncpus=4:mem=32G
-#PBS -l walltime=04:00:01
+#PBS -l walltime=02:00:01
 #PBS -J 0-49
 
 set -e
