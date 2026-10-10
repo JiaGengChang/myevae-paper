@@ -23,6 +23,8 @@ def main():
     the actual hyperparameters to modify are in params.py
     """
     parser = argparse.ArgumentParser(description='Train VAE model on the full dataset, for SHAP. For adjusting hyperparameters, modify params.py')
+    parser.add_argument('--fulldata', action='store_true')
+    parser.add_argument('--subset', action='store_true')
     parser.add_argument('--endpoint', type=str, choices=['pfs', 'os'], default='pfs', help='Survival endpoint (pfs or os)')
     parser.add_argument('--shuffle', type=int, default=0, help='Random seed for shuffling the data (0-9)')
     parser.add_argument('--fold', type=int, default=0, help='Fold number for cross-validation (0-4)')
@@ -42,15 +44,15 @@ def main():
         epochs=300,
         burn_in=50,
         patience=20,
-        input_types=['exp', 'cna', 'gistic', 'fish', 'sbs', 'ig', 'mut'],
-        layer_dims=[[256, 64], [128, 32], [32, 8], [16, 4], [4], [2], [4]],
+        input_types=['exp'],
+        layer_dims=[[256, 64]],
         input_types_subtask=['clin'],
         input_dims_subtask=[5],
         layer_dims_subtask=[16, 1],
         z_dim=128,
         topKgenes=20,
-        model_name='zero_impute_naive/exp-cna-gistic-fish-sbs-ig-mut',
-        model_type='shap'
+        model_name='exp',
+        model_type='zero_impute_naive'
     )
 
     os.makedirs(os.path.dirname(params.resultsprefix), exist_ok=True) # prepare output directory
@@ -113,6 +115,7 @@ def main():
     params = lazy_input_dims(train_dataframe, params)
     # for exp-only models, this is required by utils/validation.py
     params.input_types_all = params.input_types + params.input_types_subtask
+    params = annotate_exp_genes(train_features, params, fieldname='genes')
 
     model = MultiModalVAE(input_types = params.input_types,
                         input_dims = params.input_dims,
