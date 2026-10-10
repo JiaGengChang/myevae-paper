@@ -134,6 +134,81 @@ def _load_training_data(
     return features, labels
 
 
+def _load_validation_data(
+    params_fixed: dict, feature_variant: str
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    split_dir = (
+        Path(os.environ["SPLITDATADIR"])
+        / str(params_fixed["shuffle"])
+        / str(params_fixed["fold"])
+    )
+    features_path = split_dir / (
+        f"valid_features_{params_fixed['endpoint']}_{feature_variant}.parquet"
+    )
+    labels_path = split_dir / "valid_labels.parquet"
+    missing = [path for path in (features_path, labels_path) if not path.is_file()]
+    if missing:
+        raise FileNotFoundError("Validation data file(s) not found: " + ", ".join(map(str, missing)))
+
+    features = pd.read_parquet(features_path)
+    labels = pd.read_parquet(labels_path)
+    if not features.index.is_unique or not labels.index.is_unique:
+        raise ValueError("CoMMpass validation features or labels contain duplicate patient IDs")
+    missing_labels = features.index.difference(labels.index)
+    if len(missing_labels):
+        raise ValueError(
+            f"CoMMpass validation labels are missing for {len(missing_labels)} feature rows"
+        )
+    labels = labels.reindex(features.index)
+    endpoint = params_fixed["endpoint"]
+    event_col = params_fixed.get("eventcol", f"cens{endpoint}")
+    duration_col = params_fixed.get("durationcol", f"{endpoint}cdy")
+    labels = labels[[event_col, duration_col]]
+    if labels.isna().any().any():
+        raise ValueError("CoMMpass validation labels contain missing events or times")
+    return features, labels
+
+
+def _coxph_validation_features(
+    validation_features: pd.DataFrame, expected_columns: pd.Index
+) -> pd.DataFrame:
+    score_path = os.environ.get("COMMPASSRISKSCOREFILE")
+    if not score_path:
+        raise ValueError("Environment variable COMMPASSRISKSCOREFILE is required for CoxPH scoring")
+    risk_scores = pd.read_csv(score_path, index_col=0)
+    if not validation_features.index.is_unique or not risk_scores.index.is_unique:
+        raise ValueError("CoMMpass has duplicate patient IDs in validation features or risk scores")
+    missing_scores = validation_features.index.difference(risk_scores.index)
+    if len(missing_scores):
+        raise ValueError(
+            f"CoMMpass risk scores are missing for {len(missing_scores)} validation patients"
+        )
+
+    clinical = validation_features.filter(regex="Feature_clin")
+    features = clinical.join(risk_scores.reindex(validation_features.index))
+    if len(features.columns) != len(expected_columns):
+        raise ValueError("CoMMpass validation columns do not match external CoxPH features")
+    features.columns = expected_columns
+    return features
+
+
+def _internal_prediction_inputs(
+    features: pd.DataFrame, input_types: list[str]
+) -> dict[str, pd.DataFrame]:
+    inputs = {}
+    for input_type in input_types:
+        prefix = f"Feature_{input_type}_"
+        selected = features.loc[:, features.columns.str.contains(prefix)]
+        if selected.shape[1] == 0:
+            raise ValueError(
+                f"CoMMpass validation data is missing features for input type {input_type!r}"
+            )
+        inputs[input_type] = selected.rename(
+            columns=lambda column: column.removeprefix(prefix)
+        )
+    return inputs
+
+
 def _build_model(
     results: dict,
     train_features: pd.DataFrame,
@@ -453,6 +528,20 @@ def score_model(model_json: Path, weights_path: str | None = None, report_path: 
             }
             for name, cohort in external.items()
         }
+        if not results.get("fulldata", False):
+            validation_features, validation_labels = _load_validation_data(
+                results, feature_variant="processed_mut_nan"
+            )
+            validation_features = _coxph_validation_features(
+                validation_features, external["UAMS"]["features"].columns
+            )
+            cohorts["CoMMpass"] = {
+                "events": validation_labels[f"cens{endpoint}"].to_numpy(dtype=bool),
+                "times_days": validation_labels[f"{endpoint}cdy"].to_numpy(dtype=float),
+                "risk_scores": np.asarray(
+                    model.predict(validation_features), dtype=float
+                ).reshape(-1),
+            }
         event_col = f"cens{endpoint}"
         duration_col = f"{endpoint}cdy"
         training_split = {
@@ -467,7 +556,7 @@ def score_model(model_json: Path, weights_path: str | None = None, report_path: 
             raise ValueError("External wiAUC scoring requires a PFS model")
         weights_file = _resolve_weights(model_json, weights_path)
         train_features, train_labels = _load_training_data(params_fixed)
-        model, input_types, _, prediction_type = _build_model(
+        model, input_types, input_types_subtask, prediction_type = _build_model(
             results, train_features, train_labels, architecture, weights_file
         )
         params = _model_params(results)
@@ -487,6 +576,20 @@ def score_model(model_json: Path, weights_path: str | None = None, report_path: 
             }
         event_col = params_fixed["eventcol"]
         duration_col = params_fixed["durationcol"]
+        if not params_fixed.get("fulldata", False):
+            validation_features, validation_labels = _load_validation_data(
+                params_fixed, feature_variant="processed_joint_imputation"
+            )
+            validation_inputs = _internal_prediction_inputs(
+                validation_features, input_types + input_types_subtask
+            )
+            cohorts["CoMMpass"] = {
+                "events": validation_labels[event_col].to_numpy(dtype=bool),
+                "times_days": validation_labels[duration_col].to_numpy(dtype=float),
+                "risk_scores": _predict_risk_scores(
+                    model, validation_inputs, input_types, prediction_type
+                ),
+            }
         training_split = {
             "fulldata": bool(params_fixed.get("fulldata", False)),
             "shuffle": params_fixed.get("shuffle"),
@@ -503,9 +606,12 @@ def score_model(model_json: Path, weights_path: str | None = None, report_path: 
     report["architecture"] = architecture
     report["weights_file"] = str(weights_file.resolve()) if weights_file else None
     report["training_split"] = training_split
-    report["cohort_time_units"] = {
+    cohort_time_units = {
         name: cohort["source_time_unit"] for name, cohort in external.items()
     }
+    if "CoMMpass" in cohorts:
+        cohort_time_units["CoMMpass"] = "days"
+    report["cohort_time_units"] = cohort_time_units
 
     if report_path is None:
         output_path = model_json.with_name(f"{model_json.stem}_wiauc.json")

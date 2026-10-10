@@ -16,7 +16,7 @@ score_wiauc = import_module("pipeline.4_score_wiauc")
     ("architecture", "feature_name"),
     [
         ("VAE", "full_features_pfs_processed_mut_nan.parquet"),
-        ("CoxPH", "full_features_pfs_processed.parquet"),
+        ("CoxPH", "full_features_pfs_processed_mut_nan.parquet"),
     ],
 )
 def test_load_training_data_uses_full_preprocessing_artifacts(
@@ -46,6 +46,142 @@ def test_load_training_data_uses_full_preprocessing_artifacts(
     )
 
     assert read_paths == [features_path, labels_path]
+
+
+def test_load_validation_data_uses_matching_cohort_artifacts(tmp_path, monkeypatch):
+    split_dir = tmp_path / "0" / "0"
+    split_dir.mkdir(parents=True)
+    features_path = split_dir / "valid_features_pfs_processed_joint_imputation.parquet"
+    labels_path = split_dir / "valid_labels.parquet"
+    features_path.touch()
+    labels_path.touch()
+    feature_data = pd.DataFrame({"Feature_clin_age": [60, 70]}, index=["P1", "P2"])
+    label_data = pd.DataFrame(
+        {"censpfs": [False, True], "pfscdy": [20, 10]}, index=["P2", "P1"]
+    )
+    read_paths = []
+
+    def fake_read_parquet(path):
+        read_paths.append(path)
+        return feature_data if path == features_path else label_data
+
+    monkeypatch.setenv("SPLITDATADIR", str(tmp_path))
+    monkeypatch.setattr(score_wiauc.pd, "read_parquet", fake_read_parquet)
+
+    features, labels = score_wiauc._load_validation_data(
+        {"endpoint": "pfs", "shuffle": 0, "fold": 0}, "processed_joint_imputation"
+    )
+
+    assert read_paths == [features_path, labels_path]
+    assert features.index.tolist() == ["P1", "P2"]
+    assert labels["censpfs"].tolist() == [True, False]
+    assert labels["pfscdy"].tolist() == [10, 20]
+
+
+def test_coxph_validation_features_aligns_risk_scores_and_columns(tmp_path, monkeypatch):
+    score_path = tmp_path / "commpass_scores.csv"
+    pd.DataFrame(
+        {"Feature_GEP_UAMS70": [0.7, 0.4]}, index=["P2", "P1"]
+    ).to_csv(score_path)
+    monkeypatch.setenv("COMMPASSRISKSCOREFILE", str(score_path))
+    validation_features = pd.DataFrame(
+        {"Feature_clin_D_PT_age": [60, 70]}, index=["P1", "P2"]
+    )
+    expected_columns = pd.Index(
+        ["Feature_clin_D_PT_age", "Feature_GEP_UAMS70"]
+    )
+
+    result = score_wiauc._coxph_validation_features(
+        validation_features, expected_columns
+    )
+
+    assert result.columns.equals(expected_columns)
+    assert result["Feature_GEP_UAMS70"].tolist() == [0.4, 0.7]
+
+
+def test_score_model_adds_commpass_validation_to_wiauc(tmp_path, monkeypatch):
+    model_json = tmp_path / "GEP_UAMS70" / "pfs_shuffle0_fold0.json"
+    model_json.parent.mkdir(parents=True)
+    model_json.write_text(
+        json.dumps(
+            {
+                "endpoint": "pfs",
+                "shuffle": 0,
+                "fold": 0,
+                "fulldata": False,
+                "use_clin": True,
+            }
+        )
+    )
+    train_features = pd.DataFrame(index=["T1", "T2"])
+    train_labels = pd.DataFrame(
+        {"censpfs": [True, False], "pfscdy": [10, 20]}, index=["T1", "T2"]
+    )
+    validation_features = pd.DataFrame(
+        {"Feature_clin_D_PT_age": [60, 70]}, index=["V1", "V2"]
+    )
+    validation_labels = pd.DataFrame(
+        {"censpfs": [False, True], "pfscdy": [800, 900]}, index=["V1", "V2"]
+    )
+    expected_model_columns = pd.Index(
+        ["Feature_clin_D_PT_age", "Feature_GEP_UAMS70"]
+    )
+
+    class FakeModel:
+        def predict(self, features):
+            return np.full(len(features), 0.8)
+
+    external = {
+        "UAMS": {
+            "features": pd.DataFrame(columns=expected_model_columns),
+            "events": np.array([True, False]),
+            "times_days": np.array([700.0, 800.0]),
+            "source_time_unit": "days",
+        }
+    }
+    captured = {}
+
+    def fake_calculate_wiauc(train_events, train_times, cohorts, excluded_cohorts):
+        captured["cohorts"] = cohorts
+        return {
+            "wiAUC": 0.75,
+            "cohorts": {name: {"iAUC": 0.75} for name in cohorts},
+        }
+
+    monkeypatch.setattr(
+        score_wiauc,
+        "_load_training_data",
+        lambda *args, **kwargs: (train_features, train_labels),
+    )
+    monkeypatch.setattr(
+        score_wiauc,
+        "_build_coxph_model",
+        lambda *args: (FakeModel(), external),
+    )
+    monkeypatch.setattr(
+        score_wiauc,
+        "_load_validation_data",
+        lambda *args, **kwargs: (validation_features, validation_labels),
+    )
+    monkeypatch.setattr(
+        score_wiauc,
+        "_coxph_validation_features",
+        lambda features, columns: features,
+    )
+    monkeypatch.setattr(
+        score_wiauc, "_excluded_validation_cohorts", lambda model_path: set()
+    )
+    monkeypatch.setattr(score_wiauc, "calculate_wiauc", fake_calculate_wiauc)
+
+    report_path = score_wiauc.score_model(model_json)
+
+    assert captured["cohorts"]["CoMMpass"]["events"].tolist() == [False, True]
+    assert captured["cohorts"]["CoMMpass"]["times_days"].tolist() == [800, 900]
+    assert captured["cohorts"]["CoMMpass"]["risk_scores"].tolist() == [0.8, 0.8]
+    with report_path.open() as stream:
+        report = json.load(stream)
+    assert "CoMMpass" in report["cohorts"]
+    assert report["cohort_time_units"]["CoMMpass"] == "days"
 
 
 def test_model_params_fall_back_to_params_fixed_for_full_model():
@@ -220,6 +356,11 @@ def test_calculate_wiauc_uses_squared_high_risk_counts(monkeypatch):
             "times_days": np.array([800.0] * 10),
             "risk_scores": np.array([0.8] * 10),
         },
+        "CoMMpass": {
+            "events": np.array([True] * 15),
+            "times_days": np.array([800.0] * 15),
+            "risk_scores": np.array([0.9] * 15),
+        },
     }
 
     result = wiauc.calculate_wiauc(train_events, train_times, cohorts)
@@ -229,7 +370,9 @@ def test_calculate_wiauc_uses_squared_high_risk_counts(monkeypatch):
     assert result["cohorts"]["large"]["n_high_risk"] == 2
     assert result["cohorts"]["small"]["cohort_weight"] == 1
     assert result["cohorts"]["large"]["cohort_weight"] == 4
-    assert result["wiAUC"] == pytest.approx((0.6 + 0.8 * 4) / 5)
+    assert result["cohorts"]["CoMMpass"]["n_high_risk"] == 3
+    assert result["cohorts"]["CoMMpass"]["cohort_weight"] == 9
+    assert result["wiAUC"] == pytest.approx((0.6 + 0.8 * 4 + 0.9 * 9) / 14)
 
 
 @pytest.mark.parametrize(
