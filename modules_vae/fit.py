@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 from json import dump as json_dump
 import sys
 import os
+from typing import Optional
 from dotenv import load_dotenv
 load_dotenv('../.env')
 sys.path.append(os.environ.get("PROJECTDIR"))
@@ -14,16 +15,16 @@ from utils.cindexmetric import ConcordanceIndex # metric
 from utils.coxphloss import CoxPHLoss # optimization objective is negative partial log likelihood
 from utils.kldivergence import KLDivergence # regularization
 
-def fit(model:Module, trainloader:DataLoader, validloader:DataLoader, params:dict):
+def fit(model:Module, trainloader:DataLoader, validloader:Optional[DataLoader], params:dict):
     """
     Trains and validates a given model using the provided data loaders and parameters.
     Args:
         model (torch.nn.Module): The model to be trained and validated.
         trainloader (torch.utils.data.DataLoader): DataLoader for the training dataset.
-        validloader (torch.utils.data.DataLoader): DataLoader for the validation dataset.
+        validloader (torch.utils.data.DataLoader or None): DataLoader for validation, or None to skip it.
         params (Namespace): A namespace object containing training parameters such as learning rate and number of epochs.
     Returns:
-        dict: A dictionary containing the training and validation history, including losses and metrics for each epoch.
+        dict: A dictionary containing the training history and, when validloader is provided, validation history.
     The function performs the following steps:
     1. Initializes the optimizer and loss functions.
     2. Defines the training step which includes:
@@ -31,11 +32,11 @@ def fit(model:Module, trainloader:DataLoader, validloader:DataLoader, params:dic
         - Zeroing the gradients.
         - Iterating over the training data to compute and backpropagate the loss.
         - Logging the training losses to the results dictionary.
-    3. Defines the validation step which includes:
+    3. When a validation loader is provided, defines a validation step which includes:
         - Setting the model to evaluation mode.
         - Iterating over the validation data to compute the loss without backpropagation.
         - Logging the validation losses and metrics to the results dictionary.
-    4. Iterates over the specified number of epochs, calling the training and validation steps for each epoch.
+    4. Iterates over the specified number of epochs, validating only when a validation loader is provided.
     5. Returns the results dictionary containing the training and validation history.
     """
     optimizer = Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=params.lr)
@@ -134,20 +135,25 @@ def fit(model:Module, trainloader:DataLoader, validloader:DataLoader, params:dic
                 
         return valid_kl_loss, valid_reconstruction_losses, valid_survival_loss, valid_metric
 
-    # best epoch based on validation survival loss
-    results['best_epoch'] = {
-        'valid_survival_loss':float('inf'), # lower is better
-        'valid_metric': 0, # higher is better
-        'epoch': 0
-    }
+    # Keep the validation metric placeholder for compatibility with result summaries.
+    results['best_epoch'] = {'valid_metric': 0.0}
+    if validloader is not None:
+        results['best_epoch'].update({
+            'valid_survival_loss': float('inf'), # lower is better
+            'epoch': 0
+        })
     # initialize early stopping variables
     epochs_no_improve = 0
     best_model_state = None
     
     for epoch in range(params.epochs):
         if epoch not in results['history']:
-            results['history'][epoch] = {'train': {}, 'valid': {}}
+            results['history'][epoch] = {'train': {}}
+            if validloader is not None:
+                results['history'][epoch]['valid'] = {}
         train_step(epoch)
+        if validloader is None:
+            continue
         _, _, valid_survival_loss, valid_metric = valid_step(epoch)
         
         if epoch < params.burn_in:
