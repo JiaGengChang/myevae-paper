@@ -80,6 +80,17 @@ def _model_architecture(results: dict) -> str:
     raise ValueError("Could not determine model architecture from the model JSON")
 
 
+def _model_params(results: dict) -> dict:
+    best_epoch = results.get("best_epoch", {})
+    params = best_epoch.get("params") if isinstance(best_epoch, dict) else None
+    if isinstance(params, dict) and params:
+        return params
+    params_fixed = results.get("params_fixed")
+    if isinstance(params_fixed, dict) and params_fixed:
+        return params_fixed
+    raise ValueError("Model JSON does not contain model parameters")
+
+
 def _model_input_types(architecture: str, params: dict, params_fixed: dict) -> tuple[list[str], list[str]]:
     if architecture == "vae":
         vae_inputs = _value(params["input_types"])
@@ -106,7 +117,8 @@ def _load_training_data(
     split_dir = Path(os.environ["SPLITDATADIR"])
     endpoint = params_fixed["endpoint"]
     if params_fixed.get("fulldata", False):
-        feature_variant = feature_variant or "processed"
+        if feature_variant is None:
+            feature_variant = "processed" if params_fixed.get("architecture", "").lower() == "coxph" else "processed_mut_nan"
         features_path = split_dir / f"full_features_{endpoint}_{feature_variant}.parquet"
         labels_path = split_dir / "full_labels.parquet"
     else:
@@ -130,7 +142,7 @@ def _build_model(
     weights_file: Path,
 ):
     params_fixed = results["params_fixed"]
-    params = results["best_epoch"]["params"]
+    params = _model_params(results)
     if params_fixed.get("endpoint") != "pfs":
         raise ValueError("External wiAUC scoring requires a PFS model")
 
@@ -141,6 +153,26 @@ def _build_model(
     train_data = pd.concat([train_labels[[event_col, duration_col]], train_features], axis=1)
 
     if architecture == "vae":
+        declared_input_dims = _value(params_fixed.get("input_dims"))
+        if declared_input_dims is not None:
+            from modules_vae.model import MultiModalVAE
+
+            model = MultiModalVAE(
+                input_types=input_types,
+                input_dims=declared_input_dims,
+                layer_dims=_value(params["layer_dims"]),
+                input_types_subtask=input_types_subtask,
+                input_dims_subtask=_value(params_fixed["input_dims_subtask"]),
+                layer_dims_subtask=_value(params["layer_dims_subtask"]),
+                z_dim=int(_value(params["z_dim"])),
+                topKgenes=_value(params.get("topKgenes", params_fixed.get("topKgenes"))),
+                activation=_activation(params.get("activation", "LeakyReLU()")),
+                subtask_activation=_activation(params.get("subtask_activation", "Tanh()")),
+            )
+            model.load_state_dict(torch.load(weights_file, map_location="cpu", weights_only=True))
+            model.eval()
+            return model, input_types, input_types_subtask, "vae"
+
         estimator = VAE(
             input_types=input_types,
             subset_microarray=bool(_value(params.get("subset_microarray", params_fixed.get("subset", False)))),
@@ -156,8 +188,8 @@ def _build_model(
             eventcol=event_col,
             durationcol=duration_col,
             kl_weight=float(_value(params["kl_weight"])),
-            activation=_activation(params["activation"]),
-            subtask_activation=_activation(params["subtask_activation"]),
+            activation=_activation(params.get("activation", "LeakyReLU()")),
+            subtask_activation=_activation(params.get("subtask_activation", "Tanh()")),
             scale_method=params["scale_method"],
             topKgenes=_value(params.get("topKgenes")),
         )
@@ -428,7 +460,7 @@ def score_model(model_json: Path, weights_path: str | None = None, report_path: 
         model, input_types, _, prediction_type = _build_model(
             results, train_features, train_labels, architecture, weights_file
         )
-        params = results["best_epoch"]["params"]
+        params = _model_params(results)
         external = _external_inputs(params_fixed, params.get("scale_method", "std"))
         cohorts = {}
         for name, cohort in external.items():
