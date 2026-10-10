@@ -18,34 +18,37 @@ from utils.pipelinetools import VarianceSelector,Log1pTransform,StandardTransfor
 def main(endpoint:str,
          shuffle:int,
          fold:int,
-         fulldata:bool=False) -> None:
+         fulldata:bool) -> None:
 
     # oscdy is the time to overall survival
     # censos is the event flag for overall survival
     # pfscdy is the time to progression-free survival
     # censpfs is the event flag for progression-free survival
     survcols = [f'{endpoint}cdy',f'cens{endpoint}']
+    splitsdir=os.environ.get("SPLITDATADIR")
 
-    splitsdir = os.environ.get('SPLITDATADIR')
     if fulldata:
-        datadir = splitsdir
-        features_file = f'{datadir}/full_features.parquet'
-        train_surv_file = f'{datadir}/full_labels.parquet'
-        train_out_features_file = f'{datadir}/full_features_{endpoint}_processed_joint_imputation.parquet'
+        # shuffle and fold are ignored
+        # no valid features because full dataset is used as train
+        features_file=f'{splitsdir}/full_features.parquet'
+        train_surv_file=f'{splitsdir}/full_labels.parquet'
+        train_out_features_file=f'{splitsdir}/full_features_{endpoint}_processed_mut_nan.parquet'
     else:
-        datadir = f'{splitsdir}/{shuffle}/{fold}'
-        features_file = f'{datadir}/train_features_mut.parquet'
-        train_surv_file = f'{datadir}/train_labels.parquet'
-        valid_features_file = f'{datadir}/valid_features_mut.parquet'
-        train_out_features_file = f'{datadir}/train_features_{endpoint}_processed_joint_imputation.parquet'
-        valid_out_features_file = f'{datadir}/valid_features_{endpoint}_processed_joint_imputation.parquet'
+        datadir=f"{os.environ.get('SPLITDATADIR')}/{shuffle}/{fold}"
+        features_file=f'{datadir}/train_features_mut.parquet'
 
+        train_surv_file=f'{datadir}/train_labels.parquet'
+
+        valid_features_file=f'{datadir}/valid_features_mut.parquet'
+        valid_features = pd.read_parquet(valid_features_file)
+
+        train_out_features_file=f'{datadir}/train_features_{endpoint}_processed_mut_nan.parquet'
+        valid_out_features_file=f'{datadir}/valid_features_{endpoint}_processed_mut_nan.parquet'    
+
+    # read train labels and features
     features = pd.read_parquet(features_file)
     train_surv = pd.read_parquet(train_surv_file,columns=survcols)
     train_surv.rename(columns={f'{endpoint}cdy':'survtime',f'cens{endpoint}':'survflag'},inplace=True)
-
-    if not fulldata:
-        valid_features = pd.read_parquet(valid_features_file)
 
     transformer_gene_exp = Pipeline([
         ('Non-zero variance', VarianceSelector(threshold=0)),
@@ -88,7 +91,7 @@ def main(endpoint:str,
         ('Frequency filter', FrequencySelector(minfreq=0.05))
     ])
 
-    transformer = ColumnTransformer([
+    pipeline = ColumnTransformer([
         ('GEXP', transformer_gene_exp, make_column_selector(pattern='Feature_exp_')),
         ('GENECN', transformer_gene_cn, make_column_selector(pattern='Feature_CNA_ENSG')),
         ('GISTIC_', transformer_gistic, make_column_selector(pattern='Feature_CNA_(Amp|Del)')),
@@ -99,31 +102,6 @@ def main(endpoint:str,
         ('MUT_', transformer_mut, make_column_selector(pattern='Feature_mut')),
     ], remainder='drop').set_output(transform="pandas")
 
-    tree_args = {
-        'n_estimators': 100,
-        'max_depth': 20,
-        'min_samples_split': 5,
-        'n_jobs': -1,
-    }
-    imputer_args = {
-        'n_nearest_features':20,
-        'max_iter':100,
-        'tol': 5e-3,
-        'skip_complete':True,
-    }
-
-    ContinuousImputer = IterativeImputer(estimator=RandomForestRegressor(**tree_args), initial_strategy='mean', **imputer_args)
-    CategoricalImputer = IterativeImputer(estimator=RandomForestClassifier(**tree_args), initial_strategy='most_frequent', **imputer_args)
-
-    imputer = ColumnTransformer([
-        ('Continuous variables', ContinuousImputer, make_column_selector(pattern='Feature_(exp|clin_D_PT_age|SBS)')),
-        ('Categorical variables', CategoricalImputer, make_column_selector(pattern='Feature_(?!exp|clin_D_PT_age|SBS)'))
-    ], remainder='drop').set_output(transform="pandas")
-    pipeline = Pipeline([
-        ('Feature selection', transformer),
-        ('Joint imputation', imputer),
-    ])
-    
     # need to shift start date because some OS is negative
     event = train_surv.survflag
     time = train_surv.survtime
@@ -150,12 +128,12 @@ def main(endpoint:str,
     
 if __name__ == "__main__":
     parser = ArgumentParser(description='Select significant features and preprocess them')
-    parser.add_argument('-e','--endpoint', type=str, choices=['pfs', 'os'], help='Survival endpoint to select features against (pfs or os)')
-    parser.add_argument('-f','--fulldata', action='store_true', help='Preprocess all data without a validation split')
+    parser.add_argument('-e','--endpoint', type=str, choices=['pfs', 'os'], default='pfs', help='Survival endpoint (pfs or os)')
+    parser.add_argument('-f','--fulldata', action='store_true', help='Flag indicating whether to use all data')
     args = parser.parse_args()
 
     _pbs_array_id = int(os.getenv('PBS_ARRAY_INDEX', "-1"))
     pbs_shuffle=_pbs_array_id%10
     pbs_fold=_pbs_array_id//10
     
-    main(args.endpoint,pbs_shuffle,pbs_fold,args.fulldata)
+    main(args.endpoint, pbs_shuffle, pbs_fold, args.fulldata)

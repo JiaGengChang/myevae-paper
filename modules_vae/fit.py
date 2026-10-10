@@ -45,8 +45,7 @@ def fit(model:Module, trainloader:DataLoader, validloader:Optional[DataLoader], 
     reconstruction_loss_funcs = [MSELoss(reduction='mean') for datatype in model.input_types_vae]
 
     results={}
-    # do not save all_exp_genes and genes
-    results['params'] = {k: v for k, v in vars(params).items() if not k.startswith('_') and not k.endswith('genes')}
+    results['params'] = {k: v for k, v in vars(params).items() if not k.startswith('_')}
     results['history'] = {}
 
     def train_step(epoch:int):
@@ -190,9 +189,6 @@ def fit(model:Module, trainloader:DataLoader, validloader:Optional[DataLoader], 
         results['best_epoch']['hovon_metric'] = cindex_hovon
         results['best_epoch']['emtab_metric'] = cindex_emtab
         results['best_epoch']['apex_metric'] = cindex_apex
-
-    results['params']['all_exp_genes']=None
-    results['params']['genes']=None
 
     # save results
     with open(f'{params.resultsprefix}.json', 'w') as f:

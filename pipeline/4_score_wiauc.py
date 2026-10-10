@@ -116,13 +116,13 @@ def _load_training_data(
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     split_dir = Path(os.environ["SPLITDATADIR"])
     endpoint = params_fixed["endpoint"]
+    feature_variant = feature_variant or "processed_mut_nan"
     if params_fixed.get("fulldata", False):
         if feature_variant is None:
             feature_variant = "processed" if params_fixed.get("architecture", "").lower() == "coxph" else "processed_mut_nan"
         features_path = split_dir / f"full_features_{endpoint}_{feature_variant}.parquet"
         labels_path = split_dir / "full_labels.parquet"
     else:
-        feature_variant = feature_variant or "processed_mut_nan"
         split_dir = split_dir / str(params_fixed["shuffle"]) / str(params_fixed["fold"])
         features_path = split_dir / f"train_features_{endpoint}_{feature_variant}.parquet"
         labels_path = split_dir / "train_labels.parquet"
@@ -443,7 +443,7 @@ def score_model(model_json: Path, weights_path: str | None = None, report_path: 
         endpoint = results["endpoint"]
         if endpoint != "pfs":
             raise ValueError("External wiAUC scoring requires a PFS model")
-        train_features, train_labels = _load_training_data(results, feature_variant="processed")
+        train_features, train_labels = _load_training_data(results, feature_variant="processed_joint_imputation")
         model, external = _build_coxph_model(results, model_json, train_features, train_labels)
         cohorts = {
             name: {
