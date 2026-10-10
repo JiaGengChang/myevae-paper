@@ -325,6 +325,8 @@ def _build_coxph_model(results: dict, model_json: Path, train_features: pd.DataF
 
     model_name = model_json.parent.name
     use_clin = bool(results["use_clin"])
+    if model_name.endswith("_full"):
+        model_name = model_name.removesuffix("_full")
     if model_name.endswith("_noclin"):
         model_name = model_name.removesuffix("_noclin")
         use_clin = False
@@ -370,7 +372,7 @@ def _excluded_validation_cohorts(model_json: Path) -> set[str]:
     excluded = set()
     if "UAMS" in model_path:
         excluded.add("UAMS")
-    if "EMC92" in model_path:
+    if "SKY92" in model_path:
         excluded.add("HOVON65")
     return excluded
 
@@ -443,7 +445,7 @@ def score_model(model_json: Path, weights_path: str | None = None, report_path: 
         endpoint = results["endpoint"]
         if endpoint != "pfs":
             raise ValueError("External wiAUC scoring requires a PFS model")
-        train_features, train_labels = _load_training_data(results, feature_variant="processed_joint_imputation")
+        train_features, train_labels = _load_training_data(results, feature_variant="processed_mut_nan")
         model, external = _build_coxph_model(results, model_json, train_features, train_labels)
         cohorts = {
             name: {
