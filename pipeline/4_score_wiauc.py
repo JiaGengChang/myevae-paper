@@ -365,6 +365,16 @@ def _apex_survival_frame(endpoint: str) -> pd.DataFrame:
     return frame[[event_col, time_col]]
 
 
+def _excluded_validation_cohorts(model_json: Path) -> set[str]:
+    model_path = model_json.as_posix()
+    excluded = set()
+    if "UAMS" in model_path:
+        excluded.add("UAMS")
+    if "EMC92" in model_path:
+        excluded.add("HOVON65")
+    return excluded
+
+
 def _external_inputs(params_fixed: dict, scale_method: str):
     from utils import parsers_external as parsers
 
@@ -487,6 +497,7 @@ def score_model(model_json: Path, weights_path: str | None = None, report_path: 
         train_labels[event_col].to_numpy(dtype=bool),
         train_labels[duration_col].to_numpy(dtype=float),
         cohorts,
+        excluded_cohorts=_excluded_validation_cohorts(model_json),
     )
     report["model_json"] = str(model_json)
     report["architecture"] = architecture

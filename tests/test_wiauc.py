@@ -58,6 +58,21 @@ def test_model_architecture_detects_coxph_baseline_metadata():
     assert score_wiauc._model_architecture({"endpoint": "pfs", "use_clin": True}) == "coxph"
 
 
+@pytest.mark.parametrize(
+    ("model_json", "expected"),
+    [
+        ("/models/GEP_UAMS70/model.json", {"UAMS"}),
+        ("/models/GEP_EMC92/model.json", {"HOVON65"}),
+        ("/models/other/model.json", set()),
+        ("/models/UAMS_GEP_EMC92/model.json", {"UAMS", "HOVON65"}),
+    ],
+)
+def test_excluded_validation_cohorts_follow_model_json_path(model_json, expected):
+    assert score_wiauc._excluded_validation_cohorts(
+        score_wiauc.Path(model_json)
+    ) == expected
+
+
 def test_model_input_types_reject_external_modalities_not_available():
     with pytest.raises(ValueError, match="support only expression and clinical"):
         score_wiauc._model_input_types(
@@ -215,6 +230,54 @@ def test_calculate_wiauc_uses_squared_high_risk_counts(monkeypatch):
     assert result["cohorts"]["small"]["cohort_weight"] == 1
     assert result["cohorts"]["large"]["cohort_weight"] == 4
     assert result["wiAUC"] == pytest.approx((0.6 + 0.8 * 4) / 5)
+
+
+@pytest.mark.parametrize(
+    ("excluded_cohort", "expected_wiauc"),
+    [
+        ("UAMS", (0.8 * 4 + 0.9 * 9) / 13),
+        ("HOVON65", (0.6 + 0.9 * 9) / 10),
+    ],
+)
+def test_calculate_wiauc_excludes_selected_cohorts_from_weighted_score(
+    monkeypatch, excluded_cohort, expected_wiauc
+):
+    def fake_auc(survival_train, survival_test, estimate, times):
+        value = float(estimate[0])
+        return np.full(len(times), value), value
+
+    monkeypatch.setattr(wiauc, "cumulative_dynamic_auc", fake_auc)
+    train_events = np.array([True, False, True, False])
+    train_times = np.array([20.0, 80.0, 120.0, 160.0])
+    cohorts = {
+        "UAMS": {
+            "events": np.array([True] * 5),
+            "times_days": np.array([800.0] * 5),
+            "risk_scores": np.array([0.6] * 5),
+        },
+        "HOVON65": {
+            "events": np.array([True] * 10),
+            "times_days": np.array([800.0] * 10),
+            "risk_scores": np.array([0.8] * 10),
+        },
+        "EMTAB4032": {
+            "events": np.array([True] * 15),
+            "times_days": np.array([800.0] * 15),
+            "risk_scores": np.array([0.9] * 15),
+        },
+    }
+
+    result = wiauc.calculate_wiauc(
+        train_events,
+        train_times,
+        cohorts,
+        excluded_cohorts={excluded_cohort},
+    )
+
+    assert result["cohorts"][excluded_cohort]["included_in_wiauc"] is False
+    assert result["cohorts"]["EMTAB4032"]["included_in_wiauc"] is True
+    assert result["excluded_cohorts_from_wiauc"] == [excluded_cohort]
+    assert result["wiAUC"] == pytest.approx(expected_wiauc)
 
 
 def test_calculate_wiauc_fails_on_undefined_horizon_auc(monkeypatch):

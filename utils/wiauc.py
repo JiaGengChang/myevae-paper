@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from math import ceil
 
 import numpy as np
@@ -50,9 +50,17 @@ def calculate_wiauc(
     train_events,
     train_times_days,
     cohorts: Mapping[str, Mapping[str, object]],
+    excluded_cohorts: Collection[str] = (),
 ) -> dict:
     if not cohorts:
         raise ValueError("At least one external cohort is required")
+
+    excluded_cohorts = set(excluded_cohorts)
+    unknown_exclusions = excluded_cohorts.difference(cohorts)
+    if unknown_exclusions:
+        raise ValueError(
+            "Cannot exclude unknown cohort(s): " + ", ".join(sorted(unknown_exclusions))
+        )
 
     train_events, train_times = _validated_survival(
         train_events, train_times_days, "Training"
@@ -103,12 +111,14 @@ def calculate_wiauc(
             "cohort_weight": int(cohort_weight),
             "iAUC": iauc,
             "weekly_auc": [float(value) for value in auc_values],
+            "included_in_wiauc": name not in excluded_cohorts,
         }
-        weighted_auc += iauc * cohort_weight
-        total_weight += cohort_weight
+        if name not in excluded_cohorts:
+            weighted_auc += iauc * cohort_weight
+            total_weight += cohort_weight
 
     if total_weight == 0:
-        raise ValueError("Total squared high-risk cohort weight is zero")
+        raise ValueError("No included cohorts have a non-zero squared high-risk cohort weight")
 
     return {
         "metric": "time-weighted integrated AUC (wiAUC)",
@@ -124,6 +134,7 @@ def calculate_wiauc(
         "risk_score_direction": "higher scores indicate higher risk",
         "high_risk_definition": "top 20% of patients ranked by within-cohort predicted risk; ceil(20% of cohort size), stable input-order tie breaking",
         "cohort_weight_definition": "number of high-risk patients squared",
+        "excluded_cohorts_from_wiauc": sorted(excluded_cohorts),
         "cohorts": cohort_results,
         "wiAUC": float(weighted_auc / total_weight),
     }
