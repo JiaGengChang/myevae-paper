@@ -17,7 +17,8 @@ from utils.pipelinetools import VarianceSelector,Log1pTransform,StandardTransfor
 
 def main(endpoint:str,
          shuffle:int,
-         fold:int) -> None:
+         fold:int,
+         fulldata:bool=False) -> None:
 
     # oscdy is the time to overall survival
     # censos is the event flag for overall survival
@@ -25,20 +26,26 @@ def main(endpoint:str,
     # censpfs is the event flag for progression-free survival
     survcols = [f'{endpoint}cdy',f'cens{endpoint}']
 
-    datadir=f"{os.environ.get('SPLITDATADIR')}/{shuffle}/{fold}"
+    splitsdir = os.environ.get('SPLITDATADIR')
+    if fulldata:
+        datadir = splitsdir
+        features_file = f'{datadir}/full_features.parquet'
+        train_surv_file = f'{datadir}/full_labels.parquet'
+        train_out_features_file = f'{datadir}/full_features_{endpoint}_processed_joint_imputation.parquet'
+    else:
+        datadir = f'{splitsdir}/{shuffle}/{fold}'
+        features_file = f'{datadir}/train_features_mut.parquet'
+        train_surv_file = f'{datadir}/train_labels.parquet'
+        valid_features_file = f'{datadir}/valid_features_mut.parquet'
+        train_out_features_file = f'{datadir}/train_features_{endpoint}_processed_joint_imputation.parquet'
+        valid_out_features_file = f'{datadir}/valid_features_{endpoint}_processed_joint_imputation.parquet'
 
-    features_file=f'{datadir}/train_features_mut.parquet'
     features = pd.read_parquet(features_file)
-
-    train_surv_file=f'{datadir}/train_labels.parquet'
     train_surv = pd.read_parquet(train_surv_file,columns=survcols)
     train_surv.rename(columns={f'{endpoint}cdy':'survtime',f'cens{endpoint}':'survflag'},inplace=True)
 
-    valid_features_file=f'{datadir}/valid_features_mut.parquet'
-    valid_features = pd.read_parquet(valid_features_file)
-
-    train_out_features_file=f'{datadir}/train_features_{endpoint}_processed_joint_imputation.parquet'
-    valid_out_features_file=f'{datadir}/valid_features_{endpoint}_processed_joint_imputation.parquet'    
+    if not fulldata:
+        valid_features = pd.read_parquet(valid_features_file)
 
     transformer_gene_exp = Pipeline([
         ('Non-zero variance', VarianceSelector(threshold=0)),
@@ -127,8 +134,9 @@ def main(endpoint:str,
     out = pipeline.fit_transform(features, train_y)
     out.to_parquet(train_out_features_file)
 
-    outv = pipeline.transform(valid_features)
-    outv.to_parquet(valid_out_features_file)
+    if not fulldata:
+        outv = pipeline.transform(valid_features)
+        outv.to_parquet(valid_out_features_file)
         
     print(f'# significant features remaining:')
     print(f'RNA exp:\t{out.filter(regex="Feature_exp_ENSG").shape[1]} \t out of \t {features.filter(regex="Feature_exp_ENSG").shape[1]}')
@@ -143,10 +151,11 @@ def main(endpoint:str,
 if __name__ == "__main__":
     parser = ArgumentParser(description='Select significant features and preprocess them')
     parser.add_argument('-e','--endpoint', type=str, choices=['pfs', 'os'], help='Survival endpoint to select features against (pfs or os)')
+    parser.add_argument('-f','--fulldata', action='store_true', help='Preprocess all data without a validation split')
     args = parser.parse_args()
 
     _pbs_array_id = int(os.getenv('PBS_ARRAY_INDEX', "-1"))
     pbs_shuffle=_pbs_array_id%10
     pbs_fold=_pbs_array_id//10
     
-    main(args.endpoint,pbs_shuffle,pbs_fold)
+    main(args.endpoint,pbs_shuffle,pbs_fold,args.fulldata)
