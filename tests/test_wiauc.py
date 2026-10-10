@@ -12,8 +12,17 @@ import utils.wiauc as wiauc
 score_wiauc = import_module("pipeline.4_score_wiauc")
 
 
-def test_load_training_data_uses_full_preprocessing_artifacts(tmp_path, monkeypatch):
-    features_path = tmp_path / "full_features_pfs_processed.parquet"
+@pytest.mark.parametrize(
+    ("architecture", "feature_name"),
+    [
+        ("VAE", "full_features_pfs_processed_mut_nan.parquet"),
+        ("CoxPH", "full_features_pfs_processed.parquet"),
+    ],
+)
+def test_load_training_data_uses_full_preprocessing_artifacts(
+    tmp_path, monkeypatch, architecture, feature_name
+):
+    features_path = tmp_path / feature_name
     labels_path = tmp_path / "full_labels.parquet"
     features_path.touch()
     labels_path.touch()
@@ -27,10 +36,22 @@ def test_load_training_data_uses_full_preprocessing_artifacts(tmp_path, monkeypa
     monkeypatch.setattr(score_wiauc.pd, "read_parquet", fake_read_parquet)
 
     score_wiauc._load_training_data(
-        {"endpoint": "pfs", "fulldata": True, "shuffle": 9, "fold": 4}
+        {
+            "endpoint": "pfs",
+            "fulldata": True,
+            "shuffle": 9,
+            "fold": 4,
+            "architecture": architecture,
+        }
     )
 
     assert read_paths == [features_path, labels_path]
+
+
+def test_model_params_fall_back_to_params_fixed_for_full_model():
+    params_fixed = {"z_dim": 128, "input_types": ["exp"]}
+
+    assert score_wiauc._model_params({"params_fixed": params_fixed}) is params_fixed
 
 
 def test_model_architecture_detects_coxph_baseline_metadata():

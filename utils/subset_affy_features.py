@@ -22,7 +22,8 @@ def subset_to_microarray_genes(df:pd.DataFrame) -> tuple[pd.DataFrame,list[str]]
     idx_not_in_affy = np.where(~genenames.iloc[:,0].isin(affygenes))
     
     # names of gene features that do not have affy probes
-    colnames_not_in_affy = df.filter(regex='Feature_exp').columns[idx_not_in_affy]
+    expression_columns = df.filter(regex='Feature_exp').columns
+    colnames_not_in_affy = expression_columns.to_numpy()[idx_not_in_affy[0]]
     
     # set aside genes in affy probes to return
     affy_genenames = list(set(affygenes).intersection(set(genenames.iloc[:,0])))
