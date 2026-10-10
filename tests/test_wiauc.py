@@ -1,7 +1,153 @@
+import json
+from importlib import import_module
+import sys
+from types import ModuleType
+
 import numpy as np
+import pandas as pd
 import pytest
 
 import utils.wiauc as wiauc
+
+score_wiauc = import_module("pipeline.4_score_wiauc")
+
+
+def test_load_training_data_uses_full_preprocessing_artifacts(tmp_path, monkeypatch):
+    features_path = tmp_path / "full_features_pfs_processed.parquet"
+    labels_path = tmp_path / "full_labels.parquet"
+    features_path.touch()
+    labels_path.touch()
+    read_paths = []
+
+    def fake_read_parquet(path):
+        read_paths.append(path)
+        return pd.DataFrame()
+
+    monkeypatch.setenv("SPLITDATADIR", str(tmp_path))
+    monkeypatch.setattr(score_wiauc.pd, "read_parquet", fake_read_parquet)
+
+    score_wiauc._load_training_data(
+        {"endpoint": "pfs", "fulldata": True, "shuffle": 9, "fold": 4}
+    )
+
+    assert read_paths == [features_path, labels_path]
+
+
+def test_model_architecture_detects_coxph_baseline_metadata():
+    assert score_wiauc._model_architecture({"endpoint": "pfs", "use_clin": True}) == "coxph"
+
+
+def test_model_input_types_reject_external_modalities_not_available():
+    with pytest.raises(ValueError, match="support only expression and clinical"):
+        score_wiauc._model_input_types(
+            "deepsurv",
+            {"input_types_all": "['mut', 'clin']"},
+            {},
+        )
+
+
+@pytest.mark.parametrize(
+    ("architecture", "module_name", "class_name"),
+    [
+        ("coxnet", "modules_coxnet.estimator", "Coxnet"),
+        ("rsf", "modules_rsf.estimator", "RSF"),
+    ],
+)
+def test_build_model_refits_sksurv_estimators_from_saved_params(
+    architecture, module_name, class_name, tmp_path, monkeypatch
+):
+    class FakeEstimator:
+        def __init__(self, eventcol, durationcol, input_types_all, subset_microarray=False, **kwargs):
+            self.model = object()
+            self.input_types_all = input_types_all
+
+        def fit(self, training_data):
+            self.training_data = training_data
+            return self
+
+    fake_module = ModuleType(module_name)
+    setattr(fake_module, class_name, FakeEstimator)
+    monkeypatch.setitem(sys.modules, module_name, fake_module)
+    weights_file = tmp_path / "model.pth"
+    weights_file.write_text(json.dumps({"n_estimators": 17, "l1_ratio": 0.3}))
+    results = {
+        "params_fixed": {
+            "architecture": architecture,
+            "endpoint": "pfs",
+            "eventcol": "censpfs",
+            "durationcol": "pfscdy",
+            "subset": False,
+        },
+        "best_epoch": {
+            "params": {
+                "input_types_all": "['exp', 'clin']",
+                "scale_method": "std",
+            }
+        },
+    }
+    train_features = pd.DataFrame({"Feature_exp_G1": [0.1, 0.2]})
+    train_labels = pd.DataFrame({"censpfs": [True, False], "pfscdy": [10, 20]})
+
+    model, input_types, subtask_inputs, prediction_type = score_wiauc._build_model(
+        results, train_features, train_labels, architecture, weights_file
+    )
+
+    assert model is not None
+    assert input_types == ["exp", "clin"]
+    assert subtask_inputs == []
+    assert prediction_type == "sklearn"
+
+
+def test_build_coxph_model_refits_selected_baseline(tmp_path, monkeypatch):
+    class FakeBaseline:
+        def fit(self, training_data, survival):
+            self.training_data = training_data
+            self.survival = survival
+            return self
+
+    import utils.coxph as coxph
+
+    captured = {}
+
+    def fake_create_baseline_model(feature_pattern, use_clin):
+        captured["feature_pattern"] = feature_pattern
+        captured["use_clin"] = use_clin
+        return FakeBaseline()
+
+    monkeypatch.setattr(coxph, "create_baseline_model", fake_create_baseline_model)
+    monkeypatch.setattr(
+        score_wiauc,
+        "_external_coxph_inputs",
+        lambda endpoint: {
+            "UAMS": {
+                "features": pd.DataFrame(
+                    columns=["Feature_clin_D_PT_age", "Feature_GEP_UAMS70"]
+                )
+            }
+        },
+    )
+    score_path = tmp_path / "commpass_scores.csv"
+    pd.DataFrame({"Feature_UAMS70": [0.4, 0.7]}, index=["P1", "P2"]).to_csv(score_path)
+    monkeypatch.setenv("COMMPASSRISKSCOREFILE", str(score_path))
+    training_features = pd.DataFrame(
+        {"Feature_clin_D_PT_age": [60, 70]}, index=["P1", "P2"]
+    )
+    training_labels = pd.DataFrame(
+        {"censpfs": [True, False], "pfscdy": [-2.0, 20.0]}, index=["P1", "P2"]
+    )
+    model_json = tmp_path / "GEP_UAMS70" / "pfs_shuffle0_fold0.json"
+    results = {"endpoint": "pfs", "use_clin": True}
+
+    model, _ = score_wiauc._build_coxph_model(
+        results, model_json, training_features, training_labels
+    )
+
+    assert captured == {"feature_pattern": "Feature_GEP_UAMS70", "use_clin": True}
+    assert model.training_data.columns.tolist() == [
+        "Feature_clin_D_PT_age",
+        "Feature_GEP_UAMS70",
+    ]
+    assert model.survival["time"].tolist() == [0.0, 22.0]
 
 
 def test_weekly_horizons_cover_12_to_24_months():
