@@ -366,13 +366,154 @@ def test_excluded_validation_cohorts_follow_model_json_path(model_json, expected
     ) == expected
 
 
-def test_model_input_types_reject_external_modalities_not_available():
-    with pytest.raises(ValueError, match="support only expression and clinical"):
-        score_wiauc._model_input_types(
-            "deepsurv",
-            {"input_types_all": "['mut', 'clin']"},
-            {},
+def test_model_input_types_accept_internal_modalities_not_available_externally():
+    assert score_wiauc._model_input_types(
+        "deepsurv",
+        {"input_types_all": "['mut', 'clin']"},
+        {},
+    ) == (["mut", "clin"], [])
+
+    assert score_wiauc._model_input_types(
+        "vae",
+        {
+            "input_types": "['cna', 'gistic', 'fish', 'sbs', 'ig', 'mut']",
+            "input_types_subtask": "['clin']",
+        },
+        {},
+    ) == (["cna", "gistic", "fish", "sbs", "ig", "mut"], ["clin"])
+
+
+def test_internal_prediction_inputs_selects_modality_columns_and_imputes_missing_values():
+    features = pd.DataFrame(
+        {
+            "Feature_CNA_ENSG1": [1.0, np.nan],
+            "Feature_CNA_Amp1": [0.0, 1.0],
+            "Feature_mut_G1": [np.nan, 1.0],
+            "Feature_clin_age": [60.0, 70.0],
+        }
+    )
+
+    inputs = score_wiauc._internal_prediction_inputs(
+        features, ["cna", "gistic", "mut", "clin"]
+    )
+
+    assert inputs["cna"].columns.tolist() == ["Feature_CNA_ENSG1"]
+    assert inputs["gistic"].columns.tolist() == ["Feature_CNA_Amp1"]
+    assert inputs["mut"].to_numpy().tolist() == [[0.0], [1.0]]
+    assert inputs["clin"].to_numpy().tolist() == [[60.0], [70.0]]
+
+
+def test_predict_risk_scores_routes_vae_and_subtask_modalities():
+    class FakeVAE(score_wiauc.torch.nn.Module):
+        def forward(self, inputs):
+            self.inputs = inputs
+            return None, None, None, inputs[0][0][:, :1] + inputs[1][0][:, :1]
+
+    model = FakeVAE()
+    cohort = {
+        "cna": pd.DataFrame({"cna": [1.0, 2.0]}),
+        "mut": pd.DataFrame({"mut": [3.0, 4.0]}),
+        "clin": pd.DataFrame({"clin": [5.0, 6.0]}),
+    }
+
+    risk_scores = score_wiauc._predict_risk_scores(
+        model, cohort, ["cna", "mut"], "vae", ["clin"]
+    )
+
+    assert [tensor.shape[1] for tensor in model.inputs[0]] == [1, 1]
+    assert model.inputs[1][0].tolist() == [[5.0], [6.0]]
+    assert risk_scores.tolist() == [6.0, 8.0]
+
+
+def test_score_model_uses_only_commpass_for_unsupported_modalities(
+    tmp_path, monkeypatch
+):
+    model_json = tmp_path / "multimodal" / "pfs_shuffle0_fold0.json"
+    model_json.parent.mkdir()
+    model_json.write_text(
+        json.dumps(
+            {
+                "params_fixed": {
+                    "architecture": "VAE",
+                    "endpoint": "pfs",
+                    "eventcol": "censpfs",
+                    "durationcol": "pfscdy",
+                    "shuffle": 0,
+                    "fold": 0,
+                    "fulldata": False,
+                },
+                "best_epoch": {
+                    "params": {
+                        "input_types": "['cna', 'mut']",
+                        "input_types_subtask": "['clin']",
+                    }
+                },
+            }
         )
+    )
+    model_json.with_suffix(".pth").touch()
+    train_labels = pd.DataFrame(
+        {"censpfs": [True, False], "pfscdy": [10.0, 20.0]}
+    )
+    validation_features = pd.DataFrame(
+        {
+            "Feature_CNA_ENSG1": [1.0, 2.0],
+            "Feature_mut_G1": [np.nan, 4.0],
+            "Feature_clin_age": [60.0, 70.0],
+        },
+        index=["V1", "V2"],
+    )
+    validation_labels = pd.DataFrame(
+        {"censpfs": [False, True], "pfscdy": [800.0, 900.0]},
+        index=validation_features.index,
+    )
+    validation_variants = []
+
+    class FakeVAE(score_wiauc.torch.nn.Module):
+        def forward(self, inputs):
+            risk_scores = inputs[0][0][:, :1] + inputs[1][0][:, :1]
+            return None, None, None, risk_scores
+
+    monkeypatch.setattr(
+        score_wiauc,
+        "_load_training_data",
+        lambda *args, **kwargs: (pd.DataFrame(), train_labels),
+    )
+    monkeypatch.setattr(
+        score_wiauc,
+        "_build_model",
+        lambda *args: (FakeVAE(), ["cna", "mut"], ["clin"], "vae"),
+    )
+
+    def load_validation_data(params, feature_variant):
+        validation_variants.append(feature_variant)
+        return validation_features, validation_labels
+
+    monkeypatch.setattr(score_wiauc, "_load_validation_data", load_validation_data)
+    monkeypatch.setattr(
+        score_wiauc,
+        "_external_inputs",
+        lambda *args: pytest.fail("unsupported modalities must skip external cohorts"),
+    )
+    captured = {}
+
+    def calculate_wiauc(train_events, train_times, cohorts, excluded_cohorts):
+        captured["cohorts"] = cohorts
+        captured["excluded_cohorts"] = excluded_cohorts
+        return {"wiAUC": 0.7, "cohorts": {"CoMMpass": {"iAUC": 0.7}}}
+
+    monkeypatch.setattr(score_wiauc, "calculate_wiauc", calculate_wiauc)
+
+    report_path = score_wiauc.score_model(model_json)
+
+    assert validation_variants == ["processed_mut_nan"]
+    assert list(captured["cohorts"]) == ["CoMMpass"]
+    assert captured["cohorts"]["CoMMpass"]["risk_scores"].tolist() == [61.0, 72.0]
+    assert captured["excluded_cohorts"] == set()
+    with report_path.open() as stream:
+        report = json.load(stream)
+    assert list(report["cohorts"]) == ["CoMMpass"]
+    assert report["cohort_time_units"] == {"CoMMpass": "days"}
 
 
 @pytest.mark.parametrize(
@@ -608,5 +749,5 @@ def test_calculate_wiauc_fails_on_undefined_horizon_auc(monkeypatch):
 
 
 def test_calculate_wiauc_requires_cohorts():
-    with pytest.raises(ValueError, match="At least one external cohort"):
+    with pytest.raises(ValueError, match="At least one cohort"):
         wiauc.calculate_wiauc(np.array([True]), np.array([10.0]), {})

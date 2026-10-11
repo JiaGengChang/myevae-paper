@@ -17,6 +17,7 @@ load_dotenv(PROJECT_ROOT / ".env")
 
 from modules_vae.estimator import VAE
 from utils.scaler_external import scale_and_impute_external_dataset
+from utils.type_prefixes import type_prefixes_dict
 from utils.wiauc import calculate_wiauc
 
 
@@ -95,20 +96,32 @@ def _model_input_types(architecture: str, params: dict, params_fixed: dict) -> t
     if architecture == "vae":
         vae_inputs = _value(params["input_types"])
         subtask_inputs = _value(params["input_types_subtask"])
-        if vae_inputs != ["exp"] or subtask_inputs != ["clin"]:
-            raise ValueError("External parsers currently support VAE inputs ['exp'] and subtask inputs ['clin']")
+        if (
+            not isinstance(vae_inputs, list)
+            or not vae_inputs
+            or not all(isinstance(input_type, str) for input_type in vae_inputs)
+            or not isinstance(subtask_inputs, list)
+            or not all(isinstance(input_type, str) for input_type in subtask_inputs)
+        ):
+            raise ValueError("VAE input_types and input_types_subtask must be lists of modality names")
         return vae_inputs, subtask_inputs
 
     input_types = _value(params.get("input_types_all", params_fixed.get("input_types_all")))
-    if not isinstance(input_types, list) or not input_types:
+    if (
+        not isinstance(input_types, list)
+        or not input_types
+        or not all(isinstance(input_type, str) for input_type in input_types)
+    ):
         raise ValueError("Model JSON is missing a non-empty input_types_all list")
-    unsupported = [input_type for input_type in input_types if input_type not in {"exp", "clin"}]
-    if unsupported:
-        raise ValueError(
-            "External cohort parsers support only expression and clinical features; "
-            f"this model requires {unsupported}"
-        )
     return input_types, []
+
+
+def _supports_external_cohorts(
+    architecture: str, input_types: list[str], input_types_subtask: list[str]
+) -> bool:
+    if architecture == "vae":
+        return input_types == ["exp"] and input_types_subtask == ["clin"]
+    return all(input_type in {"exp", "clin"} for input_type in input_types)
 
 
 def _load_training_data(
@@ -191,15 +204,17 @@ def _internal_prediction_inputs(
 ) -> dict[str, pd.DataFrame]:
     inputs = {}
     for input_type in input_types:
-        prefix = f"Feature_{input_type}_"
-        selected = features.loc[:, features.columns.str.contains(prefix)]
+        pattern = type_prefixes_dict.get(input_type)
+        if pattern is None:
+            raise ValueError(
+                f"CoMMpass validation data has no feature mapping for input type {input_type!r}"
+            )
+        selected = features.filter(regex=pattern)
         if selected.shape[1] == 0:
             raise ValueError(
                 f"CoMMpass validation data is missing features for input type {input_type!r}"
             )
-        inputs[input_type] = selected.rename(
-            columns=lambda column: column.removeprefix(prefix)
-        )
+        inputs[input_type] = selected.fillna(0.0)
     return inputs
 
 
@@ -260,9 +275,9 @@ def _build_model(
             eventcol=event_col,
             durationcol=duration_col,
             kl_weight=float(_value(params["kl_weight"])),
-            activation=_activation("LeakyReLU()"),
-            subtask_activation=_activation("LeakyReLU()"),
-            scale_method=params["scale_method"],
+            activation=_activation(params.get("activation", "LeakyReLU()")),
+            subtask_activation=_activation(params.get("subtask_activation", "Tanh()")),
+            scale_method=params.get("scale_method","std"),
             topKgenes=_value(params.get("topKgenes")),
         )
         estimator.fit(train_data)
@@ -328,16 +343,24 @@ def _build_model(
     return estimator.model, input_types, [], "sklearn"
 
 
-def _predict_risk_scores(model, cohort: dict, input_types: list[str], prediction_type: str) -> np.ndarray:
+def _predict_risk_scores(
+    model,
+    cohort: dict,
+    input_types: list[str],
+    prediction_type: str,
+    input_types_subtask: list[str] | None = None,
+) -> np.ndarray:
     feature_tensors = [
         torch.as_tensor(cohort[input_type].to_numpy(), dtype=torch.float64)
         for input_type in input_types
     ]
     if prediction_type == "vae":
-        expression = torch.as_tensor(cohort["exp"].to_numpy(), dtype=torch.float64)
-        clinical = torch.as_tensor(cohort["clin"].to_numpy(), dtype=torch.float64)
+        subtask_tensors = [
+            torch.as_tensor(cohort[input_type].to_numpy(), dtype=torch.float64)
+            for input_type in input_types_subtask or []
+        ]
         with torch.no_grad():
-            _, _, _, risk_scores = model([[expression], [clinical]])
+            _, _, _, risk_scores = model([feature_tensors, subtask_tensors])
         return risk_scores.reshape(-1).cpu().numpy()
 
     features = torch.cat(feature_tensors, dim=-1)
@@ -559,7 +582,10 @@ def score_model(model_json: Path, weights_path: str | None = None, report_path: 
             results, train_features, train_labels, architecture, weights_file
         )
         params = _model_params(results)
-        external = _external_inputs(params_fixed, params.get("scale_method", "std"))
+        if _supports_external_cohorts(architecture, input_types, input_types_subtask):
+            external = _external_inputs(params_fixed, params.get("scale_method", "std"))
+        else:
+            external = {}
         cohorts = {}
         for name, cohort in external.items():
             prediction_inputs = {
@@ -570,14 +596,18 @@ def score_model(model_json: Path, weights_path: str | None = None, report_path: 
                 "events": cohort["events"],
                 "times_days": cohort["times_days"],
                 "risk_scores": _predict_risk_scores(
-                    model, prediction_inputs, input_types, prediction_type
+                    model,
+                    prediction_inputs,
+                    input_types,
+                    prediction_type,
+                    input_types_subtask,
                 ),
             }
         event_col = params_fixed["eventcol"]
         duration_col = params_fixed["durationcol"]
         if not params_fixed.get("fulldata", False):
             validation_features, validation_labels = _load_validation_data(
-                params_fixed, feature_variant="processed_joint_imputation"
+                params_fixed, feature_variant="processed_mut_nan"
             )
             validation_inputs = _internal_prediction_inputs(
                 validation_features, input_types + input_types_subtask
@@ -586,7 +616,11 @@ def score_model(model_json: Path, weights_path: str | None = None, report_path: 
                 "events": validation_labels[event_col].to_numpy(dtype=bool),
                 "times_days": validation_labels[duration_col].to_numpy(dtype=float),
                 "risk_scores": _predict_risk_scores(
-                    model, validation_inputs, input_types, prediction_type
+                    model,
+                    validation_inputs,
+                    input_types,
+                    prediction_type,
+                    input_types_subtask,
                 ),
             }
         training_split = {
@@ -599,7 +633,7 @@ def score_model(model_json: Path, weights_path: str | None = None, report_path: 
         train_labels[event_col].to_numpy(dtype=bool),
         train_labels[duration_col].to_numpy(dtype=float),
         cohorts,
-        excluded_cohorts=_excluded_validation_cohorts(model_json),
+        excluded_cohorts=_excluded_validation_cohorts(model_json).intersection(cohorts),
     )
     report["model_json"] = str(model_json)
     report["architecture"] = architecture
@@ -626,7 +660,7 @@ def score_model(model_json: Path, weights_path: str | None = None, report_path: 
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Score a trained PFS VAE on external cohorts with wiAUC")
+    parser = argparse.ArgumentParser(description="Score a trained PFS model on validation cohorts with wiAUC")
     parser.add_argument("model_json", help="Path to the trained model JSON")
     parser.add_argument("--weights", help="Optional path to the trained .pth checkpoint")
     parser.add_argument("--output", help="Optional path for the wiAUC JSON report")
