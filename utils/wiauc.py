@@ -102,12 +102,10 @@ def calculate_wiauc(
         if auc_values.shape != horizons_days.shape or not np.isfinite(auc_values).all():
             raise ValueError(f"Time-dependent AUC is undefined for one or more {name} horizons")
 
-        n_high_risk = len(top_risk_indices(risk_scores))
         cohort_weight = len(events)
         iauc = float(np.mean(auc_values))
         cohort_results[name] = {
             "n_patients": int(len(events)),
-            "n_high_risk": int(n_high_risk),
             "cohort_weight": int(cohort_weight),
             "iAUC": iauc,
             "weekly_auc": [float(value) for value in auc_values],
@@ -119,6 +117,13 @@ def calculate_wiauc(
 
     if total_weight == 0:
         raise ValueError("No included cohorts have a non-zero patient-count weight")
+
+    for name, cohort in cohort_results.items():
+        cohort["cohort_weight"] = (
+            float(cohort["n_patients"] / total_weight)
+            if cohort["included_in_wiauc"]
+            else 0.0
+        )
 
     return {
         "metric": "time-weighted integrated AUC (wiAUC)",
@@ -132,8 +137,8 @@ def calculate_wiauc(
         "auc_average": "arithmetic mean across weekly horizons, including both 12- and 24-month endpoints",
         "time_shift_days": float(time_shift_days),
         "risk_score_direction": "higher scores indicate higher risk",
-        "high_risk_definition": "top 20% of patients ranked by within-cohort predicted risk; ceil(20% of cohort size), stable input-order tie breaking",
-        "cohort_weight_definition": "number of patients in the cohort",
+        "cohort_weight_definition": "cohort patient count divided by the total patient count across included cohorts; excluded cohorts have weight 0",
+        "total_weight": int(total_weight),
         "excluded_cohorts_from_wiauc": sorted(excluded_cohorts),
         "cohorts": cohort_results,
         "wiAUC": float(weighted_auc / total_weight),

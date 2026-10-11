@@ -633,7 +633,7 @@ def main() -> None:
         report = json.load(stream)
     print(f"Report: {output_path}")
     for name, values in report["cohorts"].items():
-        print(f"{name}: iAUC={values['iAUC']:.6f}, n_high_risk={values['n_high_risk']}")
+        print(f"{name}: iAUC={values['iAUC']:.6f}, cohort_weight={values['cohort_weight']:.3%}")
     print(f"wiAUC: {report['wiAUC']:.6f}")
 
 

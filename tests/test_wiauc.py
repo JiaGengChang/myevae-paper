@@ -523,12 +523,14 @@ def test_calculate_wiauc_weights_by_cohort_patient_count(monkeypatch):
     result = wiauc.calculate_wiauc(train_events, train_times, cohorts)
 
     assert result["time_shift_days"] == 2.0
-    assert result["cohorts"]["small"]["n_high_risk"] == 1
-    assert result["cohorts"]["large"]["n_high_risk"] == 2
-    assert result["cohorts"]["small"]["cohort_weight"] == 5
-    assert result["cohorts"]["large"]["cohort_weight"] == 10
-    assert result["cohorts"]["CoMMpass"]["n_high_risk"] == 3
-    assert result["cohorts"]["CoMMpass"]["cohort_weight"] == 15
+    assert "n_high_risk" not in result["cohorts"]["small"]
+    assert result["cohorts"]["small"]["cohort_weight"] == pytest.approx(5 / 30)
+    assert result["cohorts"]["large"]["cohort_weight"] == pytest.approx(10 / 30)
+    assert result["cohorts"]["CoMMpass"]["cohort_weight"] == pytest.approx(15 / 30)
+    assert sum(
+        cohort["cohort_weight"] for cohort in result["cohorts"].values()
+    ) == pytest.approx(1.0)
+    assert result["total_weight"] == 30
     assert result["wiAUC"] == pytest.approx((0.6 * 5 + 0.8 * 10 + 0.9 * 15) / 30)
 
 
@@ -578,6 +580,10 @@ def test_calculate_wiauc_excludes_selected_cohorts_from_weighted_score(
     assert result["cohorts"]["EMTAB4032"]["included_in_wiauc"] is True
     assert result["excluded_cohorts_from_wiauc"] == [excluded_cohort]
     assert result["wiAUC"] == pytest.approx(expected_wiauc)
+    assert result["cohorts"][excluded_cohort]["cohort_weight"] == 0.0
+    assert sum(
+        cohort["cohort_weight"] for cohort in result["cohorts"].values()
+    ) == pytest.approx(1.0)
 
 
 def test_calculate_wiauc_fails_on_undefined_horizon_auc(monkeypatch):
