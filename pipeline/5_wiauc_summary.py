@@ -4,6 +4,8 @@ from pathlib import Path
 
 import numpy as np
 
+COHORT_ORDER = ("CoMMpass", "UAMS", "HOVON65", "Masaryk", "APEX039")
+
 
 def _summary_statistics(scores: list[float]) -> dict[str, float | int]:
     count = len(scores)
@@ -20,9 +22,10 @@ def _summary_statistics(scores: list[float]) -> dict[str, float | int]:
 def _cohort_name(name: str) -> str:
     """Use familiar dataset names while retaining unknown cohort labels."""
     aliases = {
-        "EMTAB4032": "EMTAB",
-        "HOVON65": "GMMG-HD4",
-        "APEX039": "APEX",
+        "EMTAB4032": "Masaryk",
+        "HOVON65": "HOVON65",
+        "APEX039": "APEX039",
+        "COMMPASS": "CoMMpass",
     }
     return aliases.get(name.upper(), name)
 
@@ -68,7 +71,14 @@ def summary_statistics_wiauc(
 
     summary = _summary_statistics(scores)
     summary["cohorts"] = {
-        name: _summary_statistics(values) for name, values in sorted(cohort_scores.items())
+        name: _summary_statistics(cohort_scores[name])
+        for name in sorted(
+            cohort_scores,
+            key=lambda cohort: (
+                COHORT_ORDER.index(cohort) if cohort in COHORT_ORDER else len(COHORT_ORDER),
+                cohort,
+            ),
+        )
     }
     return summary
 
