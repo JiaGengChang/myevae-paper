@@ -53,7 +53,7 @@ def calculate_wiauc(
     excluded_cohorts: Collection[str] = (),
 ) -> dict:
     if not cohorts:
-        raise ValueError("At least one external cohort is required")
+        raise ValueError("At least one cohort is required")
 
     excluded_cohorts = set(excluded_cohorts)
     unknown_exclusions = excluded_cohorts.difference(cohorts)
