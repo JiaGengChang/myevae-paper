@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#PBS -N modMask_cna_gistic_fish_sbs_ig_mut
+#PBS -N modMask_exp_cna_gistic_fish_sbs_ig_mut
 #PBS -P 11004309
 #PBS -j oe
 #PBS -o /home/users/nus/e1083772/cancer-survival-ml/.pbs/3_gridsearchcv/vae_modality_mask/
