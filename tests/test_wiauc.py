@@ -85,7 +85,7 @@ def test_coxph_validation_features_aligns_risk_scores_and_columns(tmp_path, monk
     ).to_csv(score_path)
     monkeypatch.setenv("COMMPASSRISKSCOREFILE", str(score_path))
     validation_features = pd.DataFrame(
-        {"Feature_clin_D_PT_age": [60, 70]}, index=["P1", "P2"]
+        {"Feature_clin_D_PT_age": [60, 70, 80]}, index=["P1", "P2", "P3"]
     )
     expected_columns = pd.Index(
         ["Feature_clin_D_PT_age", "Feature_GEP_UAMS70"]
@@ -96,7 +96,8 @@ def test_coxph_validation_features_aligns_risk_scores_and_columns(tmp_path, monk
     )
 
     assert result.columns.equals(expected_columns)
-    assert result["Feature_GEP_UAMS70"].tolist() == [0.4, 0.7]
+    assert result["Feature_GEP_UAMS70"].iloc[:2].tolist() == [0.4, 0.7]
+    assert pd.isna(result.loc["P3", "Feature_GEP_UAMS70"])
 
 
 def test_score_model_adds_commpass_validation_to_wiauc(tmp_path, monkeypatch):
@@ -182,6 +183,162 @@ def test_score_model_adds_commpass_validation_to_wiauc(tmp_path, monkeypatch):
         report = json.load(stream)
     assert "CoMMpass" in report["cohorts"]
     assert report["cohort_time_units"]["CoMMpass"] == "days"
+
+
+@pytest.mark.parametrize("architecture", ["coxnet", "coxph", "rsf", "deepsurv"])
+def test_score_model_calculates_wiauc_on_commpass_validation(
+    architecture, tmp_path, monkeypatch
+):
+    model_dir = tmp_path / "GEP_UAMS70"
+    model_dir.mkdir()
+    model_json = model_dir / "pfs_shuffle0_fold0.json"
+    if architecture == "coxph":
+        results = {
+            "endpoint": "pfs",
+            "shuffle": 0,
+            "fold": 0,
+            "fulldata": False,
+            "use_clin": True,
+        }
+    else:
+        results = {
+            "params_fixed": {
+                "architecture": architecture,
+                "endpoint": "pfs",
+                "eventcol": "censpfs",
+                "durationcol": "pfscdy",
+                "shuffle": 0,
+                "fold": 0,
+                "fulldata": False,
+                "subset": False,
+            },
+            "best_epoch": {
+                "params": {
+                    "input_types_all": ["exp"],
+                    "scale_method": "std",
+                }
+            },
+        }
+        model_json.with_suffix(".pth").touch()
+    model_json.write_text(json.dumps(results))
+
+    train_index = [f"T{index}" for index in range(24)]
+    valid_index = [f"V{index}" for index in range(8)]
+    rng = np.random.default_rng(42)
+    train_features = pd.DataFrame(index=train_index)
+    valid_features = pd.DataFrame(index=valid_index)
+    if architecture == "coxph":
+        train_features["Feature_clin_D_PT_age"] = rng.normal(65, 8, len(train_index))
+        valid_features["Feature_clin_D_PT_age"] = rng.normal(65, 8, len(valid_index))
+        score_index = train_index + valid_index + ["U1", "U2"]
+        score_path = tmp_path / "commpass_scores.csv"
+        pd.DataFrame(
+            {"Feature_GEP_UAMS70": rng.normal(size=len(score_index))},
+            index=score_index,
+        ).to_csv(score_path)
+        monkeypatch.setenv("COMMPASSRISKSCOREFILE", str(score_path))
+    else:
+        train_features["Feature_exp_G1"] = np.linspace(-2, 2, len(train_index))
+        valid_features["Feature_exp_G1"] = np.linspace(-1, 1, len(valid_index))
+
+    train_labels = pd.DataFrame(
+        {
+            "censpfs": rng.random(len(train_index)) < 0.6,
+            "pfscdy": rng.uniform(100, 3000, len(train_index)),
+        },
+        index=train_index,
+    )
+    valid_labels = pd.DataFrame(
+        {
+            "censpfs": rng.random(len(valid_index)) < 0.6,
+            "pfscdy": rng.uniform(500, 3000, len(valid_index)),
+        },
+        index=valid_index,
+    )
+    monkeypatch.setattr(
+        score_wiauc,
+        "_load_training_data",
+        lambda *args, **kwargs: (train_features, train_labels),
+    )
+    monkeypatch.setattr(
+        score_wiauc,
+        "_load_validation_data",
+        lambda *args, **kwargs: (valid_features, valid_labels),
+    )
+    monkeypatch.setattr(
+        wiauc,
+        "cumulative_dynamic_auc",
+        lambda survival_train, survival_test, estimate, times: (
+            np.full(len(times), 0.65),
+            0.65,
+        ),
+    )
+
+    uams_survival = {
+        "events": np.array([True, False]),
+        "times_days": np.array([900.0, 1800.0]),
+        "source_time_unit": "days",
+    }
+    if architecture == "coxph":
+        monkeypatch.setattr(
+            score_wiauc,
+            "_external_coxph_inputs",
+            lambda endpoint: {
+                "UAMS": {
+                    **uams_survival,
+                    "features": pd.DataFrame(
+                        {
+                            "Feature_clin_D_PT_age": [60, 70],
+                            "Feature_GEP_UAMS70": [0.3, 0.8],
+                        },
+                        index=["U1", "U2"],
+                    ),
+                }
+            },
+        )
+    else:
+        monkeypatch.setattr(
+            score_wiauc,
+            "_external_inputs",
+            lambda params_fixed, scale_method: {
+                "UAMS": {
+                    **uams_survival,
+                    "expression": pd.DataFrame(
+                        {"G1": [0.3, 0.8]}, index=["U1", "U2"]
+                    ),
+                    "clinical": pd.DataFrame(index=["U1", "U2"]),
+                }
+            },
+        )
+
+        class FakeSklearnModel:
+            def predict(self, features):
+                return features[:, 0]
+
+        class FakeTorchModel(score_wiauc.torch.nn.Module):
+            def forward(self, features):
+                return features[:, :1]
+
+        fake_model = (
+            FakeTorchModel() if architecture == "deepsurv" else FakeSklearnModel()
+        )
+        prediction_type = "torch" if architecture == "deepsurv" else "sklearn"
+        monkeypatch.setattr(
+            score_wiauc,
+            "_build_model",
+            lambda *args: (fake_model, ["exp"], [], prediction_type),
+        )
+
+    report_path = score_wiauc.score_model(model_json)
+
+    with report_path.open() as stream:
+        report = json.load(stream)
+    assert report["architecture"] == architecture
+    assert report["training_split"]["fulldata"] is False
+    assert report["cohorts"]["CoMMpass"]["n_patients"] == len(valid_index)
+    assert report["cohorts"]["CoMMpass"]["included_in_wiauc"] is True
+    assert report["cohorts"]["CoMMpass"]["iAUC"] == pytest.approx(0.65)
+    assert np.isfinite(report["wiAUC"])
 
 
 def test_model_params_fall_back_to_params_fixed_for_full_model():

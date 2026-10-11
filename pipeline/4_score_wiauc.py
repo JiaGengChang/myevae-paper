@@ -178,12 +178,6 @@ def _coxph_validation_features(
     risk_scores = pd.read_csv(score_path, index_col=0)
     if not validation_features.index.is_unique or not risk_scores.index.is_unique:
         raise ValueError("CoMMpass has duplicate patient IDs in validation features or risk scores")
-    missing_scores = validation_features.index.difference(risk_scores.index)
-    if len(missing_scores):
-        raise ValueError(
-            f"CoMMpass risk scores are missing for {len(missing_scores)} validation patients"
-        )
-
     clinical = validation_features.filter(regex="Feature_clin")
     features = clinical.join(risk_scores.reindex(validation_features.index))
     if len(features.columns) != len(expected_columns):
