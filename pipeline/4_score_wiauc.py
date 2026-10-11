@@ -211,7 +211,10 @@ def _build_model(
     weights_file: Path,
 ):
     params_fixed = results["params_fixed"]
-    params = _model_params(results)
+    if params_fixed.get("fulldata"):
+        params = results["params_fixed"]
+    else:
+        params = results["best_epoch"]["params"]
     if params_fixed.get("endpoint") != "pfs":
         raise ValueError("External wiAUC scoring requires a PFS model")
 
@@ -257,8 +260,8 @@ def _build_model(
             eventcol=event_col,
             durationcol=duration_col,
             kl_weight=float(_value(params["kl_weight"])),
-            activation=_activation(params.get("activation", "LeakyReLU()")),
-            subtask_activation=_activation(params.get("subtask_activation", "Tanh()")),
+            activation=_activation("LeakyReLU()"),
+            subtask_activation=_activation("LeakyReLU()"),
             scale_method=params["scale_method"],
             topKgenes=_value(params.get("topKgenes")),
         )
