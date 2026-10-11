@@ -113,28 +113,16 @@ Hyperparameters we tuned include
 
 In this section, we describe the procedure to evaluate multiple models.
 
-Run `make eval` or `python modules_vae/eval.py` to extract bottom-line validation metric for all models in the output directory. 
+Run `python pipeline/5_summary.py <model_folder> [os|pfs]` to summarize validation metrics for a model. The model folder contains its endpoint result JSON files, for example `output/example/pfs_shuffle0_fold0.json`. The script calculates the mean metric and its 95% confidence interval across available shuffle/fold results, writing `summary_os.json` and `summary_pfs.json` in the model folder by default. Pass `os` or `pfs` to summarize only that endpoint.
 
-It requires as input the result json files for every model. An example is `output/example/pfs_shuffle0_fold0.json`. Each time a train script is submitted, 50 of these .json files will be produced.
-
-This script creates a results file called `model_scores.json` which can be used for model comparison. It calculates the mean validation metric across the 50 models and its 95% confidence interval.
-
-For example, this is what we would see in `model_scores.json` if we trained 50 copies of with default hyperparameters and named it `baseline`:
+Each endpoint summary file contains that endpoint's statistics:
 
 ```json
-"baseline": {
-    "os": {
-        "mean": 0.7282119335818692,
-        "CI lower": 0.7171406711152226,
-        "CI upper": 0.7392831960485158,
-        "N": 50
-    },
-    "pfs": {
-        "mean": 0.692187214591966,
-        "CI lower": 0.6859096918252172,
-        "CI upper": 0.6984647373587147,
-        "N": 50
-    }
+"valid_metric": {
+    "mean": 0.7282119335818692,
+    "CI lower": 0.7171406711152226,
+    "CI upper": 0.7392831960485158,
+    "N": 50
 }
 ```
 The model predicts Progression Free Survival with C-index 0.692 and Overall survival with C-index 0.728. In Multiple myeloma, overall survival (i.e. death) is easier to predict, and we think this is because it is a more well-defined event. On the other hand, what constitutes a progression is more vague; it is either relapse, resistance to treatment, or increase in CREB scores (a test of renal function).
