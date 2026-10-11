@@ -103,7 +103,7 @@ def calculate_wiauc(
             raise ValueError(f"Time-dependent AUC is undefined for one or more {name} horizons")
 
         n_high_risk = len(top_risk_indices(risk_scores))
-        cohort_weight = n_high_risk**2
+        cohort_weight = len(events)
         iauc = float(np.mean(auc_values))
         cohort_results[name] = {
             "n_patients": int(len(events)),
@@ -118,7 +118,7 @@ def calculate_wiauc(
             total_weight += cohort_weight
 
     if total_weight == 0:
-        raise ValueError("No included cohorts have a non-zero squared high-risk cohort weight")
+        raise ValueError("No included cohorts have a non-zero patient-count weight")
 
     return {
         "metric": "time-weighted integrated AUC (wiAUC)",
@@ -133,7 +133,7 @@ def calculate_wiauc(
         "time_shift_days": float(time_shift_days),
         "risk_score_direction": "higher scores indicate higher risk",
         "high_risk_definition": "top 20% of patients ranked by within-cohort predicted risk; ceil(20% of cohort size), stable input-order tie breaking",
-        "cohort_weight_definition": "number of high-risk patients squared",
+        "cohort_weight_definition": "number of patients in the cohort",
         "excluded_cohorts_from_wiauc": sorted(excluded_cohorts),
         "cohorts": cohort_results,
         "wiAUC": float(weighted_auc / total_weight),

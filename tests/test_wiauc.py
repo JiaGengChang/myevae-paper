@@ -494,7 +494,7 @@ def test_top_risk_indices_uses_stable_order_for_ties():
     assert wiauc.top_risk_indices(scores).tolist() == [0, 1]
 
 
-def test_calculate_wiauc_uses_squared_high_risk_counts(monkeypatch):
+def test_calculate_wiauc_weights_by_cohort_patient_count(monkeypatch):
     def fake_auc(survival_train, survival_test, estimate, times):
         value = float(estimate[0])
         return np.full(len(times), value), value
@@ -525,18 +525,18 @@ def test_calculate_wiauc_uses_squared_high_risk_counts(monkeypatch):
     assert result["time_shift_days"] == 2.0
     assert result["cohorts"]["small"]["n_high_risk"] == 1
     assert result["cohorts"]["large"]["n_high_risk"] == 2
-    assert result["cohorts"]["small"]["cohort_weight"] == 1
-    assert result["cohorts"]["large"]["cohort_weight"] == 4
+    assert result["cohorts"]["small"]["cohort_weight"] == 5
+    assert result["cohorts"]["large"]["cohort_weight"] == 10
     assert result["cohorts"]["CoMMpass"]["n_high_risk"] == 3
-    assert result["cohorts"]["CoMMpass"]["cohort_weight"] == 9
-    assert result["wiAUC"] == pytest.approx((0.6 + 0.8 * 4 + 0.9 * 9) / 14)
+    assert result["cohorts"]["CoMMpass"]["cohort_weight"] == 15
+    assert result["wiAUC"] == pytest.approx((0.6 * 5 + 0.8 * 10 + 0.9 * 15) / 30)
 
 
 @pytest.mark.parametrize(
     ("excluded_cohort", "expected_wiauc"),
     [
-        ("UAMS", (0.8 * 4 + 0.9 * 9) / 13),
-        ("HOVON65", (0.6 + 0.9 * 9) / 10),
+        ("UAMS", (0.8 * 10 + 0.9 * 15) / 25),
+        ("HOVON65", (0.6 * 5 + 0.9 * 15) / 20),
     ],
 )
 def test_calculate_wiauc_excludes_selected_cohorts_from_weighted_score(
