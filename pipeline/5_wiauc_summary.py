@@ -114,6 +114,12 @@ def main() -> None:
         f"95% CI=({summary['CI lower']:.6f}, {summary['CI upper']:.6f}), "
         f"N={summary['N']}"
     )
+    for name, cohort in summary["cohorts"].items():
+        print(
+            f"{name} iAUC: mean={cohort['mean']:.6f}, "
+            f"95% CI=({cohort['CI lower']:.6f}, {cohort['CI upper']:.6f}), "
+            f"N={cohort['N']}"
+        )
 
 
 if __name__ == "__main__":
